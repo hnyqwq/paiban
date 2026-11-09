@@ -70,7 +70,7 @@
     { "name": "export_failed", "value": "Export failed" },
     { "name": "clear_data", "value": "Clear all data" },
     { "name": "clear_confirm_title", "value": "Clear data" },
-    { "name": "clear_confirm_msg", "value": "All schedules and memos will be deleted permanently. Continue?" },
+    { "name": "clear_confirm_msg", "value": "All schedules, memos and to-dos will be deleted permanently. Continue?" },
     { "name": "btn_clear", "value": "Clear" },
     { "name": "cleared", "value": "Cleared" },
     { "name": "section_about", "value": "About" },
