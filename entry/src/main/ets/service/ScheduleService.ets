@@ -3,7 +3,7 @@ import { preferences } from '@kit.ArkData';
 import { common, ConfigurationConstant } from '@kit.AbilityKit';
 import {
   DayEntry, Shift, ShiftRules, MonthStats, TodoItem,
-  dateKey, daysInMonth, minutesToHoursText
+  dateKey, daysInMonth, minutesToHoursText, pad2
 } from '../model/ScheduleTypes';
 
 const KEY_DAYS = 'schedule_days_v1';
@@ -369,5 +369,108 @@ export class ScheduleService {
     }
     stats.violations = violations;
     return stats;
+  }
+
+  // 把 from 年月的全部班次复制到 to 年月（按同日对齐，覆盖目标已有班次），返回同步天数
+  copyMonthTo(days: DayEntry[], fromYear: number, fromMonth: number, toYear: number, toMonth: number): number {
+    const srcTotal = daysInMonth(fromYear, fromMonth);
+    const dstTotal = daysInMonth(toYear, toMonth);
+    let count = 0;
+    for (let d = 1; d <= Math.min(srcTotal, dstTotal); d++) {
+      const src = this.findEntry(days, dateKey(fromYear, fromMonth, d));
+      if (src === undefined || src.shifts.length === 0) {
+        continue;
+      }
+      const key = dateKey(toYear, toMonth, d);
+      let dst = this.findEntry(days, key);
+      if (dst === undefined) {
+        dst = new DayEntry();
+        dst.date = key;
+        days.push(dst);
+      }
+      const shifts: Shift[] = [];
+      for (const s of src.shifts) {
+        const ns = new Shift();
+        ns.start = s.start;
+        ns.end = s.end;
+        shifts.push(ns);
+      }
+      dst.shifts = shifts;
+      count++;
+    }
+    return count;
+  }
+
+  // 把某一天的班次复制到另一天，返回是否复制
+  copyDayTo(days: DayEntry[], fromDate: string, toDate: string): boolean {
+    const src = this.findEntry(days, fromDate);
+    if (src === undefined || src.shifts.length === 0) {
+      return false;
+    }
+    let dst = this.findEntry(days, toDate);
+    if (dst === undefined) {
+      dst = new DayEntry();
+      dst.date = toDate;
+      days.push(dst);
+    }
+    const shifts: Shift[] = [];
+    for (const s of src.shifts) {
+      const ns = new Shift();
+      ns.start = s.start;
+      ns.end = s.end;
+      shifts.push(ns);
+    }
+    dst.shifts = shifts;
+    return true;
+  }
+
+  // 按规则自动排满本月未排的日期，直到目标工时；返回自动排的天数
+  autoFillMonth(days: DayEntry[], year: number, month: number, rules: ShiftRules): number {
+    const total = daysInMonth(year, month);
+    let worked = 0;
+    for (let d = 1; d <= total; d++) {
+      worked += this.dayMinutes(this.findEntry(days, dateKey(year, month, d)));
+    }
+    const target = rules.monthlyTargetHours * 60;
+    const dailyMin = (rules.minWorkHoursPerDay > 0 ? rules.minWorkHoursPerDay : 8) * 60;
+    let sinceRest = 0;
+    let filled = 0;
+    for (let d = 1; d <= total; d++) {
+      const key = dateKey(year, month, d);
+      const entry = this.findEntry(days, key);
+      if (entry !== undefined && entry.shifts.length > 0) {
+        sinceRest++; // 已排班，按上班日计
+        continue;
+      }
+      if (worked >= target) {
+        break; // 目标工时已够
+      }
+      if (entry !== undefined && entry.shifts.length === 0) {
+        sinceRest = 0; // 手动标记的休息日，保留
+        continue;
+      }
+      if (sinceRest >= rules.maxConsecutiveWorkDays) {
+        sinceRest = 0; // 达到连续上限，当天强制休息（留空）
+        continue;
+      }
+      const remain = target - worked;
+      const dur = Math.min(dailyMin, remain);
+      const startMin = 9 * 60;
+      const endMin = startMin + dur;
+      const ne = entry !== undefined ? entry : (() => {
+        const e = new DayEntry();
+        e.date = key;
+        days.push(e);
+        return e;
+      })();
+      const s = new Shift();
+      s.start = `${pad2(Math.floor(startMin / 60))}:${pad2(startMin % 60)}`;
+      s.end = `${pad2(Math.floor(endMin / 60))}:${pad2(endMin % 60)}`;
+      ne.shifts.push(s);
+      worked += dur;
+      sinceRest++;
+      filled++;
+    }
+    return filled;
   }
 }

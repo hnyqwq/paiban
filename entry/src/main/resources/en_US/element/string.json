@@ -81,6 +81,16 @@
     { "name": "update_dialog_failed", "value": "Failed to show update dialog" },
     { "name": "unit_hours", "value": "h" },
     { "name": "unit_minutes", "value": "min" },
-    { "name": "unit_days", "value": "d" }
+    { "name": "unit_days", "value": "d" },
+    { "name": "sync_to_month", "value": "Sync to month" },
+    { "name": "copy_day", "value": "Copy day shifts" },
+    { "name": "auto_fill", "value": "Auto-fill month" },
+    { "name": "sync_confirm_title", "value": "Sync schedule" },
+    { "name": "sync_confirm_msg", "value": "This will overwrite existing shifts in the target month. Continue?" },
+    { "name": "auto_confirm_title", "value": "Auto schedule" },
+    { "name": "auto_confirm_msg", "value": "Auto-fill unscheduled days of this month by rules. Continue?" },
+    { "name": "copied_sync", "value": "Synced %1$d days" },
+    { "name": "copy_day_done", "value": "Day shifts copied" },
+    { "name": "auto_filled", "value": "Auto-filled %1$d days" }
   ]
 }

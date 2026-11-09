@@ -81,6 +81,16 @@
     { "name": "update_dialog_failed", "value": "更新弹窗拉起失败" },
     { "name": "unit_hours", "value": "小时" },
     { "name": "unit_minutes", "value": "分钟" },
-    { "name": "unit_days", "value": "天" }
+    { "name": "unit_days", "value": "天" },
+    { "name": "sync_to_month", "value": "同步到某月" },
+    { "name": "copy_day", "value": "复制本日班次" },
+    { "name": "auto_fill", "value": "自动排满本月" },
+    { "name": "sync_confirm_title", "value": "同步排班" },
+    { "name": "sync_confirm_msg", "value": "将覆盖目标月份已有的排班，确定同步？" },
+    { "name": "auto_confirm_title", "value": "自动排班" },
+    { "name": "auto_confirm_msg", "value": "将按规则自动排满本月未排的日期，确定？" },
+    { "name": "copied_sync", "value": "已同步 %1$d 天" },
+    { "name": "copy_day_done", "value": "已复制当日班次" },
+    { "name": "auto_filled", "value": "已自动排 %1$d 天" }
   ]
 }

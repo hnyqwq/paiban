@@ -1,4 +1,5 @@
 // 首页：月历 + 每日排班编辑 + 今日日程 + 备忘录
+import { promptAction } from '@kit.ArkUI';
 import {
   DayEntry, Shift, ShiftRules, MonthStats, TodoItem,
   dateKey, daysInMonth, minutesToHoursText
@@ -170,6 +171,89 @@ export struct HomePage {
     }
     entry.todos.splice(index, 1);
     this.upsertEntry(entry);
+  }
+
+  // 同步当前查看月份的班次到选定月份
+  syncMonth(): void {
+    this.getUIContext().showDatePickerDialog({
+      start: new Date(2000, 0, 1),
+      end: new Date(2100, 11, 31),
+      selected: new Date(this.viewYear, this.viewMonth, 1),
+      mode: DatePickerMode.YEAR_AND_MONTH,
+      onDateAccept: (value: Date) => {
+        this.getUIContext().showAlertDialog({
+          title: $r('app.string.sync_confirm_title'),
+          message: $r('app.string.sync_confirm_msg'),
+          autoCancel: true,
+          buttons: [
+            { value: $r('app.string.cancel'), fontColor: $r('sys.color.font_secondary'), action: () => {} },
+            { value: $r('app.string.btn_clear'), fontColor: $r('sys.color.brand'), action: () => {
+              const n = this.service.copyMonthTo(this.days, this.viewYear, this.viewMonth, value.getFullYear(), value.getMonth() + 1);
+              this.saveDays();
+              promptAction.showToast({ message: $r('app.string.copied_sync', n) });
+            } }
+          ]
+        });
+      }
+    });
+  }
+
+  // 复制所选日期的班次到另一天
+  copyDay(): void {
+    this.getUIContext().showDatePickerDialog({
+      start: new Date(2000, 0, 1),
+      end: new Date(2100, 11, 31),
+      selected: new Date(this.viewYear, this.viewMonth - 1, 1),
+      onDateAccept: (value: Date) => {
+        const target = dateKey(value.getFullYear(), value.getMonth() + 1, value.getDate());
+        if (this.service.copyDayTo(this.days, this.selectedDate, target)) {
+          this.saveDays();
+          promptAction.showToast({ message: $r('app.string.copy_day_done') });
+        } else {
+          promptAction.showToast({ message: $r('app.string.copy_day_done') });
+        }
+      }
+    });
+  }
+
+  // 按规则自动排满本月
+  autoFill(): void {
+    this.getUIContext().showAlertDialog({
+      title: $r('app.string.auto_confirm_title'),
+      message: $r('app.string.auto_confirm_msg'),
+      autoCancel: true,
+      buttons: [
+        { value: $r('app.string.cancel'), fontColor: $r('sys.color.font_secondary'), action: () => {} },
+        { value: $r('app.string.btn_clear'), fontColor: $r('sys.color.brand'), action: () => {
+          const n = this.service.autoFillMonth(this.days, this.viewYear, this.viewMonth, this.rules);
+          this.saveDays();
+          promptAction.showToast({ message: $r('app.string.auto_filled', n) });
+        } }
+      ]
+    });
+  }
+
+  @Builder
+  actionRow() {
+    Row({ space: 8 }) {
+      Button($r('app.string.sync_to_month'))
+        .buttonStyle(ButtonStyleMode.NORMAL)
+        .fontSize(12)
+        .layoutWeight(1)
+        .onClick(() => this.syncMonth())
+      Button($r('app.string.copy_day'))
+        .buttonStyle(ButtonStyleMode.NORMAL)
+        .fontSize(12)
+        .layoutWeight(1)
+        .onClick(() => this.copyDay())
+      Button($r('app.string.auto_fill'))
+        .buttonStyle(ButtonStyleMode.NORMAL)
+        .fontSize(12)
+        .layoutWeight(1)
+        .onClick(() => this.autoFill())
+    }
+    .width('100%')
+    .margin({ top: 8 })
   }
 
   markRest(): void {
@@ -516,6 +600,7 @@ export struct HomePage {
         this.calendar()
         this.progressLine()
         this.violationBanner()
+        this.actionRow()
         this.dayDetail()
         Text('') // 底部留白，避开悬浮 Tab 栏
           .height(100)
