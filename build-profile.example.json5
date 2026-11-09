@@ -1,6 +1,20 @@
 {
   "app": {
-    "signingConfigs": [],
+    "signingConfigs": [
+      {
+        "name": "default",
+        "type": "HarmonyOS",
+        "material": {
+          "storeFile": "./signature/your.p12",
+          "certpath": "./signature/your.cer",
+          "keyAlias": "your-key-alias",
+          "keyPassword": "0000000000000000000000000000000000000000000000000000000000000000",
+          "storePassword": "0000000000000000000000000000000000000000000000000000000000000000",
+          "profile": "./signature/your.p7b",
+          "signAlg": "SHA256withECDSA"
+        }
+      }
+    ],
     "products": [
       {
         "name": "default",

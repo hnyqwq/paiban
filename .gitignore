@@ -11,3 +11,11 @@
 **/.test
 /.appanalyzer
 /.atomcode/
+
+# 签名配置与签名材料：本体不追踪，仓库只保留 build-profile.example.json5
+/build-profile.json5
+/signature/
+*.p12
+*.cer
+*.p7b
+*.csr
