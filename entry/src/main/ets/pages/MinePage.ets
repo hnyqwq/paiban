@@ -289,7 +289,7 @@ export struct MinePage {
               .fontColor($r('sys.color.font_secondary'))
           }
           .width('100%')
-          .padding(12)
+          .padding({ left: 12, right: 12, top: 12, bottom: 4 })
           Row() {
             Text($r('app.string.check_update'))
               .fontSize(15)
@@ -299,18 +299,8 @@ export struct MinePage {
               .fontColor($r('sys.color.font_tertiary'))
           }
           .width('100%')
-          .padding({ left: 12, right: 12, top: 12, bottom: 12 })
+          .padding({ left: 12, right: 12, top: 4, bottom: 12 })
           .onClick(() => this.checkUpdate())
-          Row() {
-            Text($r('app.string.storage_label'))
-              .fontSize(15)
-            Blank()
-            Text($r('app.string.storage_value'))
-              .fontSize(13)
-              .fontColor($r('sys.color.font_tertiary'))
-          }
-          .width('100%')
-          .padding({ left: 12, right: 12, bottom: 12 })
         }
         .width('100%')
         .borderRadius(12)

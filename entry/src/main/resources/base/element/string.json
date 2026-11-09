@@ -79,8 +79,6 @@
     { "name": "already_latest", "value": "已是最新版本" },
     { "name": "check_update_failed", "value": "检查更新失败" },
     { "name": "update_dialog_failed", "value": "更新弹窗拉起失败" },
-    { "name": "storage_label", "value": "数据存储" },
-    { "name": "storage_value", "value": "仅保存在本机，不上传网络" },
     { "name": "unit_hours", "value": "小时" },
     { "name": "unit_minutes", "value": "分钟" },
     { "name": "unit_days", "value": "天" }

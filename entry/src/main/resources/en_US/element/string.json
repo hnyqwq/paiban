@@ -79,8 +79,6 @@
     { "name": "already_latest", "value": "Already the latest version" },
     { "name": "check_update_failed", "value": "Check for updates failed" },
     { "name": "update_dialog_failed", "value": "Failed to show update dialog" },
-    { "name": "storage_label", "value": "Data storage" },
-    { "name": "storage_value", "value": "Local only, never uploaded" },
     { "name": "unit_hours", "value": "h" },
     { "name": "unit_minutes", "value": "min" },
     { "name": "unit_days", "value": "d" }
