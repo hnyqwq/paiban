@@ -254,6 +254,7 @@ export class ScheduleService {
       const raw = JSON.parse(json) as Record<string, number>;
       rules.monthlyTargetHours = raw.monthlyTargetHours ?? rules.monthlyTargetHours;
       rules.minWorkHoursPerDay = raw.minWorkHoursPerDay ?? rules.minWorkHoursPerDay;
+      rules.workdayMinHours = raw.workdayMinHours ?? rules.workdayMinHours;
       rules.dailyRestMinutes = raw.dailyRestMinutes ?? rules.dailyRestMinutes;
       rules.restDaysPerMonth = raw.restDaysPerMonth ?? rules.restDaysPerMonth;
       rules.restHoursPerMonth = raw.restHoursPerMonth ?? rules.restHoursPerMonth;
@@ -359,6 +360,18 @@ export class ScheduleService {
       const dm = this.dayMinutes(entry);
       if (dm < rules.minWorkHoursPerDay * 60) {
         result.push(this.str($r('app.string.warn_min_daily'), day, minutesToHoursText(dm), rules.minWorkHoursPerDay));
+      }
+    }
+
+    // 除休息日外每日最少工时：未排班且未标记休息的天（仅统计到今天）视为违规
+    if (rules.workdayMinHours > 0 && entry.shifts.length === 0) {
+      const today = new Date();
+      const isCurrentMonth = today.getFullYear() === year && today.getMonth() + 1 === month;
+      if (!isCurrentMonth || day <= today.getDate()) {
+        const markedRest = entry !== undefined; // 有 entry 无班次 = 手动标记休息
+        if (!markedRest) {
+          result.push(this.str($r('app.string.warn_workday_min'), day, rules.workdayMinHours));
+        }
       }
     }
 

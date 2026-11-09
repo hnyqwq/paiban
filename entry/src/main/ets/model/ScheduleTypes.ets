@@ -40,6 +40,7 @@ export class DayEntry {
 export class ShiftRules {
   monthlyTargetHours: number = 144;     // 每月目标工时
   minWorkHoursPerDay: number = 6;       // 每个上班日最少工时
+  workdayMinHours: number = 0;          // 除休息日外每日最少工时（未排且未标记休息即违规），0 = 不限制
   dailyRestMinutes: number = 60;        // 同一天两个班次之间最少间隔
   restDaysPerMonth: number = 4;         // 每月最少休息天数
   restHoursPerMonth: number = 40;       // 每月最少休息时长（非工作日按整天 8h 计）

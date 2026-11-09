@@ -231,6 +231,16 @@ export struct MinePage {
           this.rules.minWorkHoursPerDay = Number(v) || 0;
         })
 
+      Text($r('app.string.rule_workday_min'))
+        .fontSize(13)
+        .margin({ top: 10 })
+      TextInput({ text: `${this.rules.workdayMinHours}` })
+        .type(InputType.Number)
+        .width('100%')
+        .onChange((v: string) => {
+          this.rules.workdayMinHours = Number(v) || 0;
+        })
+
       Text($r('app.string.rule_gap'))
         .fontSize(13)
         .margin({ top: 10 })
@@ -328,6 +338,8 @@ export struct MinePage {
           this.ruleRow($r('app.string.rule_target'), this.rules.monthlyTargetHours, $r('app.string.unit_hours'))
           Divider().strokeWidth(0.5)
           this.ruleRow($r('app.string.rule_min_daily'), this.rules.minWorkHoursPerDay, $r('app.string.unit_hours'))
+          Divider().strokeWidth(0.5)
+          this.ruleRow($r('app.string.rule_workday_min'), this.rules.workdayMinHours, $r('app.string.unit_hours'))
           Divider().strokeWidth(0.5)
           this.ruleRow($r('app.string.rule_gap'), this.rules.dailyRestMinutes, $r('app.string.unit_minutes'))
           Divider().strokeWidth(0.5)
