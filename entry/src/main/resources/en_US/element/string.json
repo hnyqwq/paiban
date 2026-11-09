@@ -73,6 +73,8 @@
     { "name": "import_hint", "value": "Paste exported data…" },
     { "name": "import_success", "value": "Imported" },
     { "name": "import_failed", "value": "Import failed: invalid data" },
+    { "name": "import_failed_len", "value": "Import failed: received %1$d chars, not valid data" },
+    { "name": "import_empty", "value": "Nothing pasted. Export and copy first" },
     { "name": "exported", "value": "Schedule data copied to clipboard" },
     { "name": "export_failed", "value": "Export failed" },
     { "name": "clear_data", "value": "Clear all data" },

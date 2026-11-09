@@ -73,6 +73,8 @@
     { "name": "import_hint", "value": "粘贴导出的数据…" },
     { "name": "import_success", "value": "导入成功" },
     { "name": "import_failed", "value": "导入失败：数据格式不对" },
+    { "name": "import_failed_len", "value": "导入失败：收到 %1$d 个字符，不是有效数据" },
+    { "name": "import_empty", "value": "粘贴内容为空，请先导出并复制" },
     { "name": "exported", "value": "排班数据已复制到剪贴板" },
     { "name": "export_failed", "value": "导出失败" },
     { "name": "clear_data", "value": "清空所有数据" },

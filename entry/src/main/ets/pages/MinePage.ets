@@ -88,11 +88,16 @@ export struct MinePage {
   private importDialog: CustomDialogController = new CustomDialogController({
     builder: ImportDialog({
       onConfirm: (text: string) => {
-        if (text.trim() !== '' && this.service.importDays(text.trim())) {
+        const trimmed = text.trim();
+        if (trimmed === '') {
+          promptAction.showToast({ message: $r('app.string.import_empty') });
+          return;
+        }
+        if (this.service.importDays(trimmed)) {
           AppStorage.setOrCreate('dataCleared', Date.now());
           promptAction.showToast({ message: $r('app.string.import_success') });
         } else {
-          promptAction.showToast({ message: $r('app.string.import_failed') });
+          promptAction.showToast({ message: $r('app.string.import_failed_len', trimmed.length) });
         }
       }
     }),
