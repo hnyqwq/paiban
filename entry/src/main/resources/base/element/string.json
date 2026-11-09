@@ -70,7 +70,7 @@
     { "name": "save_rules", "value": "保存规则" },
     { "name": "rule_saved", "value": "规则已保存" },
     { "name": "section_data", "value": "数据" },
-    { "name": "export_data", "value": "导出" },
+    { "name": "export_data", "value": "导出数据" },
     { "name": "import_data", "value": "导入数据" },
     { "name": "import_hint", "value": "粘贴导出的数据…" },
     { "name": "paste", "value": "粘贴剪贴板" },

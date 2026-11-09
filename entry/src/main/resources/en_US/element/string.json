@@ -70,7 +70,7 @@
     { "name": "save_rules", "value": "Save rules" },
     { "name": "rule_saved", "value": "Rules saved" },
     { "name": "section_data", "value": "Data" },
-    { "name": "export_data", "value": "Export" },
+    { "name": "export_data", "value": "Export data" },
     { "name": "import_data", "value": "Import data" },
     { "name": "import_hint", "value": "Paste exported data…" },
     { "name": "paste", "value": "Paste clipboard" },
