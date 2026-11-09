@@ -7,7 +7,7 @@ export struct Home {
   @StorageLink('currentTabIndex') firstLevelIndex: number = 0;
   @StorageProp('bottomRectHeight') bottomRectHeight: number = 0;
 
-  private tabNames: string[] = ['首页', '发现', '我的'];
+  private tabNames: Resource[] = [$r('app.string.tab_home'), $r('app.string.tab_discover'), $r('app.string.tab_mine')];
 
   getTabSymbol(index: number): Resource {
     switch (index) {
@@ -23,7 +23,7 @@ export struct Home {
   }
 
   @Builder
-  tabBuilder(name: string, index: number) {
+  tabBuilder(name: Resource | string, index: number) {
     Column() {
       SymbolGlyph(this.getTabSymbol(index))
         .fontSize(24)
@@ -31,7 +31,7 @@ export struct Home {
       Text(name)
         .fontSize(10)
         .fontWeight(500)
-        .fontColor(index === this.firstLevelIndex ? '#0A59F7' : '#999999')
+        .fontColor(index === this.firstLevelIndex ? $r('sys.color.brand') : $r('sys.color.font_tertiary'))
         .margin({ top: 4 })
     }
     .width('100%')
