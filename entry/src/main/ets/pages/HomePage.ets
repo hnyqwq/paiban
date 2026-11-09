@@ -243,6 +243,7 @@ export struct HomePage {
     .padding(12)
     .borderRadius(12)
     .backgroundColor($r('sys.color.background_primary'))
+    .border({ width: 0.5, color: $r('sys.color.comp_divider') })
   }
 
   @Builder
@@ -302,6 +303,7 @@ export struct HomePage {
     .padding(12)
     .borderRadius(12)
     .backgroundColor($r('sys.color.background_primary'))
+    .border({ width: 0.5, color: $r('sys.color.comp_divider') })
     .margin({ top: 8 })
   }
 
@@ -378,6 +380,7 @@ export struct HomePage {
     .padding(12)
     .borderRadius(12)
     .backgroundColor($r('sys.color.background_primary'))
+    .border({ width: 0.5, color: $r('sys.color.comp_divider') })
     .margin({ top: 8 })
   }
 

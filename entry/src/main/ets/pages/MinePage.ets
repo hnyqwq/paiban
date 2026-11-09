@@ -170,6 +170,7 @@ export struct MinePage {
     .padding(12)
     .borderRadius(12)
     .backgroundColor($r('sys.color.background_primary'))
+    .border({ width: 0.5, color: $r('sys.color.comp_divider') })
   }
 
   build() {
@@ -186,6 +187,7 @@ export struct MinePage {
         .width('100%')
         .borderRadius(12)
         .backgroundColor($r('sys.color.background_primary'))
+        .border({ width: 0.5, color: $r('sys.color.comp_divider') })
 
         this.sectionTitle($r('app.string.section_rules'))
         Column() {
@@ -216,6 +218,7 @@ export struct MinePage {
         .width('100%')
         .borderRadius(12)
         .backgroundColor($r('sys.color.background_primary'))
+        .border({ width: 0.5, color: $r('sys.color.comp_divider') })
 
         this.sectionTitle($r('app.string.section_data'))
         Column() {
@@ -234,6 +237,7 @@ export struct MinePage {
         .width('100%')
         .borderRadius(12)
         .backgroundColor($r('sys.color.background_primary'))
+        .border({ width: 0.5, color: $r('sys.color.comp_divider') })
 
         this.sectionTitle($r('app.string.section_about'))
         Column() {
@@ -261,6 +265,7 @@ export struct MinePage {
         .width('100%')
         .borderRadius(12)
         .backgroundColor($r('sys.color.background_primary'))
+        .border({ width: 0.5, color: $r('sys.color.comp_divider') })
 
         Text('')
           .height(100)
