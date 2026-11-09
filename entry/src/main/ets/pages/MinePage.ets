@@ -19,6 +19,9 @@ export struct MinePage {
 
   saveRules(): void {
     this.service.saveRules(this.rules);
+    // 保存后收起编辑器，回到展示态并刷新数值
+    this.rules = this.service.getRules();
+    this.showRuleEditor = false;
     promptAction.showToast({ message: $r('app.string.rule_saved') });
   }
 
@@ -62,18 +65,20 @@ export struct MinePage {
     Row() {
       Text(mode === 0 ? $r('app.string.follow_system') : (mode === 1 ? $r('app.string.light_mode') : $r('app.string.dark_mode')))
         .fontSize(15)
+        .fontColor(this.appearanceMode === mode ? $r('sys.color.brand') : $r('sys.color.font_primary'))
       Blank()
-      Radio({ value: `mode${mode}`, group: 'appearance' })
-        .checked(this.appearanceMode === mode)
-        .onChange((isChecked: boolean) => {
-          if (isChecked) {
-            this.appearanceMode = mode;
-            this.service.setAppearanceMode(mode);
-          }
-        })
+      if (this.appearanceMode === mode) {
+        SymbolGlyph($r('sys.symbol.checkmark'))
+          .fontSize(18)
+          .fontColor([$r('sys.color.brand')])
+      }
     }
     .width('100%')
     .padding(12)
+    .onClick(() => {
+      this.appearanceMode = mode;
+      this.service.setAppearanceMode(mode);
+    })
   }
 
   @Builder
