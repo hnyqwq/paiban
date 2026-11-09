@@ -40,6 +40,20 @@ export struct SecondPage {
     this.refresh();
   }
 
+  // 点击标题弹出年月选择器
+  showMonthPicker(): void {
+    this.getUIContext().showDatePickerDialog({
+      start: new Date(2000, 0, 1),
+      end: new Date(2100, 11, 31),
+      selected: new Date(this.viewYear, this.viewMonth - 1, 1),
+      onDateAccept: (value: Date) => {
+        this.viewYear = value.getFullYear();
+        this.viewMonth = value.getMonth() + 1;
+        this.refresh();
+      }
+    });
+  }
+
   // 每日工时柱状图的最大值（小时）
   maxDailyHours(): number {
     let max = 0;
@@ -182,6 +196,7 @@ export struct SecondPage {
           Text($r('app.string.stats_title', this.viewYear, this.viewMonth))
             .fontSize(18)
             .fontWeight(FontWeight.Bold)
+            .onClick(() => this.showMonthPicker())
           Blank()
           Text('›')
             .fontSize(24)
