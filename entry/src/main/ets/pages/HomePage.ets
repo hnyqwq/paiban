@@ -57,6 +57,21 @@ export struct HomePage {
     this.refresh();
   }
 
+  // 点击标题弹出年月选择器（官方 YEAR_AND_MONTH 模式，仅年、月两列）
+  showMonthPicker(): void {
+    this.getUIContext().showDatePickerDialog({
+      start: new Date(2000, 0, 1),
+      end: new Date(2100, 11, 31),
+      selected: new Date(this.viewYear, this.viewMonth - 1, 1),
+      mode: DatePickerMode.YEAR_AND_MONTH,
+      onDateAccept: (value: Date) => {
+        this.viewYear = value.getFullYear();
+        this.viewMonth = value.getMonth() + 1;
+        this.refresh();
+      }
+    });
+  }
+
   saveDays(): void {
     this.service.saveDays(this.days);
     this.refresh();
@@ -241,6 +256,7 @@ export struct HomePage {
         Text($r('app.string.month_title', this.viewYear, this.viewMonth))
           .fontSize(20)
           .fontWeight(FontWeight.Bold)
+          .onClick(() => this.showMonthPicker())
         Blank()
         Text('‹')
           .fontSize(24)
