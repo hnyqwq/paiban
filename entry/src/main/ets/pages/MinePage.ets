@@ -2,6 +2,8 @@
 import { pasteboard } from '@kit.BasicServicesKit';
 import { promptAction, SegmentButtonV2Items, CapsuleSegmentButtonV2 } from '@kit.ArkUI';
 import { common } from '@kit.AbilityKit';
+import { updateManager } from '@kit.AppGalleryKit';
+import { BusinessError } from '@kit.BasicServicesKit';
 import { ShiftRules } from '../model/ScheduleTypes';
 import { ScheduleService } from '../service/ScheduleService';
 
@@ -70,6 +72,22 @@ export struct MinePage {
       promptAction.showToast({ message: $r('app.string.exported') });
     }).catch((_err: Error) => {
       promptAction.showToast({ message: $r('app.string.export_failed') });
+    });
+  }
+
+  // 检查更新（照搬 hny：AppGallery updateManager）
+  checkUpdate(): void {
+    const context = this.getUIContext().getHostContext() as common.UIAbilityContext;
+    updateManager.checkAppUpdate(context).then((checkResult: updateManager.CheckUpdateResult) => {
+      if (checkResult.updateAvailable) {
+        updateManager.showUpdateDialog(context).catch((_error: BusinessError) => {
+          promptAction.showToast({ message: $r('app.string.update_dialog_failed') });
+        });
+      } else {
+        promptAction.showToast({ message: $r('app.string.already_latest') });
+      }
+    }).catch((_error: BusinessError) => {
+      promptAction.showToast({ message: $r('app.string.check_update_failed') });
     });
   }
 
@@ -272,6 +290,17 @@ export struct MinePage {
           }
           .width('100%')
           .padding(12)
+          Row() {
+            Text($r('app.string.check_update'))
+              .fontSize(15)
+            Blank()
+            Text('›')
+              .fontSize(16)
+              .fontColor($r('sys.color.font_tertiary'))
+          }
+          .width('100%')
+          .padding({ left: 12, right: 12, top: 12, bottom: 12 })
+          .onClick(() => this.checkUpdate())
           Row() {
             Text($r('app.string.storage_label'))
               .fontSize(15)
