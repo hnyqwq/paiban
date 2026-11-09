@@ -39,7 +39,6 @@ struct AppearanceSegment {
       })
     }
     .width('100%')
-    .padding({ left: 12, right: 12, top: 12, bottom: 12 })
   }
 }
 
@@ -203,7 +202,8 @@ export struct MinePage {
               this.service.setAppearanceMode(index);
             }
           })
-            .width('100%')
+            .width('calc(100% - 24vp)')
+            .margin({ left: 12, right: 12, top: 12, bottom: 12 })
         }
         .width('100%')
         .borderRadius(12)
@@ -228,7 +228,7 @@ export struct MinePage {
             this.ruleEditor()
           } else {
             Button($r('app.string.edit_rules'))
-              .width('100%')
+              .width('calc(100% - 24vp)')
               .buttonStyle(ButtonStyleMode.NORMAL)
               .margin({ top: 12, bottom: 12, left: 12, right: 12 })
               .onClick(() => {
@@ -244,12 +244,12 @@ export struct MinePage {
         this.sectionTitle($r('app.string.section_data'))
         Column() {
           Button($r('app.string.export_data'))
-            .width('100%')
+            .width('calc(100% - 24vp)')
             .buttonStyle(ButtonStyleMode.NORMAL)
             .margin({ top: 12, left: 12, right: 12 })
             .onClick(() => this.exportData())
           Button($r('app.string.clear_data'))
-            .width('100%')
+            .width('calc(100% - 24vp)')
             .buttonStyle(ButtonStyleMode.NORMAL)
             .fontColor($r('sys.color.warning'))
             .margin({ top: 8, bottom: 12, left: 12, right: 12 })
