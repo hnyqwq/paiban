@@ -161,6 +161,62 @@ export class ScheduleService {
     }
   }
 
+  // 解析导出/存储的 JSON 为 DayEntry 数组，格式非法返回 null
+  parseDaysJson(json: string): DayEntry[] | null {
+    try {
+      const raw = JSON.parse(json) as DayEntry[];
+      if (!Array.isArray(raw)) {
+        return null;
+      }
+      const result: DayEntry[] = [];
+      for (const d of raw) {
+        if (d.date === undefined || d.date === null) {
+          continue;
+        }
+        const entry = new DayEntry();
+        entry.date = d.date;
+        entry.memo = d.memo ?? '';
+        entry.shifts = [];
+        if (d.shifts) {
+          for (const s of d.shifts) {
+            const sh = new Shift();
+            sh.start = s.start;
+            sh.end = s.end;
+            entry.shifts.push(sh);
+          }
+        }
+        entry.todos = [];
+        if (d.todos) {
+          for (const t of d.todos) {
+            const td = new TodoItem();
+            td.text = t.text;
+            td.done = t.done;
+            entry.todos.push(td);
+          }
+        }
+        result.push(entry);
+      }
+      return result;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // 导入：解析导出的 JSON 并整体替换本地数据
+  importDays(json: string): boolean {
+    if (this.prefs === null) {
+      return false;
+    }
+    const days = this.parseDaysJson(json);
+    if (days === null) {
+      return false;
+    }
+    this.cacheDays = days;
+    this.prefs.putSync(KEY_DAYS, JSON.stringify(days));
+    this.prefs.flush();
+    return true;
+  }
+
   saveDays(days: DayEntry[]): void {
     this.cacheDays = days;
     if (this.prefs === null) {

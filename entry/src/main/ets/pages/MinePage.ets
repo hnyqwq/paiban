@@ -19,6 +19,40 @@ function segString(res: Resource): string {
   }
 }
 
+// 导入弹窗：粘贴导出的 JSON 后写入
+@CustomDialog
+struct ImportDialog {
+  controller?: CustomDialogController;
+  onConfirm: (text: string) => void = (_text: string) => {};
+  @State text: string = '';
+
+  build() {
+    Column() {
+      TextArea({ text: this.text, placeholder: $r('app.string.import_hint') })
+        .width('100%')
+        .height(140)
+      Row() {
+        Button($r('app.string.cancel'))
+          .buttonStyle(ButtonStyleMode.NORMAL)
+          .layoutWeight(1)
+          .onClick(() => {
+            this.controller?.close();
+          })
+        Button($r('app.string.import_data'))
+          .layoutWeight(1)
+          .margin({ left: 12 })
+          .onClick(() => {
+            this.onConfirm(this.text);
+            this.controller?.close();
+          })
+      }
+      .width('100%')
+      .margin({ top: 12 })
+    }
+    .padding(20)
+  }
+}
+
 // 外观选择：胶囊型分段按钮（@ComponentV2）
 @ComponentV2
 struct AppearanceSegment {
@@ -51,6 +85,19 @@ export struct MinePage {
   @State rules: ShiftRules = new ShiftRules();
   @State showRuleEditor: boolean = false;
   private service: ScheduleService = ScheduleService.getInstance();
+  private importDialog: CustomDialogController = new CustomDialogController({
+    builder: ImportDialog({
+      onConfirm: (text: string) => {
+        if (text.trim() !== '' && this.service.importDays(text.trim())) {
+          AppStorage.setOrCreate('dataCleared', Date.now());
+          promptAction.showToast({ message: $r('app.string.import_success') });
+        } else {
+          promptAction.showToast({ message: $r('app.string.import_failed') });
+        }
+      }
+    }),
+    autoCancel: true
+  });
 
   aboutToAppear(): void {
     this.appearanceMode = this.service.getAppearanceMode();
@@ -287,11 +334,21 @@ export struct MinePage {
 
         this.sectionTitle($r('app.string.section_data'))
         Column() {
-          Button($r('app.string.export_data'))
-            .width('calc(100% - 24vp)')
-            .buttonStyle(ButtonStyleMode.NORMAL)
-            .margin({ top: 12, left: 12, right: 12 })
-            .onClick(() => this.exportData())
+          Row({ space: 8 }) {
+            Button($r('app.string.export_data'))
+              .buttonStyle(ButtonStyleMode.NORMAL)
+              .fontSize(13)
+              .layoutWeight(1)
+              .margin({ top: 12, bottom: 4, left: 12 })
+              .onClick(() => this.exportData())
+            Button($r('app.string.import_data'))
+              .buttonStyle(ButtonStyleMode.NORMAL)
+              .fontSize(13)
+              .layoutWeight(1)
+              .margin({ top: 12, bottom: 4, right: 12 })
+              .onClick(() => this.importDialog.open())
+          }
+          .width('100%')
           Button($r('app.string.clear_data'))
             .width('calc(100% - 24vp)')
             .buttonStyle(ButtonStyleMode.NORMAL)
