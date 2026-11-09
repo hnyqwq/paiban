@@ -1,8 +1,43 @@
 // 第三页：我的 —— 仅放额外设置（外观/规则/数据/关于）
 import { pasteboard } from '@kit.BasicServicesKit';
-import { promptAction } from '@kit.ArkUI';
+import { promptAction, SegmentButtonV2Items, CapsuleSegmentButtonV2 } from '@kit.ArkUI';
+import { common } from '@kit.AbilityKit';
 import { ShiftRules } from '../model/ScheduleTypes';
 import { ScheduleService } from '../service/ScheduleService';
+
+function segString(res: Resource): string {
+  try {
+    const context = AppStorage.get<common.UIAbilityContext>('context');
+    if (context === undefined) {
+      return '';
+    }
+    return context.resourceManager.getStringSync(res);
+  } catch (e) {
+    return '';
+  }
+}
+
+// 外观选择：胶囊型分段按钮（@ComponentV2）
+@ComponentV2
+struct AppearanceSegment {
+  @Param selected: number = 0;
+  @Event onSelect: (index: number) => void = (_index: number) => {};
+  private items: SegmentButtonV2Items = new SegmentButtonV2Items([
+    { text: segString($r('app.string.follow_system')) },
+    { text: segString($r('app.string.light_mode')) },
+    { text: segString($r('app.string.dark_mode')) },
+  ]);
+
+  build() {
+    CapsuleSegmentButtonV2({
+      items: this.items,
+      selectedIndex: this.selected,
+      onItemClicked: (index: number) => {
+        this.onSelect(index);
+      }
+    })
+  }
+}
 
 @Component
 export struct MinePage {
@@ -58,27 +93,6 @@ export struct MinePage {
       .fontColor($r('sys.color.font_tertiary'))
       .width('100%')
       .margin({ top: 16, bottom: 6 })
-  }
-
-  @Builder
-  appearanceRow(mode: number) {
-    Row() {
-      Text(mode === 0 ? $r('app.string.follow_system') : (mode === 1 ? $r('app.string.light_mode') : $r('app.string.dark_mode')))
-        .fontSize(15)
-        .fontColor(this.appearanceMode === mode ? $r('sys.color.brand') : $r('sys.color.font_primary'))
-      Blank()
-      if (this.appearanceMode === mode) {
-        SymbolGlyph($r('sys.symbol.checkmark'))
-          .fontSize(18)
-          .fontColor([$r('sys.color.brand')])
-      }
-    }
-    .width('100%')
-    .padding(12)
-    .onClick(() => {
-      this.appearanceMode = mode;
-      this.service.setAppearanceMode(mode);
-    })
   }
 
   @Builder
@@ -178,13 +192,17 @@ export struct MinePage {
       Column() {
         this.sectionTitle($r('app.string.section_appearance'))
         Column() {
-          this.appearanceRow(0)
-          Divider().strokeWidth(0.5)
-          this.appearanceRow(1)
-          Divider().strokeWidth(0.5)
-          this.appearanceRow(2)
+          AppearanceSegment({
+            selected: this.appearanceMode,
+            onSelect: (index: number) => {
+              this.appearanceMode = index;
+              this.service.setAppearanceMode(index);
+            }
+          })
+            .width('100%')
         }
         .width('100%')
+        .padding(12)
         .borderRadius(12)
         .backgroundColor($r('sys.color.background_primary'))
         .border({ width: 0.5, color: $r('sys.color.comp_divider') })
