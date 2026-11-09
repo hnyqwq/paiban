@@ -28,9 +28,30 @@ struct ImportDialog {
 
   build() {
     Column() {
+      Row() {
+        Button($r('app.string.paste'))
+          .buttonStyle(ButtonStyleMode.NORMAL)
+          .fontSize(13)
+          .onClick(() => {
+            pasteboard.getSystemPasteboard().getData().then((data: pasteboard.PasteData) => {
+              const text = data.getPrimaryText();
+              if (text !== '') {
+                this.text = text;
+              } else {
+                promptAction.showToast({ message: $r('app.string.clipboard_empty') });
+              }
+            }).catch(() => {
+              promptAction.showToast({ message: $r('app.string.clipboard_empty') });
+            });
+          })
+      }
+      .width('100%')
+      .justifyContent(FlexAlign.Start)
+
       TextArea({ text: this.text, placeholder: $r('app.string.import_hint') })
         .width('100%')
         .height(140)
+        .margin({ top: 8 })
       Row() {
         Button($r('app.string.cancel'))
           .buttonStyle(ButtonStyleMode.NORMAL)

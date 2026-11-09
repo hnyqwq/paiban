@@ -71,6 +71,8 @@
     { "name": "export_data", "value": "Export (copy to clipboard)" },
     { "name": "import_data", "value": "Import data" },
     { "name": "import_hint", "value": "Paste exported data…" },
+    { "name": "paste", "value": "Paste clipboard" },
+    { "name": "clipboard_empty", "value": "Clipboard is empty. Export first" },
     { "name": "import_success", "value": "Imported" },
     { "name": "import_failed", "value": "Import failed: invalid data" },
     { "name": "import_failed_len", "value": "Import failed: received %1$d chars, not valid data" },

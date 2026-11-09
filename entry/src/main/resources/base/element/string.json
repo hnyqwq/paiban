@@ -71,6 +71,8 @@
     { "name": "export_data", "value": "导出数据（复制到剪贴板）" },
     { "name": "import_data", "value": "导入数据" },
     { "name": "import_hint", "value": "粘贴导出的数据…" },
+    { "name": "paste", "value": "粘贴剪贴板" },
+    { "name": "clipboard_empty", "value": "剪贴板是空的，请先导出" },
     { "name": "import_success", "value": "导入成功" },
     { "name": "import_failed", "value": "导入失败：数据格式不对" },
     { "name": "import_failed_len", "value": "导入失败：收到 %1$d 个字符，不是有效数据" },
