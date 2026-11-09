@@ -167,7 +167,7 @@ export struct SecondPage {
           .margin({ top: 8 })
       } else {
         ForEach(this.stats.violations, (v: string) => {
-          Text('⚠ ' + v)
+          Text(v)
             .fontSize(12)
             .fontColor($r('sys.color.warning'))
             .margin({ top: 6 })

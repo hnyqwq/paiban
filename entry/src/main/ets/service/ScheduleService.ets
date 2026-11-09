@@ -37,13 +37,22 @@ export class ScheduleService {
     }
   }
 
-  // 按系统语言取参数化文案
-  str(res: Resource): string {
+  // 按系统语言取参数化文案：必须按 id+参数格式化，$r 携带的参数在 getStringSync(Resource) 下不会替换
+  str(res: Resource, a?: number | string, b?: number | string, c?: number | string): string {
     if (this.uiCtx === null) {
       return '';
     }
     try {
-      return this.uiCtx.resourceManager.getStringSync(res);
+      if (a === undefined) {
+        return this.uiCtx.resourceManager.getStringSync(res.id);
+      }
+      if (b === undefined) {
+        return this.uiCtx.resourceManager.getStringSync(res.id, a);
+      }
+      if (c === undefined) {
+        return this.uiCtx.resourceManager.getStringSync(res.id, a, b);
+      }
+      return this.uiCtx.resourceManager.getStringSync(res.id, a, b, c);
     } catch (e) {
       return '';
     }
@@ -247,7 +256,7 @@ export class ScheduleService {
       const curStart = Shift.minutesBetween(entry.shifts[i].start) + (entry.shifts[i].start <= entry.shifts[i - 1].end ? 24 * 60 : 0);
       const gap = curStart - prevEnd;
       if (gap < rules.dailyRestMinutes) {
-        result.push(this.str($r('app.string.warn_gap', day, gap, rules.dailyRestMinutes)));
+        result.push(this.str($r('app.string.warn_gap'), day, gap, rules.dailyRestMinutes));
       }
     }
 
@@ -255,14 +264,14 @@ export class ScheduleService {
     if (entry.shifts.length > 0 && rules.minWorkHoursPerDay > 0) {
       const dm = this.dayMinutes(entry);
       if (dm < rules.minWorkHoursPerDay * 60) {
-        result.push(this.str($r('app.string.warn_min_daily', day, minutesToHoursText(dm), rules.minWorkHoursPerDay)));
+        result.push(this.str($r('app.string.warn_min_daily'), day, minutesToHoursText(dm), rules.minWorkHoursPerDay));
       }
     }
 
     // 连续上班天数（包含当天，向后不查，向前数）
     const streak = this.consecutiveWorkDaysEnding(days, date);
     if (entry.shifts.length > 0 && streak > rules.maxConsecutiveWorkDays) {
-      result.push(this.str($r('app.string.warn_streak', day, streak, rules.maxConsecutiveWorkDays)));
+      result.push(this.str($r('app.string.warn_streak'), day, streak, rules.maxConsecutiveWorkDays));
     }
 
     // 当月休息天数
@@ -274,7 +283,7 @@ export class ScheduleService {
       const elapsed = isCurrentMonth ? today.getDate() : total;
       const expectedRest = Math.floor(elapsed / total * rules.restDaysPerMonth);
       if (restDays < expectedRest) {
-        result.push(this.str($r('app.string.warn_rest_progress', restDays, expectedRest, rules.restDaysPerMonth)));
+        result.push(this.str($r('app.string.warn_rest_progress'), restDays, expectedRest, rules.restDaysPerMonth));
       }
     }
     return result;

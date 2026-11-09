@@ -389,7 +389,7 @@ export struct HomePage {
     if (this.monthStats.violations.length > 0) {
       Column() {
         ForEach(this.monthStats.violations.slice(0, 3), (v: string) => {
-          Text(`⚠ ${v}`)
+          Text(v)
             .fontSize(12)
             .fontColor('#FA5151')
             .margin({ top: 2 })
