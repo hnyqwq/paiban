@@ -567,23 +567,15 @@ export class ScheduleService {
         continue;
       }
       const remain = target - worked;
-      // 单段时长同时受每日最少工时与单段连续上限约束
-      let dur = Math.min(dailyMin, remain);
-      if (rules.maxContinuousWorkMinutes > 0) {
-        dur = Math.min(dur, rules.maxContinuousWorkMinutes);
-      }
-      const startMin = 9 * 60;
-      const endMin = startMin + dur;
+      // 当日时长受每日最少工时与剩余目标约束，超单段上限时自动拆多段
+      const dur = Math.min(dailyMin, remain);
       const ne = entry !== undefined ? entry : (() => {
         const e = new DayEntry();
         e.date = key;
         days.push(e);
         return e;
       })();
-      const s = new Shift();
-      s.start = `${pad2(Math.floor(startMin / 60))}:${pad2(startMin % 60)}`;
-      s.end = `${pad2(Math.floor(endMin / 60))}:${pad2(endMin % 60)}`;
-      ne.shifts.push(s);
+      this.fillShiftsForDay(ne, dur, rules);
       worked += dur;
       sinceRest++;
       filled++;
@@ -591,13 +583,29 @@ export class ScheduleService {
     return filled;
   }
 
+  // 给某天填充班次：总时长超过单段上限时自动拆成多段，段间留强制休息间隔
+  private fillShiftsForDay(ne: DayEntry, duration: number, rules: ShiftRules): void {
+    const cap = rules.maxContinuousWorkMinutes > 0
+      ? Math.min(duration, rules.maxContinuousWorkMinutes)
+      : duration;
+    const restGap = rules.maxContinuousWorkMinutes > 0 ? Math.max(rules.mandatoryRestMinutes, 0) : 0;
+    let remaining = duration;
+    let startMin = 9 * 60;
+    while (remaining > 0) {
+      const dur = Math.min(cap, remaining);
+      const endMin = startMin + dur;
+      const s = new Shift();
+      s.start = `${pad2(Math.floor(startMin / 60))}:${pad2(startMin % 60)}`;
+      s.end = `${pad2(Math.floor(endMin / 60))}:${pad2(endMin % 60)}`;
+      ne.shifts.push(s);
+      remaining -= dur;
+      startMin = endMin + restGap;
+    }
+  }
+
   // 按日期区间（如 7 天）自动排班：跳过已有班次/手动休息/固定休息日，遵守连续上限；返回排的天数
   autoFillRange(days: DayEntry[], start: string, end: string, rules: ShiftRules): number {
     const dailyMin = (rules.minWorkHoursPerDay > 0 ? rules.minWorkHoursPerDay : 8) * 60;
-    let shiftDur = dailyMin;
-    if (rules.maxContinuousWorkMinutes > 0) {
-      shiftDur = Math.min(shiftDur, rules.maxContinuousWorkMinutes);
-    }
     // 连续计数延续区间开始之前的状态
     let sinceRest = this.consecutiveWorkDaysEnding(days, this.addDays(start, -1));
     let filled = 0;
@@ -626,18 +634,13 @@ export class ScheduleService {
         cur = this.addDays(cur, 1);
         continue;
       }
-      const startMin = 9 * 60;
-      const endMin = startMin + shiftDur;
       const ne = entry !== undefined ? entry : (() => {
         const e = new DayEntry();
         e.date = cur;
         days.push(e);
         return e;
       })();
-      const s = new Shift();
-      s.start = `${pad2(Math.floor(startMin / 60))}:${pad2(startMin % 60)}`;
-      s.end = `${pad2(Math.floor(endMin / 60))}:${pad2(endMin % 60)}`;
-      ne.shifts.push(s);
+      this.fillShiftsForDay(ne, dailyMin, rules);
       sinceRest++;
       filled++;
       cur = this.addDays(cur, 1);
