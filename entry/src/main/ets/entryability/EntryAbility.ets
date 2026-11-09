@@ -34,6 +34,14 @@ export default class EntryAbility extends UIAbility {
     // 窗口初始化：安全区避让（照搬 hny）
     try {
       const mainWindow = windowStage.getMainWindowSync();
+      // 按保存的外观设置窗口背景色，避免深色模式下进入应用白闪（系统启动窗由 dark 资源自适应）
+      const appearance = ScheduleService.getInstance().getAppearanceMode();
+      if (appearance === 2) {
+        mainWindow.setWindowBackgroundColor('#000000');
+      } else if (appearance === 1) {
+        mainWindow.setWindowBackgroundColor('#FFFFFF');
+      }
+
       const updateTopAvoid = (): void => {
         const systemArea = mainWindow.getWindowAvoidArea(window.AvoidAreaType.TYPE_SYSTEM);
         const cutoutArea = mainWindow.getWindowAvoidArea(window.AvoidAreaType.TYPE_CUTOUT);
