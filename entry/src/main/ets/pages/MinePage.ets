@@ -1,6 +1,6 @@
 // 第三页：我的 —— 仅放额外设置（外观/规则/数据/关于）
 import { pasteboard } from '@kit.BasicServicesKit';
-import { promptAction, SegmentButtonV2Items, CapsuleSegmentButtonV2, LengthMetrics } from '@kit.ArkUI';
+import { promptAction, SegmentButtonV2Items, CapsuleSegmentButtonV2 } from '@kit.ArkUI';
 import { common } from '@kit.AbilityKit';
 import { ShiftRules } from '../model/ScheduleTypes';
 import { ScheduleService } from '../service/ScheduleService';
@@ -29,14 +29,17 @@ struct AppearanceSegment {
   ]);
 
   build() {
-    CapsuleSegmentButtonV2({
-      items: this.items,
-      selectedIndex: this.selected,
-      itemSpace: LengthMetrics.vp(4),
-      onItemClicked: (index: number) => {
-        this.onSelect(index);
-      }
-    })
+    Row() {
+      CapsuleSegmentButtonV2({
+        items: this.items,
+        selectedIndex: this.selected,
+        onItemClicked: (index: number) => {
+          this.onSelect(index);
+        }
+      })
+    }
+    .width('100%')
+    .padding({ left: 12, right: 12, top: 12, bottom: 12 })
   }
 }
 
@@ -203,7 +206,6 @@ export struct MinePage {
             .width('100%')
         }
         .width('100%')
-        .padding(12)
         .borderRadius(12)
         .backgroundColor($r('sys.color.background_primary'))
         .border({ width: 0.5, color: $r('sys.color.comp_divider') })
