@@ -1,6 +1,6 @@
 // 第三页：我的 —— 仅放额外设置（外观/规则/数据/关于）
 import { pasteboard } from '@kit.BasicServicesKit';
-import { promptAction, SegmentButtonV2Items, CapsuleSegmentButtonV2 } from '@kit.ArkUI';
+import { promptAction, SegmentButtonV2Items, CapsuleSegmentButtonV2, LengthMetrics } from '@kit.ArkUI';
 import { common } from '@kit.AbilityKit';
 import { ShiftRules } from '../model/ScheduleTypes';
 import { ScheduleService } from '../service/ScheduleService';
@@ -32,6 +32,7 @@ struct AppearanceSegment {
     CapsuleSegmentButtonV2({
       items: this.items,
       selectedIndex: this.selected,
+      itemSpace: LengthMetrics.vp(4),
       onItemClicked: (index: number) => {
         this.onSelect(index);
       }
