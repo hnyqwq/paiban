@@ -406,8 +406,8 @@ export struct HomePage {
         this.progressLine()
         this.violationBanner()
         this.dayDetail()
-        Text('') // 底部留白
-          .height(20)
+        Text('') // 底部留白，避开悬浮 Tab 栏
+          .height(100)
       }
       .width('100%')
       .padding(12)

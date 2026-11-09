@@ -257,7 +257,7 @@ export struct MinePage {
         .backgroundColor($r('sys.color.background_primary'))
 
         Text('')
-          .height(20)
+          .height(100)
       }
       .width('100%')
       .padding({ left: 12, right: 12, top: 4 })

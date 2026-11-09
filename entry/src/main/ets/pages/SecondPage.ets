@@ -208,7 +208,7 @@ export struct SecondPage {
         this.barChart()
         this.violationList()
         Text('')
-          .height(20)
+          .height(100)
       }
       .width('100%')
       .padding(12)

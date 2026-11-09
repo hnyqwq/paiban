@@ -8,6 +8,8 @@ const DOMAIN = 0x0000;
 export default class EntryAbility extends UIAbility {
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onCreate');
+    // 上下文供页面使用（照搬 hny）
+    AppStorage.setOrCreate('context', this.context);
     // 初始化排班本地存储（含外观设置应用）
     ScheduleService.getInstance().init(this.context);
   }
@@ -28,18 +30,21 @@ export default class EntryAbility extends UIAbility {
       hilog.info(DOMAIN, 'testTag', 'Succeeded in loading the content.');
     });
 
-    // 初始化底部导航条避让高度，供底部 Tab 栏使用
+    // 窗口初始化：安全区避让（照搬 hny）
     try {
       const mainWindow = windowStage.getMainWindowSync();
-      const avoidAreaNav = mainWindow.getWindowAvoidArea(window.AvoidAreaType.TYPE_NAVIGATION_INDICATOR);
-      AppStorage.setOrCreate('bottomRectHeight', avoidAreaNav.bottomRect.height);
-      mainWindow.on('avoidAreaChange', (data) => {
-        if (data.type === window.AvoidAreaType.TYPE_NAVIGATION_INDICATOR) {
-          AppStorage.setOrCreate('bottomRectHeight', data.area.bottomRect.height);
-        }
+      const updateTopAvoid = (): void => {
+        const systemArea = mainWindow.getWindowAvoidArea(window.AvoidAreaType.TYPE_SYSTEM);
+        const cutoutArea = mainWindow.getWindowAvoidArea(window.AvoidAreaType.TYPE_CUTOUT);
+        const topPx = Math.max(systemArea.topRect.height, cutoutArea.topRect.height);
+        AppStorage.setOrCreate('topRectHeight', topPx);
+      };
+      updateTopAvoid();
+      mainWindow.on('avoidAreaChange', () => {
+        updateTopAvoid();
       });
     } catch (err) {
-      hilog.error(DOMAIN, 'testTag', 'Failed to init avoid area. Cause: %{public}s', JSON.stringify(err));
+      hilog.error(DOMAIN, 'testTag', 'Failed to get avoid area. Cause: %{public}s', JSON.stringify(err));
     }
 
     try {
