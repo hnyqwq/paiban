@@ -152,6 +152,48 @@ export struct MinePage {
     promptAction.showToast({ message: $r('app.string.rule_saved') });
   }
 
+  // 星期名，从资源按名取（wd_0..wd_6）
+  weekdayName(wd: number): string {
+    try {
+      const context = AppStorage.get<common.UIAbilityContext>('context');
+      if (context === undefined) {
+        return '';
+      }
+      return context.resourceManager.getStringByNameSync(`wd_${wd}`);
+    } catch (e) {
+      return '';
+    }
+  }
+
+  // 展示已选的固定休息日，未选显示「无」
+  restWeekdaysText(): string {
+    if (this.rules.restWeekdays.length === 0) {
+      try {
+        const context = AppStorage.get<common.UIAbilityContext>('context');
+        if (context !== undefined) {
+          return context.resourceManager.getStringByNameSync('rule_rest_weekdays_none');
+        }
+      } catch (e) {
+        // 取不到就用默认
+      }
+      return '';
+    }
+    const sorted = this.rules.restWeekdays.slice().sort((a: number, b: number) => a - b);
+    return sorted.map((wd: number) => this.weekdayName(wd)).join('、');
+  }
+
+  toggleRestWeekday(wd: number): void {
+    const arr = this.rules.restWeekdays.slice();
+    const idx = arr.indexOf(wd);
+    if (idx >= 0) {
+      arr.splice(idx, 1);
+    } else {
+      arr.push(wd);
+    }
+    arr.sort((a: number, b: number) => a - b);
+    this.rules.restWeekdays = arr;
+  }
+
   exportData(): void {
     const json = JSON.stringify(this.service.getDays());
     const data = pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, json);
@@ -305,6 +347,24 @@ export struct MinePage {
           this.rules.maxContinuousWorkMinutes = Number(v) || 0;
         })
 
+      Text($r('app.string.rule_rest_weekdays'))
+        .fontSize(13)
+        .margin({ top: 10 })
+      Row({ space: 6 }) {
+        ForEach([0, 1, 2, 3, 4, 5, 6], (wd: number) => {
+          Text(this.weekdayName(wd))
+            .fontSize(13)
+            .textAlign(TextAlign.Center)
+            .padding({ top: 6, bottom: 6, left: 10, right: 10 })
+            .borderRadius(8)
+            .backgroundColor(this.rules.restWeekdays.includes(wd) ? $r('sys.color.brand') : $r('sys.color.comp_background_tertiary'))
+            .fontColor(this.rules.restWeekdays.includes(wd) ? '#FFFFFF' : $r('sys.color.font_primary'))
+            .onClick(() => this.toggleRestWeekday(wd))
+        }, (wd: number) => `${wd}-${this.rules.restWeekdays.includes(wd)}`)
+      }
+      .width('100%')
+      .margin({ top: 6 })
+
       Text($r('app.string.rule_mandatory_rest'))
         .fontSize(13)
         .margin({ top: 10 })
@@ -366,6 +426,17 @@ export struct MinePage {
           this.ruleRow($r('app.string.rule_max_continuous'), this.rules.maxContinuousWorkMinutes, $r('app.string.unit_minutes'))
           Divider().strokeWidth(0.5)
           this.ruleRow($r('app.string.rule_mandatory_rest'), this.rules.mandatoryRestMinutes, $r('app.string.unit_minutes'))
+          Divider().strokeWidth(0.5)
+          Row() {
+            Text($r('app.string.rule_rest_weekdays'))
+              .fontSize(15)
+            Blank()
+            Text(this.restWeekdaysText())
+              .fontSize(15)
+              .fontColor($r('sys.color.font_secondary'))
+          }
+          .width('100%')
+          .padding(12)
 
           if (this.showRuleEditor) {
             this.ruleEditor()

@@ -261,6 +261,7 @@ export class ScheduleService {
       rules.maxConsecutiveWorkDays = raw.maxConsecutiveWorkDays ?? rules.maxConsecutiveWorkDays;
       rules.maxContinuousWorkMinutes = raw.maxContinuousWorkMinutes ?? rules.maxContinuousWorkMinutes;
       rules.mandatoryRestMinutes = raw.mandatoryRestMinutes ?? rules.mandatoryRestMinutes;
+      rules.restWeekdays = Array.isArray(raw.restWeekdays) ? raw.restWeekdays as number[] : rules.restWeekdays;
       return rules;
     } catch (e) {
       return rules;
@@ -341,6 +342,14 @@ export class ScheduleService {
       const gap = curStart - prevEnd;
       if (gap < rules.dailyRestMinutes) {
         result.push(this.str($r('app.string.warn_gap'), day, gap, rules.dailyRestMinutes));
+      }
+    }
+
+    // 固定每周休息日：当天不应排班
+    if (rules.restWeekdays.length > 0 && entry.shifts.length > 0) {
+      const wd = new Date(year, month - 1, day).getDay();
+      if (rules.restWeekdays.includes(wd)) {
+        result.push(this.str($r('app.string.warn_rest_weekday'), day));
       }
     }
 
@@ -538,6 +547,12 @@ export class ScheduleService {
       const entry = this.findEntry(days, key);
       if (entry !== undefined && entry.shifts.length > 0) {
         sinceRest++; // 已排班，按上班日计
+        continue;
+      }
+      // 固定每周休息日：不自动排班
+      const wd = new Date(year, month - 1, d).getDay();
+      if (rules.restWeekdays.includes(wd)) {
+        sinceRest = 0;
         continue;
       }
       if (worked >= target) {
