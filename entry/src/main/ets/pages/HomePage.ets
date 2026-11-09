@@ -215,7 +215,7 @@ export struct HomePage {
           this.saveDays();
           promptAction.showToast({ message: $r('app.string.copy_day_done') });
         } else {
-          promptAction.showToast({ message: $r('app.string.copy_day_done') });
+          promptAction.showToast({ message: $r('app.string.copy_day_none') });
         }
       }
     });
@@ -261,73 +261,93 @@ export struct HomePage {
     .margin({ top: 8 })
   }
 
-  // 自动排一段日期区间（如 7 天）：选开始→选结束
+  // 自动排一段日期区间（如 7 天）：先说明步骤，再选开始→结束
   rangeAuto(): void {
-    this.getUIContext().showDatePickerDialog({
-      start: new Date(2000, 0, 1),
-      end: new Date(2100, 11, 31),
-      selected: new Date(this.viewYear, this.viewMonth - 1, 1),
-      onDateAccept: (s: Date) => {
-        const start = dateKey(s.getFullYear(), s.getMonth() + 1, s.getDate());
-        this.getUIContext().showDatePickerDialog({
-          start: new Date(2000, 0, 1),
-          end: new Date(2100, 11, 31),
-          selected: s,
-          onDateAccept: (e: Date) => {
-            const end = dateKey(e.getFullYear(), e.getMonth() + 1, e.getDate());
-            if (end < start) {
-              return;
+    this.getUIContext().showAlertDialog({
+      title: $r('app.string.range_auto'),
+      message: $r('app.string.range_auto_desc'),
+      autoCancel: true,
+      buttons: [
+        { value: $r('app.string.cancel'), fontColor: $r('sys.color.font_secondary'), action: () => {} },
+        { value: $r('app.string.add'), fontColor: $r('sys.color.brand'), action: () => {
+          this.getUIContext().showDatePickerDialog({
+            start: new Date(2000, 0, 1),
+            end: new Date(2100, 11, 31),
+            selected: new Date(this.viewYear, this.viewMonth - 1, 1),
+            onDateAccept: (s: Date) => {
+              const start = dateKey(s.getFullYear(), s.getMonth() + 1, s.getDate());
+              this.getUIContext().showDatePickerDialog({
+                start: new Date(2000, 0, 1),
+                end: new Date(2100, 11, 31),
+                selected: s,
+                onDateAccept: (e: Date) => {
+                  const end = dateKey(e.getFullYear(), e.getMonth() + 1, e.getDate());
+                  if (end < start) {
+                    return;
+                  }
+                  const n = this.service.autoFillRange(this.days, start, end, this.rules);
+                  this.saveDays();
+                  promptAction.showToast({ message: $r('app.string.range_filled', n) });
+                }
+              });
             }
-            const n = this.service.autoFillRange(this.days, start, end, this.rules);
-            this.saveDays();
-            promptAction.showToast({ message: $r('app.string.range_filled', n) });
-          }
-        });
-      }
+          });
+        } }
+      ]
     });
   }
 
-  // 把一段区间的班次复制到另一段等长区间：源开始→源结束→目标开始
+  // 把一段区间的班次复制到另一段等长区间：先说明步骤，再选源开始→源结束→目标开始
   rangeCopy(): void {
-    this.getUIContext().showDatePickerDialog({
-      start: new Date(2000, 0, 1),
-      end: new Date(2100, 11, 31),
-      selected: new Date(this.viewYear, this.viewMonth - 1, 1),
-      onDateAccept: (s: Date) => {
-        const srcStart = dateKey(s.getFullYear(), s.getMonth() + 1, s.getDate());
-        this.getUIContext().showDatePickerDialog({
-          start: new Date(2000, 0, 1),
-          end: new Date(2100, 11, 31),
-          selected: s,
-          onDateAccept: (e: Date) => {
-            const srcEnd = dateKey(e.getFullYear(), e.getMonth() + 1, e.getDate());
-            if (srcEnd < srcStart) {
-              return;
+    this.getUIContext().showAlertDialog({
+      title: $r('app.string.range_copy'),
+      message: $r('app.string.range_copy_desc'),
+      autoCancel: true,
+      buttons: [
+        { value: $r('app.string.cancel'), fontColor: $r('sys.color.font_secondary'), action: () => {} },
+        { value: $r('app.string.add'), fontColor: $r('sys.color.brand'), action: () => {
+          this.getUIContext().showDatePickerDialog({
+            start: new Date(2000, 0, 1),
+            end: new Date(2100, 11, 31),
+            selected: new Date(this.viewYear, this.viewMonth - 1, 1),
+            onDateAccept: (s: Date) => {
+              const srcStart = dateKey(s.getFullYear(), s.getMonth() + 1, s.getDate());
+              this.getUIContext().showDatePickerDialog({
+                start: new Date(2000, 0, 1),
+                end: new Date(2100, 11, 31),
+                selected: s,
+                onDateAccept: (e: Date) => {
+                  const srcEnd = dateKey(e.getFullYear(), e.getMonth() + 1, e.getDate());
+                  if (srcEnd < srcStart) {
+                    return;
+                  }
+                  this.getUIContext().showDatePickerDialog({
+                    start: new Date(2000, 0, 1),
+                    end: new Date(2100, 11, 31),
+                    selected: e,
+                    onDateAccept: (t: Date) => {
+                      const dstStart = dateKey(t.getFullYear(), t.getMonth() + 1, t.getDate());
+                      this.getUIContext().showAlertDialog({
+                        title: $r('app.string.range_copy'),
+                        message: $r('app.string.range_copy_msg'),
+                        autoCancel: true,
+                        buttons: [
+                          { value: $r('app.string.cancel'), fontColor: $r('sys.color.font_secondary'), action: () => {} },
+                          { value: $r('app.string.btn_clear'), fontColor: $r('sys.color.brand'), action: () => {
+                            const n = this.service.copyRangeTo(this.days, srcStart, srcEnd, dstStart);
+                            this.saveDays();
+                            promptAction.showToast({ message: $r('app.string.range_copied', n) });
+                          } }
+                        ]
+                      });
+                    }
+                  });
+                }
+              });
             }
-            this.getUIContext().showDatePickerDialog({
-              start: new Date(2000, 0, 1),
-              end: new Date(2100, 11, 31),
-              selected: e,
-              onDateAccept: (t: Date) => {
-                const dstStart = dateKey(t.getFullYear(), t.getMonth() + 1, t.getDate());
-                this.getUIContext().showAlertDialog({
-                  title: $r('app.string.range_copy'),
-                  message: $r('app.string.range_copy_msg'),
-                  autoCancel: true,
-                  buttons: [
-                    { value: $r('app.string.cancel'), fontColor: $r('sys.color.font_secondary'), action: () => {} },
-                    { value: $r('app.string.btn_clear'), fontColor: $r('sys.color.brand'), action: () => {
-                      const n = this.service.copyRangeTo(this.days, srcStart, srcEnd, dstStart);
-                      this.saveDays();
-                      promptAction.showToast({ message: $r('app.string.range_copied', n) });
-                    } }
-                  ]
-                });
-              }
-            });
-          }
-        });
-      }
+          });
+        } }
+      ]
     });
   }
 
@@ -346,6 +366,7 @@ export struct HomePage {
         .onClick(() => this.rangeCopy())
     }
     .width('100%')
+    .margin({ top: 8 })
   }
 
   markRest(): void {
