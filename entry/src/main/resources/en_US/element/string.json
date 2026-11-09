@@ -114,6 +114,14 @@
     { "name": "auto_confirm_msg", "value": "Auto-fill unscheduled days of this month by rules. Continue?" },
     { "name": "copied_sync", "value": "Synced %1$d days" },
     { "name": "copy_day_done", "value": "Day shifts copied" },
-    { "name": "auto_filled", "value": "Auto-filled %1$d days" }
+    { "name": "auto_filled", "value": "Auto-filled %1$d days" },
+    { "name": "range_auto", "value": "Auto-fill range" },
+    { "name": "range_copy", "value": "Copy range" },
+    { "name": "pick_start", "value": "Select start date" },
+    { "name": "pick_end", "value": "Select end date" },
+    { "name": "pick_target_start", "value": "Select target start date" },
+    { "name": "range_copy_msg", "value": "This will overwrite existing shifts in the target range. Continue?" },
+    { "name": "range_filled", "value": "Auto-filled %1$d days in range" },
+    { "name": "range_copied", "value": "Copied %1$d days" }
   ]
 }

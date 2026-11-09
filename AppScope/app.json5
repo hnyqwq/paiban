@@ -2,7 +2,7 @@
   "app": {
     "bundleName": "yylx.hnyqwq.paiban",
     "vendor": "hnyqwq",
-    "versionCode": 10000001,
+    "versionCode": 1,
     "versionName": "0.0.0.1",
     "icon": "$media:layered_image",
     "label": "$string:app_name",

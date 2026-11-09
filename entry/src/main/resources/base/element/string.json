@@ -114,6 +114,14 @@
     { "name": "auto_confirm_msg", "value": "将按规则自动排满本月未排的日期，确定？" },
     { "name": "copied_sync", "value": "已同步 %1$d 天" },
     { "name": "copy_day_done", "value": "已复制当日班次" },
-    { "name": "auto_filled", "value": "已自动排 %1$d 天" }
+    { "name": "auto_filled", "value": "已自动排 %1$d 天" },
+    { "name": "range_auto", "value": "自动排区间" },
+    { "name": "range_copy", "value": "复制区间" },
+    { "name": "pick_start", "value": "选择开始日期" },
+    { "name": "pick_end", "value": "选择结束日期" },
+    { "name": "pick_target_start", "value": "选择目标开始日期" },
+    { "name": "range_copy_msg", "value": "将覆盖目标区间内已有的排班，确定复制？" },
+    { "name": "range_filled", "value": "区间内已自动排 %1$d 天" },
+    { "name": "range_copied", "value": "已复制 %1$d 天" }
   ]
 }

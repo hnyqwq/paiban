@@ -590,4 +590,73 @@ export class ScheduleService {
     }
     return filled;
   }
+
+  // 按日期区间（如 7 天）自动排班：跳过已有班次/手动休息/固定休息日，遵守连续上限；返回排的天数
+  autoFillRange(days: DayEntry[], start: string, end: string, rules: ShiftRules): number {
+    const dailyMin = (rules.minWorkHoursPerDay > 0 ? rules.minWorkHoursPerDay : 8) * 60;
+    let shiftDur = dailyMin;
+    if (rules.maxContinuousWorkMinutes > 0) {
+      shiftDur = Math.min(shiftDur, rules.maxContinuousWorkMinutes);
+    }
+    // 连续计数延续区间开始之前的状态
+    let sinceRest = this.consecutiveWorkDaysEnding(days, this.addDays(start, -1));
+    let filled = 0;
+    let cur = start;
+    // yyyy-MM-dd 字典序即日期序
+    while (cur <= end) {
+      const entry = this.findEntry(days, cur);
+      if (entry !== undefined && entry.shifts.length > 0) {
+        sinceRest++;
+        cur = this.addDays(cur, 1);
+        continue;
+      }
+      const wd = new Date(cur + 'T00:00:00').getDay();
+      if (rules.restWeekdays.includes(wd)) {
+        sinceRest = 0;
+        cur = this.addDays(cur, 1);
+        continue;
+      }
+      if (entry !== undefined && entry.shifts.length === 0) {
+        sinceRest = 0; // 手动标记的休息日，保留
+        cur = this.addDays(cur, 1);
+        continue;
+      }
+      if (sinceRest >= rules.maxConsecutiveWorkDays) {
+        sinceRest = 0; // 达到连续上限，当天强制休息
+        cur = this.addDays(cur, 1);
+        continue;
+      }
+      const startMin = 9 * 60;
+      const endMin = startMin + shiftDur;
+      const ne = entry !== undefined ? entry : (() => {
+        const e = new DayEntry();
+        e.date = cur;
+        days.push(e);
+        return e;
+      })();
+      const s = new Shift();
+      s.start = `${pad2(Math.floor(startMin / 60))}:${pad2(startMin % 60)}`;
+      s.end = `${pad2(Math.floor(endMin / 60))}:${pad2(endMin % 60)}`;
+      ne.shifts.push(s);
+      sinceRest++;
+      filled++;
+      cur = this.addDays(cur, 1);
+    }
+    return filled;
+  }
+
+  // 把一段日期区间（srcStart..srcEnd）的班次逐日复制到 dstStart 开始的等长区间，返回复制天数
+  copyRangeTo(days: DayEntry[], srcStart: string, srcEnd: string, dstStart: string): number {
+    let count = 0;
+    let src = srcStart;
+    let dst = dstStart;
+    while (src <= srcEnd) {
+      if (this.copyDayTo(days, src, dst)) {
+        count++;
+      }
+      src = this.addDays(src, 1);
+      dst = this.addDays(dst, 1);
+    }
+    return count;
+  }
 }

@@ -261,6 +261,93 @@ export struct HomePage {
     .margin({ top: 8 })
   }
 
+  // 自动排一段日期区间（如 7 天）：选开始→选结束
+  rangeAuto(): void {
+    this.getUIContext().showDatePickerDialog({
+      start: new Date(2000, 0, 1),
+      end: new Date(2100, 11, 31),
+      selected: new Date(this.viewYear, this.viewMonth - 1, 1),
+      onDateAccept: (s: Date) => {
+        const start = dateKey(s.getFullYear(), s.getMonth() + 1, s.getDate());
+        this.getUIContext().showDatePickerDialog({
+          start: new Date(2000, 0, 1),
+          end: new Date(2100, 11, 31),
+          selected: s,
+          onDateAccept: (e: Date) => {
+            const end = dateKey(e.getFullYear(), e.getMonth() + 1, e.getDate());
+            if (end < start) {
+              return;
+            }
+            const n = this.service.autoFillRange(this.days, start, end, this.rules);
+            this.saveDays();
+            promptAction.showToast({ message: $r('app.string.range_filled', n) });
+          }
+        });
+      }
+    });
+  }
+
+  // 把一段区间的班次复制到另一段等长区间：源开始→源结束→目标开始
+  rangeCopy(): void {
+    this.getUIContext().showDatePickerDialog({
+      start: new Date(2000, 0, 1),
+      end: new Date(2100, 11, 31),
+      selected: new Date(this.viewYear, this.viewMonth - 1, 1),
+      onDateAccept: (s: Date) => {
+        const srcStart = dateKey(s.getFullYear(), s.getMonth() + 1, s.getDate());
+        this.getUIContext().showDatePickerDialog({
+          start: new Date(2000, 0, 1),
+          end: new Date(2100, 11, 31),
+          selected: s,
+          onDateAccept: (e: Date) => {
+            const srcEnd = dateKey(e.getFullYear(), e.getMonth() + 1, e.getDate());
+            if (srcEnd < srcStart) {
+              return;
+            }
+            this.getUIContext().showDatePickerDialog({
+              start: new Date(2000, 0, 1),
+              end: new Date(2100, 11, 31),
+              selected: e,
+              onDateAccept: (t: Date) => {
+                const dstStart = dateKey(t.getFullYear(), t.getMonth() + 1, t.getDate());
+                this.getUIContext().showAlertDialog({
+                  title: $r('app.string.range_copy'),
+                  message: $r('app.string.range_copy_msg'),
+                  autoCancel: true,
+                  buttons: [
+                    { value: $r('app.string.cancel'), fontColor: $r('sys.color.font_secondary'), action: () => {} },
+                    { value: $r('app.string.btn_clear'), fontColor: $r('sys.color.brand'), action: () => {
+                      const n = this.service.copyRangeTo(this.days, srcStart, srcEnd, dstStart);
+                      this.saveDays();
+                      promptAction.showToast({ message: $r('app.string.range_copied', n) });
+                    } }
+                  ]
+                });
+              }
+            });
+          }
+        });
+      }
+    });
+  }
+
+  @Builder
+  rangeActionRow() {
+    Row({ space: 8 }) {
+      Button($r('app.string.range_auto'))
+        .buttonStyle(ButtonStyleMode.NORMAL)
+        .fontSize(12)
+        .layoutWeight(1)
+        .onClick(() => this.rangeAuto())
+      Button($r('app.string.range_copy'))
+        .buttonStyle(ButtonStyleMode.NORMAL)
+        .fontSize(12)
+        .layoutWeight(1)
+        .onClick(() => this.rangeCopy())
+    }
+    .width('100%')
+  }
+
   markRest(): void {
     const entry = this.service.findEntry(this.days, this.selectedDate);
     if (entry !== undefined && entry.shifts.length === 0) {
@@ -611,6 +698,7 @@ export struct HomePage {
         this.progressLine()
         this.violationBanner()
         this.actionRow()
+        this.rangeActionRow()
         this.dayDetail()
         Text('') // 底部留白，避开悬浮 Tab 栏
           .height(100)
