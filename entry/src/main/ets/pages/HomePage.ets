@@ -35,7 +35,8 @@ export struct HomePage {
   }
 
   refresh(): void {
-    this.days = this.service.getDays();
+    // 必须复制新数组：service 返回的是缓存引用，赋同一引用不会触发 UI 刷新
+    this.days = this.service.getDays().slice();
     this.monthStats = this.service.computeStats(this.days, this.viewYear, this.viewMonth, this.rules);
     const entry = this.service.findEntry(this.days, this.selectedDate);
     this.memoDraft = entry !== undefined ? entry.memo : '';
