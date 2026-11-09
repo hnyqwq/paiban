@@ -174,7 +174,7 @@ export struct SecondPage {  scroller: Scroller = new Scroller();
         ForEach(this.stats.violations, (v: string) => {
           Text(v)
             .fontSize(12)
-            .fontColor($r('sys.color.warning'))
+            .fontColor($r('sys.color.font_secondary'))
             .margin({ top: 6 })
             .width('100%')
         }, (v: string) => v)

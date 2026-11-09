@@ -584,17 +584,22 @@ export struct HomePage {
   violationBanner() {
     if (this.monthStats.violations.length > 0) {
       Column() {
+        Text($r('app.string.rule_reminders'))
+          .fontSize(12)
+          .fontColor($r('sys.color.warning'))
+          .margin({ bottom: 4 })
         ForEach(this.monthStats.violations.slice(0, 3), (v: string) => {
           Text(v)
             .fontSize(12)
-            .fontColor('#FA5151')
+            .fontColor($r('sys.color.font_secondary'))
             .margin({ top: 2 })
         }, (v: string) => v)
       }
       .width('100%')
-      .padding(10)
+      .padding(12)
       .borderRadius(8)
-      .backgroundColor('#FA51511A')
+      .backgroundColor($r('sys.color.comp_background_tertiary'))
+      .border({ width: 0.5, color: $r('sys.color.comp_divider') })
       .margin({ top: 8 })
     }
   }
