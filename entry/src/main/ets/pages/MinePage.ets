@@ -1,9 +1,9 @@
 // 第三页：我的 —— 仅放额外设置（外观/规则/数据/关于）
-import { pasteboard } from '@kit.BasicServicesKit';
+import { pasteboard, BusinessError } from '@kit.BasicServicesKit';
 import { promptAction, SegmentButtonV2Items, CapsuleSegmentButtonV2 } from '@kit.ArkUI';
-import { common } from '@kit.AbilityKit';
+import { common, bundleManager } from '@kit.AbilityKit';
 import { updateManager } from '@kit.AppGalleryKit';
-import { BusinessError } from '@kit.BasicServicesKit';
+import { hilog } from '@kit.PerformanceAnalysisKit';
 import { ShiftRules } from '../model/ScheduleTypes';
 import { ScheduleService } from '../service/ScheduleService';
 
@@ -105,6 +105,8 @@ export struct MinePage {
   @State appearanceMode: number = 0; // 0 跟随系统 1 浅色 2 深色
   @State rules: ShiftRules = new ShiftRules();
   @State showRuleEditor: boolean = false;
+  @State bundleName: string = '';
+  @State versionName: string = '';
   private service: ScheduleService = ScheduleService.getInstance();
   private importDialog: CustomDialogController = new CustomDialogController({
     builder: ImportDialog({
@@ -128,6 +130,18 @@ export struct MinePage {
   aboutToAppear(): void {
     this.appearanceMode = this.service.getAppearanceMode();
     this.rules = this.service.getRules();
+    this.loadBundleInfo();
+  }
+
+  // 通过 bundleManager 实时读取包名与版本号
+  loadBundleInfo(): void {
+    try {
+      const info = bundleManager.getBundleInfoForSelfSync(bundleManager.BundleFlag.GET_BUNDLE_INFO_DEFAULT);
+      this.bundleName = info.name;
+      this.versionName = info.versionName;
+    } catch (e) {
+      hilog.error(0x0000, 'testTag', 'Failed to load bundle info. Cause: %{public}s', JSON.stringify(e));
+    }
   }
 
   saveRules(): void {
@@ -402,15 +416,25 @@ export struct MinePage {
         this.sectionTitle($r('app.string.section_about'))
         Column() {
           Row() {
-            Text($r('app.string.version_label'))
+            Text($r('app.string.EntryAbility_label'))
               .fontSize(15)
             Blank()
-            Text('1.0.0')
+            Text(this.bundleName)
               .fontSize(15)
               .fontColor($r('sys.color.font_secondary'))
           }
           .width('100%')
           .padding({ left: 12, right: 12, top: 12, bottom: 4 })
+          Row() {
+            Text($r('app.string.version_label'))
+              .fontSize(15)
+            Blank()
+            Text(this.versionName)
+              .fontSize(15)
+              .fontColor($r('sys.color.font_secondary'))
+          }
+          .width('100%')
+          .padding({ left: 12, right: 12, top: 4, bottom: 4 })
           Row() {
             Text($r('app.string.check_update'))
               .fontSize(15)
