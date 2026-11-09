@@ -6,6 +6,7 @@ import { ScheduleService } from '../service/ScheduleService';
 
 @Component
 export struct SecondPage {
+  scroller: Scroller = new Scroller();
   @State viewYear: number = 2025;
   @State viewMonth: number = 1;
   @State stats: MonthStats = new MonthStats();
@@ -166,7 +167,7 @@ export struct SecondPage {
   }
 
   build() {
-    Scroll() {
+    Scroll(this.scroller) {
       Column() {
         Row() {
           Text('‹')
@@ -187,7 +188,7 @@ export struct SecondPage {
 
         this.ringCard()
 
-        Row() {
+        Row({ space: 8 }) {
           this.statCard($r('app.string.stat_scheduled'), minutesToHoursText(this.stats.workedMinutes),
             $r('app.string.progress_need', minutesToHoursText(this.stats.remainingMinutes)))
           this.statCard($r('app.string.stat_rest_days'), $r('app.string.stat_rest_days_val', this.stats.restDays),
@@ -196,7 +197,7 @@ export struct SecondPage {
         .width('100%')
         .margin({ top: 8 })
 
-        Row() {
+        Row({ space: 8 }) {
           this.statCard($r('app.string.stat_rest_hours'), minutesToHoursText(this.stats.restMinutes),
             $r('app.string.stat_rest_hours_sub', this.rules.restHoursPerMonth))
           this.statCard($r('app.string.stat_streak'), $r('app.string.stat_streak_val', this.stats.currentConsecutive),
@@ -204,14 +205,13 @@ export struct SecondPage {
         }
         .width('100%')
         .margin({ top: 8 })
-
         this.barChart()
         this.violationList()
         Text('')
           .height(100)
       }
       .width('100%')
-      .padding(12)
+      .padding({ left: 12, right: 12, top: 110 })
     }
     .width('100%')
     .height('100%')

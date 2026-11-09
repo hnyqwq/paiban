@@ -6,6 +6,7 @@ import { ScheduleService } from '../service/ScheduleService';
 
 @Component
 export struct MinePage {
+  scroller: Scroller = new Scroller();
   @State appearanceMode: number = 0; // 0 跟随系统 1 浅色 2 深色
   @State rules: ShiftRules = new ShiftRules();
   @State showRuleEditor: boolean = false;
@@ -157,7 +158,7 @@ export struct MinePage {
 
       Button($r('app.string.save_rules'))
         .width('100%')
-        .margin({ top: 14 })
+        .margin({ top: 14, bottom: 4 })
         .onClick(() => this.saveRules())
     }
     .width('100%')
@@ -167,7 +168,7 @@ export struct MinePage {
   }
 
   build() {
-    Scroll() {
+    Scroll(this.scroller) {
       Column() {
         this.sectionTitle($r('app.string.section_appearance'))
         Column() {
@@ -201,7 +202,7 @@ export struct MinePage {
             Button($r('app.string.edit_rules'))
               .width('100%')
               .buttonStyle(ButtonStyleMode.NORMAL)
-              .margin({ top: 12 })
+              .margin({ top: 12, bottom: 12 })
               .onClick(() => {
                 this.showRuleEditor = true;
               })
@@ -260,7 +261,7 @@ export struct MinePage {
           .height(100)
       }
       .width('100%')
-      .padding({ left: 12, right: 12, top: 4 })
+      .padding({ left: 12, right: 12, top: 110 })
     }
     .width('100%')
     .height('100%')

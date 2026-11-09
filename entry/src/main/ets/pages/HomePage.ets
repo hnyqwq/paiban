@@ -9,6 +9,7 @@ const WEEK_LABELS: string[] = ['日', '一', '二', '三', '四', '五', '六'];
 
 @Component
 export struct HomePage {
+  scroller: Scroller = new Scroller();
   @State viewYear: number = 2025;
   @State viewMonth: number = 1;
   @State selectedDate: string = '';
@@ -400,7 +401,7 @@ export struct HomePage {
   }
 
   build() {
-    Scroll() {
+    Scroll(this.scroller) {
       Column() {
         this.calendar()
         this.progressLine()
@@ -410,7 +411,7 @@ export struct HomePage {
           .height(100)
       }
       .width('100%')
-      .padding(12)
+      .padding({ left: 12, right: 12, top: 110 })
     }
     .width('100%')
     .height('100%')

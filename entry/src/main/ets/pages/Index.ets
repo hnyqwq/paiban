@@ -22,6 +22,20 @@ struct Index {
   @State symbolTools: SymbolGlyphModifier = new SymbolGlyphModifier($r('sys.symbol.square_grid_2x2'));
   @State symbolMine: SymbolGlyphModifier = new SymbolGlyphModifier($r('sys.symbol.person'));
   private tabsController: HdsTabsController = new HdsTabsController();
+  // 各页滚动器，绑定顶栏滚动磨砂效果（照搬 hny）
+  private scrollerHome: Scroller = new Scroller();
+  private scrollerStats: Scroller = new Scroller();
+  private scrollerMine: Scroller = new Scroller();
+
+  private getCurScroll(): Scroller {
+    if (this.currentTab === 1) {
+      return this.scrollerStats;
+    }
+    if (this.currentTab === 2) {
+      return this.scrollerMine;
+    }
+    return this.scrollerHome;
+  }
 
   private getMainTitle(): Resource {
     if (this.currentTab === 0) {
@@ -58,17 +72,17 @@ struct Index {
     HdsNavigation() {
       HdsTabs({ controller: this.tabsController }) {
         TabContent() {
-          HomePage()
+          HomePage({ scroller: this.scrollerHome })
         }
         .tabBar(new BottomTabBarStyle({ normal: this.symbolHome }, $r('app.string.tab_home')))
 
         TabContent() {
-          SecondPage()
+          SecondPage({ scroller: this.scrollerStats })
         }
         .tabBar(new BottomTabBarStyle({ normal: this.symbolTools }, $r('app.string.tab_discover')))
 
         TabContent() {
-          MinePage()
+          MinePage({ scroller: this.scrollerMine })
         }
         .tabBar(new BottomTabBarStyle({ normal: this.symbolMine }, $r('app.string.tab_mine')))
       }
@@ -115,6 +129,7 @@ struct Index {
     .mode(NavigationMode.Stack)
     .titleMode(HdsNavigationTitleMode.MINI)
     .hideBackButton(true)
+    .bindToScrollable([this.getCurScroll()])
     .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.TOP, LayoutSafeAreaEdge.BOTTOM])
   }
 }
