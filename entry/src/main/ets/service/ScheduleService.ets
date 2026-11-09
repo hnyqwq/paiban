@@ -262,6 +262,7 @@ export class ScheduleService {
       rules.maxContinuousWorkMinutes = raw.maxContinuousWorkMinutes ?? rules.maxContinuousWorkMinutes;
       rules.mandatoryRestMinutes = raw.mandatoryRestMinutes ?? rules.mandatoryRestMinutes;
       rules.restWeekdays = Array.isArray(raw.restWeekdays) ? raw.restWeekdays as number[] : rules.restWeekdays;
+      rules.shiftTemplate = typeof raw.shiftTemplate === 'string' ? raw.shiftTemplate : rules.shiftTemplate;
       return rules;
     } catch (e) {
       return rules;
@@ -583,8 +584,19 @@ export class ScheduleService {
     return filled;
   }
 
-  // 给某天填充班次：总时长超过单段上限时自动拆成多段，段间留强制休息间隔
+  // 给某天填充班次：配置了固定班次模板则按模板排（可多段），
+  // 否则总时长超过单段上限时自动拆成多段，段间留强制休息间隔
   private fillShiftsForDay(ne: DayEntry, duration: number, rules: ShiftRules): void {
+    const template = this.parseShiftTemplate(rules.shiftTemplate);
+    if (template.length > 0) {
+      for (const seg of template) {
+        const s = new Shift();
+        s.start = seg[0];
+        s.end = seg[1];
+        ne.shifts.push(s);
+      }
+      return;
+    }
     const cap = rules.maxContinuousWorkMinutes > 0
       ? Math.min(duration, rules.maxContinuousWorkMinutes)
       : duration;
@@ -601,6 +613,28 @@ export class ScheduleService {
       remaining -= dur;
       startMin = endMin + restGap;
     }
+  }
+
+  // 解析班次模板 "08:00-12:00,14:00-18:00" → [["08:00","12:00"],["14:00","18:00"]]，非法返回空
+  private parseShiftTemplate(template: string): string[][] {
+    const result: string[][] = [];
+    const text = template.trim();
+    if (text === '') {
+      return result;
+    }
+    for (const part of text.split(',')) {
+      const seg = part.trim().split('-');
+      if (seg.length !== 2) {
+        return []; // 任一段非法则整条模板不生效
+      }
+      const start = seg[0].trim();
+      const end = seg[1].trim();
+      if (!/^\d{1,2}:\d{2}$/.test(start) || !/^\d{1,2}:\d{2}$/.test(end)) {
+        return [];
+      }
+      result.push([start, end]);
+    }
+    return result;
   }
 
   // 按日期区间（如 7 天）自动排班：跳过已有班次/手动休息/固定休息日，遵守连续上限；返回排的天数

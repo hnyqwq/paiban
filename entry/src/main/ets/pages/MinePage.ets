@@ -194,6 +194,22 @@ export struct MinePage {
     this.rules.restWeekdays = arr;
   }
 
+  // 展示固定班次模板，未设置显示「无」
+  shiftTemplateText(): string {
+    if (this.rules.shiftTemplate.trim() === '') {
+      try {
+        const context = AppStorage.get<common.UIAbilityContext>('context');
+        if (context !== undefined) {
+          return context.resourceManager.getStringByNameSync('rule_shift_template_none');
+        }
+      } catch (e) {
+        // 取不到就用默认
+      }
+      return '';
+    }
+    return this.rules.shiftTemplate;
+  }
+
   exportData(): void {
     const json = JSON.stringify(this.service.getDays());
     const data = pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, json);
@@ -365,6 +381,17 @@ export struct MinePage {
       .width('100%')
       .margin({ top: 6 })
 
+      Text($r('app.string.rule_shift_template'))
+        .fontSize(13)
+        .margin({ top: 10 })
+      TextInput({ text: this.rules.shiftTemplate, placeholder: $r('app.string.rule_shift_template_hint') })
+        .type(InputType.Normal)
+        .width('100%')
+        .fontSize(13)
+        .onChange((v: string) => {
+          this.rules.shiftTemplate = v;
+        })
+
       Text($r('app.string.rule_mandatory_rest'))
         .fontSize(13)
         .margin({ top: 10 })
@@ -427,6 +454,19 @@ export struct MinePage {
           Divider().strokeWidth(0.5)
           this.ruleRow($r('app.string.rule_mandatory_rest'), this.rules.mandatoryRestMinutes, $r('app.string.unit_minutes'))
           Divider().strokeWidth(0.5)
+          Row() {
+            Text($r('app.string.rule_shift_template'))
+              .fontSize(15)
+            Blank()
+            Text(this.shiftTemplateText())
+              .fontSize(13)
+              .fontColor($r('sys.color.font_secondary'))
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+              .constraintSize({ maxWidth: '60%' })
+          }
+          .width('100%')
+          .padding(12)
           Row() {
             Text($r('app.string.rule_rest_weekdays'))
               .fontSize(15)
