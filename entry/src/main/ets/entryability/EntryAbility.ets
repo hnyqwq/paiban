@@ -1,6 +1,6 @@
 import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
-import { window, KeyboardAvoidMode } from '@kit.ArkUI';
+import { window } from '@kit.ArkUI';
 import { ScheduleService } from '../service/ScheduleService';
 
 const DOMAIN = 0x0000;
@@ -28,14 +28,7 @@ export default class EntryAbility extends UIAbility {
         return;
       }
       hilog.info(DOMAIN, 'testTag', 'Succeeded in loading the content.');
-      // 键盘避让模式：整体上抬（照搬 video-LTSC）
-      try {
-        const uiContext = windowStage.getMainWindowSync().getUIContext();
-        uiContext.setKeyboardAvoidMode(KeyboardAvoidMode.OFFSET);
-        AppStorage.setOrCreate('uiContext', uiContext);
-      } catch (error) {
-        hilog.error(DOMAIN, 'testTag', 'Failed to set keyboard avoid mode. Cause: %{public}s', JSON.stringify(error) ?? '');
-      }
+      // 键盘避让保持系统默认（照搬 hny，不显式设置）
     });
 
     // 窗口初始化：安全区避让（照搬 hny）
