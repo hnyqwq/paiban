@@ -209,7 +209,7 @@ export struct MinePage {
             Button($r('app.string.edit_rules'))
               .width('100%')
               .buttonStyle(ButtonStyleMode.NORMAL)
-              .margin({ top: 12, bottom: 12 })
+              .margin({ top: 12, bottom: 12, left: 12, right: 12 })
               .onClick(() => {
                 this.showRuleEditor = true;
               })
@@ -225,13 +225,13 @@ export struct MinePage {
           Button($r('app.string.export_data'))
             .width('100%')
             .buttonStyle(ButtonStyleMode.NORMAL)
-            .margin({ top: 12 })
+            .margin({ top: 12, left: 12, right: 12 })
             .onClick(() => this.exportData())
           Button($r('app.string.clear_data'))
             .width('100%')
             .buttonStyle(ButtonStyleMode.NORMAL)
             .fontColor($r('sys.color.warning'))
-            .margin({ top: 8, bottom: 12 })
+            .margin({ top: 8, bottom: 12, left: 12, right: 12 })
             .onClick(() => this.clearData())
         }
         .width('100%')
