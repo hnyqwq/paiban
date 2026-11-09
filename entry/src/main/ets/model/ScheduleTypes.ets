@@ -25,10 +25,16 @@ export class Shift {
   }
 }
 
+export class TodoItem {
+  text: string = '';
+  done: boolean = false;
+}
+
 export class DayEntry {
   date: string = '';       // yyyy-MM-dd
   shifts: Shift[] = [];    // 空 shifts 且 memo 非空 = 休息日/纯备忘
   memo: string = '';
+  todos: TodoItem[] = [];  // 当日待办
 }
 
 export class ShiftRules {

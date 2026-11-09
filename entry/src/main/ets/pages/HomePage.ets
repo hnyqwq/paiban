@@ -1,6 +1,6 @@
 // 首页：月历 + 每日排班编辑 + 今日日程 + 备忘录
 import {
-  DayEntry, Shift, ShiftRules, MonthStats,
+  DayEntry, Shift, ShiftRules, MonthStats, TodoItem,
   dateKey, daysInMonth, minutesToHoursText
 } from '../model/ScheduleTypes';
 import { ScheduleService } from '../service/ScheduleService';
@@ -21,6 +21,7 @@ export struct HomePage {
   @State newStart: string = '09:00';
   @State newEnd: string = '17:00';
   @State memoDraft: string = '';
+  @State newTodo: string = '';
 
   private service: ScheduleService = ScheduleService.getInstance();
 
@@ -116,6 +117,42 @@ export struct HomePage {
       return;
     }
     entry.memo = this.memoDraft;
+    this.upsertEntry(entry);
+  }
+
+  addTodo(): void {
+    if (this.newTodo.trim() === '') {
+      return;
+    }
+    const entry = this.service.findEntry(this.days, this.selectedDate);
+    const e = entry !== undefined ? entry : (() => {
+      const ne = new DayEntry();
+      ne.date = this.selectedDate;
+      return ne;
+    })();
+    const t = new TodoItem();
+    t.text = this.newTodo.trim();
+    t.done = false;
+    e.todos.push(t);
+    this.newTodo = '';
+    this.upsertEntry(e);
+  }
+
+  toggleTodo(index: number): void {
+    const entry = this.service.findEntry(this.days, this.selectedDate);
+    if (entry === undefined || index >= entry.todos.length) {
+      return;
+    }
+    entry.todos[index].done = !entry.todos[index].done;
+    this.upsertEntry(entry);
+  }
+
+  removeTodo(index: number): void {
+    const entry = this.service.findEntry(this.days, this.selectedDate);
+    if (entry === undefined || index >= entry.todos.length) {
+      return;
+    }
+    entry.todos.splice(index, 1);
     this.upsertEntry(entry);
   }
 
@@ -376,6 +413,59 @@ export struct HomePage {
         .onBlur(() => {
           this.saveMemo();
         })
+
+      // 待办
+      Text($r('app.string.todo'))
+        .fontSize(13)
+        .fontColor($r('sys.color.font_tertiary'))
+        .margin({ top: 12 })
+      List() {
+        ForEach(this.service.findEntry(this.days, this.selectedDate)?.todos ?? [], (t: TodoItem, i: number) => {
+          ListItem() {
+            Row() {
+              Checkbox()
+                .select(t.done)
+                .width(18)
+                .height(18)
+                .onChange((isChecked: boolean) => {
+                  this.toggleTodo(i);
+                })
+              Text(t.text)
+                .fontSize(14)
+                .margin({ left: 10 })
+                .layoutWeight(1)
+                .decoration({ type: t.done ? TextDecorationType.LineThrough : TextDecorationType.None })
+                .fontColor(t.done ? $r('sys.color.font_tertiary') : $r('sys.color.font_primary'))
+              Text($r('app.string.delete'))
+                .fontSize(13)
+                .fontColor($r('sys.color.warning'))
+                .onClick(() => this.removeTodo(i))
+            }
+            .width('100%')
+            .padding(8)
+            .borderRadius(8)
+            .backgroundColor($r('sys.color.comp_background_tertiary'))
+            .margin({ top: 6 })
+          }
+        }, (t: TodoItem, i: number) => `${i}-${t.text}-${t.done}`)
+      }
+      .width('100%')
+
+      Row() {
+        TextInput({ text: this.newTodo, placeholder: $r('app.string.todo_hint') })
+          .layoutWeight(1)
+          .height(40)
+          .onChange((v: string) => {
+            this.newTodo = v;
+          })
+        Button($r('app.string.add'))
+          .buttonStyle(ButtonStyleMode.NORMAL)
+          .height(40)
+          .margin({ left: 8 })
+          .onClick(() => this.addTodo())
+      }
+      .width('100%')
+      .margin({ top: 6 })
     }
     .padding(12)
     .borderRadius(12)

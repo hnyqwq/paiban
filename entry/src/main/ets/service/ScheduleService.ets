@@ -2,7 +2,7 @@
 import { preferences } from '@kit.ArkData';
 import { common, ConfigurationConstant } from '@kit.AbilityKit';
 import {
-  DayEntry, Shift, ShiftRules, MonthStats,
+  DayEntry, Shift, ShiftRules, MonthStats, TodoItem,
   dateKey, daysInMonth, minutesToHoursText
 } from '../model/ScheduleTypes';
 
@@ -136,6 +136,15 @@ export class ScheduleService {
             sh.start = s.start;
             sh.end = s.end;
             entry.shifts.push(sh);
+          }
+        }
+        entry.todos = [];
+        if (d.todos) {
+          for (const t of d.todos) {
+            const td = new TodoItem();
+            td.text = t.text;
+            td.done = t.done;
+            entry.todos.push(td);
           }
         }
         result.push(entry);
