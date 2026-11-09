@@ -123,6 +123,16 @@ export struct HomePage {
       return;
     }
     entry.shifts.splice(index, 1);
+    if (entry.shifts.length === 0) {
+      // 删光班次 = 删除该天的记录，不算休息；休息只能通过「标记休息」产生
+      const days = this.days;
+      const idx = days.indexOf(entry);
+      if (idx >= 0) {
+        days.splice(idx, 1);
+      }
+      this.saveDays();
+      return;
+    }
     this.upsertEntry(entry);
   }
 
