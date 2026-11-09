@@ -196,6 +196,26 @@ export struct MinePage {
           this.rules.maxConsecutiveWorkDays = Number(v) || 0;
         })
 
+      Text($r('app.string.rule_max_continuous'))
+        .fontSize(13)
+        .margin({ top: 10 })
+      TextInput({ text: `${this.rules.maxContinuousWorkMinutes}` })
+        .type(InputType.Number)
+        .width('100%')
+        .onChange((v: string) => {
+          this.rules.maxContinuousWorkMinutes = Number(v) || 0;
+        })
+
+      Text($r('app.string.rule_mandatory_rest'))
+        .fontSize(13)
+        .margin({ top: 10 })
+      TextInput({ text: `${this.rules.mandatoryRestMinutes}` })
+        .type(InputType.Number)
+        .width('100%')
+        .onChange((v: string) => {
+          this.rules.mandatoryRestMinutes = Number(v) || 0;
+        })
+
       Button($r('app.string.save_rules'))
         .width('100%')
         .margin({ top: 14, bottom: 4 })
@@ -241,6 +261,10 @@ export struct MinePage {
           this.ruleRow($r('app.string.rule_rest_hours'), this.rules.restHoursPerMonth, $r('app.string.unit_hours'))
           Divider().strokeWidth(0.5)
           this.ruleRow($r('app.string.rule_max_streak'), this.rules.maxConsecutiveWorkDays, $r('app.string.unit_days'))
+          Divider().strokeWidth(0.5)
+          this.ruleRow($r('app.string.rule_max_continuous'), this.rules.maxContinuousWorkMinutes, $r('app.string.unit_minutes'))
+          Divider().strokeWidth(0.5)
+          this.ruleRow($r('app.string.rule_mandatory_rest'), this.rules.mandatoryRestMinutes, $r('app.string.unit_minutes'))
 
           if (this.showRuleEditor) {
             this.ruleEditor()

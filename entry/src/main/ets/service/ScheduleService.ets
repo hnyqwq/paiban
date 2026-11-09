@@ -38,7 +38,7 @@ export class ScheduleService {
   }
 
   // 按系统语言取参数化文案：必须按 id+参数格式化，$r 携带的参数在 getStringSync(Resource) 下不会替换
-  str(res: Resource, a?: number | string, b?: number | string, c?: number | string): string {
+  str(res: Resource, a?: number | string, b?: number | string, c?: number | string, d?: number | string): string {
     if (this.uiCtx === null) {
       return '';
     }
@@ -52,7 +52,10 @@ export class ScheduleService {
       if (c === undefined) {
         return this.uiCtx.resourceManager.getStringSync(res.id, a, b);
       }
-      return this.uiCtx.resourceManager.getStringSync(res.id, a, b, c);
+      if (d === undefined) {
+        return this.uiCtx.resourceManager.getStringSync(res.id, a, b, c);
+      }
+      return this.uiCtx.resourceManager.getStringSync(res.id, a, b, c, d);
     } catch (e) {
       return '';
     }
@@ -186,6 +189,8 @@ export class ScheduleService {
       rules.restDaysPerMonth = raw.restDaysPerMonth ?? rules.restDaysPerMonth;
       rules.restHoursPerMonth = raw.restHoursPerMonth ?? rules.restHoursPerMonth;
       rules.maxConsecutiveWorkDays = raw.maxConsecutiveWorkDays ?? rules.maxConsecutiveWorkDays;
+      rules.maxContinuousWorkMinutes = raw.maxContinuousWorkMinutes ?? rules.maxContinuousWorkMinutes;
+      rules.mandatoryRestMinutes = raw.mandatoryRestMinutes ?? rules.mandatoryRestMinutes;
       return rules;
     } catch (e) {
       return rules;
@@ -266,6 +271,17 @@ export class ScheduleService {
       const gap = curStart - prevEnd;
       if (gap < rules.dailyRestMinutes) {
         result.push(this.str($r('app.string.warn_gap'), day, gap, rules.dailyRestMinutes));
+      }
+    }
+
+    // 单段最长连续工作时长（0 = 不限制）
+    if (rules.maxContinuousWorkMinutes > 0) {
+      for (const s of entry.shifts) {
+        const dur = s.durationMinutes();
+        if (dur > rules.maxContinuousWorkMinutes) {
+          result.push(this.str($r('app.string.warn_continuous'), day,
+            minutesToHoursText(dur), rules.maxContinuousWorkMinutes, rules.mandatoryRestMinutes));
+        }
       }
     }
 
@@ -454,7 +470,11 @@ export class ScheduleService {
         continue;
       }
       const remain = target - worked;
-      const dur = Math.min(dailyMin, remain);
+      // 单段时长同时受每日最少工时与单段连续上限约束
+      let dur = Math.min(dailyMin, remain);
+      if (rules.maxContinuousWorkMinutes > 0) {
+        dur = Math.min(dur, rules.maxContinuousWorkMinutes);
+      }
       const startMin = 9 * 60;
       const endMin = startMin + dur;
       const ne = entry !== undefined ? entry : (() => {

@@ -44,6 +44,8 @@ export class ShiftRules {
   restDaysPerMonth: number = 4;         // 每月最少休息天数
   restHoursPerMonth: number = 40;       // 每月最少休息时长（非工作日按整天 8h 计）
   maxConsecutiveWorkDays: number = 6;   // 最长连续上班天数
+  maxContinuousWorkMinutes: number = 0; // 一天内单段最长连续工作时长，0 = 不限制
+  mandatoryRestMinutes: number = 60;    // 超过单段上限后需强制休息的时长
 }
 
 // 一个月的统计结果
