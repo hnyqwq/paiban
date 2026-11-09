@@ -5,8 +5,7 @@ import {
 import { ScheduleService } from '../service/ScheduleService';
 
 @Component
-export struct SecondPage {
-  scroller: Scroller = new Scroller();
+export struct SecondPage {  scroller: Scroller = new Scroller();
   @State viewYear: number = 2025;
   @State viewMonth: number = 1;
   @State stats: MonthStats = new MonthStats();
@@ -40,12 +39,13 @@ export struct SecondPage {
     this.refresh();
   }
 
-  // 点击标题弹出年月选择器
+  // 点击标题弹出年月选择器（官方 YEAR_AND_MONTH 模式，仅年、月两列）
   showMonthPicker(): void {
     this.getUIContext().showDatePickerDialog({
       start: new Date(2000, 0, 1),
       end: new Date(2100, 11, 31),
       selected: new Date(this.viewYear, this.viewMonth - 1, 1),
+      mode: DatePickerMode.YEAR_AND_MONTH,
       onDateAccept: (value: Date) => {
         this.viewYear = value.getFullYear();
         this.viewMonth = value.getMonth() + 1;
