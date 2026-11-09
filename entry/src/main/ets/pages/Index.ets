@@ -19,7 +19,7 @@ struct Index {
   @State tabMaterialType: number = hdsMaterial.MaterialType.ADAPTIVE;
   @State tabMaterialLevel: number = hdsMaterial.MaterialLevel.SMOOTH;
   @State symbolHome: SymbolGlyphModifier = new SymbolGlyphModifier($r('sys.symbol.calendar'));
-  @State symbolTools: SymbolGlyphModifier = new SymbolGlyphModifier($r('sys.symbol.data_line'));
+  @State symbolTools: SymbolGlyphModifier = new SymbolGlyphModifier($r('sys.symbol.hourglass'));
   @State symbolMine: SymbolGlyphModifier = new SymbolGlyphModifier($r('sys.symbol.person'));
   private tabsController: HdsTabsController = new HdsTabsController();
   // 各页滚动器，绑定顶栏滚动磨砂效果（照搬 hny）
