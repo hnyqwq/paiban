@@ -163,8 +163,21 @@ export class ScheduleService {
 
   // 解析导出/存储的 JSON 为 DayEntry 数组，格式非法返回 null
   parseDaysJson(json: string): DayEntry[] | null {
+    let text = json.trim();
+    if (text === '') {
+      return null;
+    }
+    // 容错：剪贴板可能带入说明文字或代码块围栏，只取首个 [ 到最后一个 ] 之间的内容
+    const first = text.indexOf('[');
+    const last = text.lastIndexOf(']');
+    if (first === -1 || last === -1 || last <= first) {
+      return null;
+    }
+    if (first > 0 || last < text.length - 1) {
+      text = text.substring(first, last + 1);
+    }
     try {
-      const raw = JSON.parse(json) as DayEntry[];
+      const raw = JSON.parse(text) as DayEntry[];
       if (!Array.isArray(raw)) {
         return null;
       }
