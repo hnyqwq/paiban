@@ -68,7 +68,7 @@
     { "name": "save_rules", "value": "Save rules" },
     { "name": "rule_saved", "value": "Rules saved" },
     { "name": "section_data", "value": "Data" },
-    { "name": "export_data", "value": "Export (copy to clipboard)" },
+    { "name": "export_data", "value": "Export" },
     { "name": "import_data", "value": "Import data" },
     { "name": "import_hint", "value": "Paste exported data…" },
     { "name": "paste", "value": "Paste clipboard" },
