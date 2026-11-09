@@ -25,6 +25,20 @@ export default class EntryAbility extends UIAbility {
       hilog.info(DOMAIN, 'testTag', 'Succeeded in loading the content.');
     });
 
+    // 初始化底部导航条避让高度，供底部 Tab 栏使用
+    try {
+      const mainWindow = windowStage.getMainWindowSync();
+      const avoidAreaNav = mainWindow.getWindowAvoidArea(window.AvoidAreaType.TYPE_NAVIGATION_INDICATOR);
+      AppStorage.setOrCreate('bottomRectHeight', avoidAreaNav.bottomRect.height);
+      mainWindow.on('avoidAreaChange', (data) => {
+        if (data.type === window.AvoidAreaType.TYPE_NAVIGATION_INDICATOR) {
+          AppStorage.setOrCreate('bottomRectHeight', data.area.bottomRect.height);
+        }
+      });
+    } catch (err) {
+      hilog.error(DOMAIN, 'testTag', 'Failed to init avoid area. Cause: %{public}s', JSON.stringify(err));
+    }
+
     try {
       this.context.getApplicationContext().setColorMode(ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET);
     } catch (err) {
