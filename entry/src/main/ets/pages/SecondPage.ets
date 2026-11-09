@@ -10,6 +10,11 @@ export struct SecondPage {  scroller: Scroller = new Scroller();
   @State viewMonth: number = 1;
   @State stats: MonthStats = new MonthStats();
   @State rules: ShiftRules = new ShiftRules();
+  @StorageLink('dataCleared') @Watch('onDataCleared') dataCleared: number = 0;
+
+  onDataCleared(): void {
+    this.refresh();
+  }
   private service: ScheduleService = ScheduleService.getInstance();
 
   aboutToAppear(): void {

@@ -23,6 +23,11 @@ export struct HomePage {
   @State newEnd: string = '17:00';
   @State memoDraft: string = '';
   @State newTodo: string = '';
+  @StorageLink('dataCleared') @Watch('onDataCleared') dataCleared: number = 0;
+
+  onDataCleared(): void {
+    this.refresh();
+  }
 
   private service: ScheduleService = ScheduleService.getInstance();
 

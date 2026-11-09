@@ -102,6 +102,8 @@ export struct MinePage {
     }).then((res) => {
       if (res.index === 1) {
         this.service.clearAll();
+        // 通知各页面重新加载数据
+        AppStorage.setOrCreate('dataCleared', Date.now());
         promptAction.showToast({ message: $r('app.string.cleared') });
       }
     });
