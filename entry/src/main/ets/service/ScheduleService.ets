@@ -568,8 +568,24 @@ export class ScheduleService {
         continue;
       }
       const remain = target - worked;
-      // 当日时长受每日最少工时与剩余目标约束，超单段上限时自动拆多段
-      const dur = Math.min(dailyMin, remain);
+      // 剩余可排天数（非固定休息日、未排、未手动休息）
+      let schedulableLeft = 0;
+      for (let d2 = d; d2 <= total; d2++) {
+        const wd2 = new Date(year, month - 1, d2).getDay();
+        if (rules.restWeekdays.includes(wd2)) {
+          continue;
+        }
+        const e2 = this.findEntry(days, dateKey(year, month, d2));
+        if (e2 !== undefined) {
+          continue; // 已排班或手动休息的日子不再分摊
+        }
+        schedulableLeft++;
+      }
+      // 每日最少工时是下限：天数不够排时，单日自动往上加，尽快凑够目标
+      let dur = dailyMin;
+      if (schedulableLeft > 0 && remain / schedulableLeft > dailyMin) {
+        dur = Math.min(Math.ceil(remain / schedulableLeft), 16 * 60);
+      }
       const ne = entry !== undefined ? entry : (() => {
         const e = new DayEntry();
         e.date = key;

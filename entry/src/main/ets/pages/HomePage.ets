@@ -387,6 +387,15 @@ export struct HomePage {
     this.upsertEntry(ne);
   }
 
+  // 格子渲染键：包含当日排班状态，删班次/改班次后立即重绘（如变休息）
+  cellKey(day: number): string {
+    const entry = this.service.findEntry(this.days, dateKey(this.viewYear, this.viewMonth, day));
+    if (entry === undefined) {
+      return `${day}-x`;
+    }
+    return `${day}-${entry.shifts.length}-${this.service.dayMinutes(entry)}`;
+  }
+
   // 月历格子：前置空白 + 日期
   calendarCells(): number[] {
     const first = new Date(this.viewYear, this.viewMonth - 1, 1);
@@ -483,7 +492,7 @@ export struct HomePage {
           GridItem() {
             this.calendarCell(d)
           }
-        })
+        }, (d: number) => this.cellKey(d))
       }
       .columnsTemplate('1fr 1fr 1fr 1fr 1fr 1fr 1fr')
       .columnsGap(2)
