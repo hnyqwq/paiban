@@ -12,8 +12,8 @@
       "name": "EntryAbility_label",
       "value": "星河排班"
     },
-    { "name": "tab_home", "value": "首页" },
-    { "name": "tab_discover", "value": "发现" },
+    { "name": "tab_home", "value": "排班" },
+    { "name": "tab_discover", "value": "统计" },
     { "name": "tab_mine", "value": "我的" },
     { "name": "month_title", "value": "%1$d年%2$d月" },
     { "name": "stats_title", "value": "统计 · %1$d年%2$d月" },

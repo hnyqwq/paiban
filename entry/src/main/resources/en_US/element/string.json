@@ -12,8 +12,8 @@
       "name": "EntryAbility_label",
       "value": "Xinghe Shift Schedule"
     },
-    { "name": "tab_home", "value": "Home" },
-    { "name": "tab_discover", "value": "Tools" },
+    { "name": "tab_home", "value": "Schedule" },
+    { "name": "tab_discover", "value": "Stats" },
     { "name": "tab_mine", "value": "Me" },
     { "name": "month_title", "value": "%1$d/%2$d" },
     { "name": "stats_title", "value": "Stats · %1$d/%2$d" },
