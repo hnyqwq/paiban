@@ -542,6 +542,12 @@ export struct HomePage {
     return this.service.isRestDay(this.service.findEntry(this.days, dateKey(this.viewYear, this.viewMonth, day)));
   }
 
+  // 今天的工时文本（无班次返回空串）
+  todayHoursText(day: number): string {
+    const dm = this.service.dayMinutes(this.service.findEntry(this.days, dateKey(this.viewYear, this.viewMonth, day)));
+    return dm > 0 ? minutesToHoursText(dm) : '';
+  }
+
   // 选中日期实心蓝底，今天不加背景（用「今日」文字标记）
   cellBackground(day: number): ResourceColor {
     const key = dateKey(this.viewYear, this.viewMonth, day);
@@ -582,6 +588,13 @@ export struct HomePage {
                 .fontSize(10)
                 .fontWeight(FontWeight.Medium)
                 .fontColor(this.selectedDate === dateKey(this.viewYear, this.viewMonth, day) ? Color.White : $r('sys.color.warning'))
+            } else if (this.todayHoursText(day) !== '') {
+              Text('  ')
+                .fontSize(10)
+              Text(this.todayHoursText(day))
+                .fontSize(10)
+                .fontWeight(FontWeight.Medium)
+                .fontColor(this.selectedDate === dateKey(this.viewYear, this.viewMonth, day) ? Color.White : $r('sys.color.brand'))
             }
           }
         } else {
