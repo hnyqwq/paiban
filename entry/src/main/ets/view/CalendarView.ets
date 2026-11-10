@@ -199,12 +199,13 @@ export struct CalendarView {
       }
       .width('100%')
 
+      // 星期表头：七个字均匀分布，对齐下方七列格子
       Row() {
         ForEach(WEEK_LABELS, (w: string) => {
           Text(w)
             .fontSize(12)
             .fontColor($r('sys.color.font_tertiary'))
-            .width('100%')
+            .layoutWeight(1)
             .textAlign(TextAlign.Center)
         })
       }

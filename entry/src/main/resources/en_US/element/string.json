@@ -32,7 +32,7 @@
     { "name": "stats_title", "value": "Stats · %1$d/%2$d" },
     { "name": "progress_done", "value": "Scheduled %1$s / target %2$d h" },
     { "name": "progress_need", "value": "%1$s left to schedule" },
-    { "name": "day_schedule", "value": "Schedule %1$s" },
+    { "name": "day_schedule", "value": "%1$s schedule" },
     { "name": "add_shift", "value": "+ Add shift" },
     { "name": "add_alarm", "value": "Add alarm" },
     { "name": "add_calendar", "value": "Add calendar" },
