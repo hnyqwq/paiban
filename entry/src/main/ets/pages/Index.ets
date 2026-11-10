@@ -2,6 +2,7 @@
 import { HomePage } from './HomePage';
 import { SecondPage } from './SecondPage';
 import { MinePage } from './MinePage';
+import { ToolsPage } from './ToolsPage';
 import {
   HdsNavigation,
   HdsNavigationTitleMode,
@@ -19,12 +20,14 @@ struct Index {
   @State tabMaterialType: number = hdsMaterial.MaterialType.ADAPTIVE;
   @State tabMaterialLevel: number = hdsMaterial.MaterialLevel.SMOOTH;
   @State symbolHome: SymbolGlyphModifier = new SymbolGlyphModifier($r('sys.symbol.calendar'));
-  @State symbolTools: SymbolGlyphModifier = new SymbolGlyphModifier($r('sys.symbol.hourglass'));
+  @State symbolStats: SymbolGlyphModifier = new SymbolGlyphModifier($r('sys.symbol.hourglass'));
+  @State symbolTools: SymbolGlyphModifier = new SymbolGlyphModifier($r('sys.symbol.square_grid_2x2'));
   @State symbolMine: SymbolGlyphModifier = new SymbolGlyphModifier($r('sys.symbol.person'));
   private tabsController: HdsTabsController = new HdsTabsController();
   // 各页滚动器，绑定顶栏滚动磨砂效果（照搬 hny）
   private scrollerHome: Scroller = new Scroller();
   private scrollerStats: Scroller = new Scroller();
+  private scrollerTools: Scroller = new Scroller();
   private scrollerMine: Scroller = new Scroller();
 
   private getCurScroll(): Scroller {
@@ -32,6 +35,9 @@ struct Index {
       return this.scrollerStats;
     }
     if (this.currentTab === 2) {
+      return this.scrollerTools;
+    }
+    if (this.currentTab === 3) {
       return this.scrollerMine;
     }
     return this.scrollerHome;
@@ -43,6 +49,9 @@ struct Index {
     }
     if (this.currentTab === 1) {
       return $r('app.string.tab_discover');
+    }
+    if (this.currentTab === 2) {
+      return $r('app.string.tab_tools');
     }
     return $r('app.string.tab_mine');
   }
@@ -79,7 +88,12 @@ struct Index {
         TabContent() {
           SecondPage({ scroller: this.scrollerStats })
         }
-        .tabBar(new BottomTabBarStyle({ normal: this.symbolTools }, $r('app.string.tab_discover')))
+        .tabBar(new BottomTabBarStyle({ normal: this.symbolStats }, $r('app.string.tab_discover')))
+
+        TabContent() {
+          ToolsPage({ scroller: this.scrollerTools })
+        }
+        .tabBar(new BottomTabBarStyle({ normal: this.symbolTools }, $r('app.string.tab_tools')))
 
         TabContent() {
           MinePage({ scroller: this.scrollerMine })

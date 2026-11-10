@@ -293,197 +293,6 @@ export struct HomePage {
     this.upsertEntry(entry);
   }
 
-  // 同步当前查看月份的班次到选定月份
-  syncMonth(): void {
-    this.getUIContext().showDatePickerDialog({
-      start: new Date(2000, 0, 1),
-      end: new Date(2100, 11, 31),
-      selected: new Date(this.viewYear, this.viewMonth, 1),
-      mode: DatePickerMode.YEAR_AND_MONTH,
-      onDateAccept: (value: Date) => {
-        this.getUIContext().showAlertDialog({
-          title: $r('app.string.sync_confirm_title'),
-          message: $r('app.string.sync_confirm_msg'),
-          autoCancel: true,
-          buttons: [
-            { value: $r('app.string.cancel'), fontColor: $r('sys.color.font_secondary'), action: () => {} },
-            { value: $r('app.string.btn_clear'), fontColor: $r('sys.color.brand'), action: () => {
-              const n = this.service.copyMonthTo(this.days, this.viewYear, this.viewMonth, value.getFullYear(), value.getMonth() + 1);
-              this.saveDays();
-              promptAction.showToast({ message: $r('app.string.copied_sync', n) });
-            } }
-          ]
-        });
-      }
-    });
-  }
-
-  // 复制所选日期的班次到另一天
-  copyDay(): void {
-    this.getUIContext().showDatePickerDialog({
-      start: new Date(2000, 0, 1),
-      end: new Date(2100, 11, 31),
-      selected: new Date(this.viewYear, this.viewMonth - 1, 1),
-      onDateAccept: (value: Date) => {
-        const target = dateKey(value.getFullYear(), value.getMonth() + 1, value.getDate());
-        if (this.service.copyDayTo(this.days, this.selectedDate, target)) {
-          this.saveDays();
-          promptAction.showToast({ message: $r('app.string.copy_day_done') });
-        } else {
-          promptAction.showToast({ message: $r('app.string.copy_day_none') });
-        }
-      }
-    });
-  }
-
-  // 按规则自动排满本月
-  autoFill(): void {
-    this.getUIContext().showAlertDialog({
-      title: $r('app.string.auto_confirm_title'),
-      message: $r('app.string.auto_confirm_msg'),
-      autoCancel: true,
-      buttons: [
-        { value: $r('app.string.cancel'), fontColor: $r('sys.color.font_secondary'), action: () => {} },
-        { value: $r('app.string.btn_clear'), fontColor: $r('sys.color.brand'), action: () => {
-          const n = this.service.autoFillMonth(this.days, this.viewYear, this.viewMonth, this.rules);
-          this.saveDays();
-          promptAction.showToast({ message: $r('app.string.auto_filled', n) });
-        } }
-      ]
-    });
-  }
-
-  @Builder
-  actionRow() {
-    Row({ space: 8 }) {
-      Button($r('app.string.sync_to_month'))
-        .buttonStyle(ButtonStyleMode.NORMAL)
-        .fontSize(12)
-        .layoutWeight(1)
-        .onClick(() => this.syncMonth())
-      Button($r('app.string.copy_day'))
-        .buttonStyle(ButtonStyleMode.NORMAL)
-        .fontSize(12)
-        .layoutWeight(1)
-        .onClick(() => this.copyDay())
-      Button($r('app.string.auto_fill'))
-        .buttonStyle(ButtonStyleMode.NORMAL)
-        .fontSize(12)
-        .layoutWeight(1)
-        .onClick(() => this.autoFill())
-    }
-    .width('100%')
-    .margin({ top: 8 })
-  }
-
-  // 自动排一段日期区间（如 7 天）：先说明步骤，再选开始→结束
-  rangeAuto(): void {
-    this.getUIContext().showAlertDialog({
-      title: $r('app.string.range_auto'),
-      message: $r('app.string.range_auto_desc'),
-      autoCancel: true,
-      buttons: [
-        { value: $r('app.string.cancel'), fontColor: $r('sys.color.font_secondary'), action: () => {} },
-        { value: $r('app.string.add'), fontColor: $r('sys.color.brand'), action: () => {
-          this.getUIContext().showDatePickerDialog({
-            start: new Date(2000, 0, 1),
-            end: new Date(2100, 11, 31),
-            selected: new Date(this.viewYear, this.viewMonth - 1, 1),
-            onDateAccept: (s: Date) => {
-              const start = dateKey(s.getFullYear(), s.getMonth() + 1, s.getDate());
-              this.getUIContext().showDatePickerDialog({
-                start: new Date(2000, 0, 1),
-                end: new Date(2100, 11, 31),
-                selected: s,
-                onDateAccept: (e: Date) => {
-                  const end = dateKey(e.getFullYear(), e.getMonth() + 1, e.getDate());
-                  if (end < start) {
-                    return;
-                  }
-                  const n = this.service.autoFillRange(this.days, start, end, this.rules);
-                  this.saveDays();
-                  promptAction.showToast({ message: $r('app.string.range_filled', n) });
-                }
-              });
-            }
-          });
-        } }
-      ]
-    });
-  }
-
-  // 把一段区间的班次复制到另一段等长区间：先说明步骤，再选源开始→源结束→目标开始
-  rangeCopy(): void {
-    this.getUIContext().showAlertDialog({
-      title: $r('app.string.range_copy'),
-      message: $r('app.string.range_copy_desc'),
-      autoCancel: true,
-      buttons: [
-        { value: $r('app.string.cancel'), fontColor: $r('sys.color.font_secondary'), action: () => {} },
-        { value: $r('app.string.add'), fontColor: $r('sys.color.brand'), action: () => {
-          this.getUIContext().showDatePickerDialog({
-            start: new Date(2000, 0, 1),
-            end: new Date(2100, 11, 31),
-            selected: new Date(this.viewYear, this.viewMonth - 1, 1),
-            onDateAccept: (s: Date) => {
-              const srcStart = dateKey(s.getFullYear(), s.getMonth() + 1, s.getDate());
-              this.getUIContext().showDatePickerDialog({
-                start: new Date(2000, 0, 1),
-                end: new Date(2100, 11, 31),
-                selected: s,
-                onDateAccept: (e: Date) => {
-                  const srcEnd = dateKey(e.getFullYear(), e.getMonth() + 1, e.getDate());
-                  if (srcEnd < srcStart) {
-                    return;
-                  }
-                  this.getUIContext().showDatePickerDialog({
-                    start: new Date(2000, 0, 1),
-                    end: new Date(2100, 11, 31),
-                    selected: e,
-                    onDateAccept: (t: Date) => {
-                      const dstStart = dateKey(t.getFullYear(), t.getMonth() + 1, t.getDate());
-                      this.getUIContext().showAlertDialog({
-                        title: $r('app.string.range_copy'),
-                        message: $r('app.string.range_copy_msg'),
-                        autoCancel: true,
-                        buttons: [
-                          { value: $r('app.string.cancel'), fontColor: $r('sys.color.font_secondary'), action: () => {} },
-                          { value: $r('app.string.btn_clear'), fontColor: $r('sys.color.brand'), action: () => {
-                            const n = this.service.copyRangeTo(this.days, srcStart, srcEnd, dstStart);
-                            this.saveDays();
-                            promptAction.showToast({ message: $r('app.string.range_copied', n) });
-                          } }
-                        ]
-                      });
-                    }
-                  });
-                }
-              });
-            }
-          });
-        } }
-      ]
-    });
-  }
-
-  @Builder
-  rangeActionRow() {
-    Row({ space: 8 }) {
-      Button($r('app.string.range_auto'))
-        .buttonStyle(ButtonStyleMode.NORMAL)
-        .fontSize(12)
-        .layoutWeight(1)
-        .onClick(() => this.rangeAuto())
-      Button($r('app.string.range_copy'))
-        .buttonStyle(ButtonStyleMode.NORMAL)
-        .fontSize(12)
-        .layoutWeight(1)
-        .onClick(() => this.rangeCopy())
-    }
-    .width('100%')
-    .margin({ top: 8 })
-  }
-
   markRest(): void {
     const entry = this.service.findEntry(this.days, this.selectedDate);
     if (entry !== undefined && entry.shifts.length === 0) {
@@ -697,6 +506,51 @@ export struct HomePage {
   @Builder
   shiftForm() {
     Column() {
+      Text($r('app.string.tpl_title'))
+        .fontSize(12)
+        .fontColor($r('sys.color.font_tertiary'))
+        .width('100%')
+      Row({ space: 6 }) {
+        Button($r('app.string.tpl_early'))
+          .buttonStyle(ButtonStyleMode.NORMAL)
+          .fontSize(11)
+          .layoutWeight(1)
+          .onClick(() => {
+            this.newStart = '06:00';
+            this.newEnd = '14:00';
+          })
+        Button($r('app.string.tpl_day'))
+          .buttonStyle(ButtonStyleMode.NORMAL)
+          .fontSize(11)
+          .layoutWeight(1)
+          .onClick(() => {
+            this.newStart = '09:00';
+            this.newEnd = '17:00';
+          })
+      }
+      .width('100%')
+      .margin({ top: 4 })
+      Row({ space: 6 }) {
+        Button($r('app.string.tpl_evening'))
+          .buttonStyle(ButtonStyleMode.NORMAL)
+          .fontSize(11)
+          .layoutWeight(1)
+          .onClick(() => {
+            this.newStart = '14:00';
+            this.newEnd = '22:00';
+          })
+        Button($r('app.string.tpl_night'))
+          .buttonStyle(ButtonStyleMode.NORMAL)
+          .fontSize(11)
+          .layoutWeight(1)
+          .onClick(() => {
+            this.newStart = '22:00';
+            this.newEnd = '06:00';
+          })
+      }
+      .width('100%')
+      .margin({ top: 6 })
+
       Row() {
         TextInput({ text: this.newStart, placeholder: '09:00' })
           .type(InputType.Normal)
@@ -953,10 +807,6 @@ export struct HomePage {
         this.calendar()
         this.progressLine()
         this.violationBanner()
-        if (this.editing) {
-          this.actionRow()
-          this.rangeActionRow()
-        }
         this.dayDetail()
         Text('') // 底部留白，避开悬浮 Tab 栏
           .height(100)
