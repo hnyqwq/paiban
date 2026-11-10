@@ -661,9 +661,26 @@ export class ScheduleService {
     return result;
   }
 
-  // 按日期区间（如 7 天）自动排班：跳过已有班次/手动休息/固定休息日，遵守连续上限；返回排的天数
+  // 按日期区间（如 7 天）自动排班：跳过已有班次/手动休息/固定休息日，遵守连续上限；
+  // 剩余目标工时按区间内可排天数均摊，天数不够排时单日自动往上加；返回排的天数
   autoFillRange(days: DayEntry[], start: string, end: string, rules: ShiftRules): number {
     const dailyMin = (rules.minWorkHoursPerDay > 0 ? rules.minWorkHoursPerDay : 8) * 60;
+    const target = rules.monthlyTargetHours * 60;
+    // 区间内已有班次工时 + 剩余目标
+    let worked = 0;
+    let schedulableLeft = 0;
+    let probe = start;
+    while (probe <= end) {
+      const e = this.findEntry(days, probe);
+      const wd = new Date(probe + 'T00:00:00').getDay();
+      if (e !== undefined && e.shifts.length > 0) {
+        worked += this.dayMinutes(e);
+      } else if (!rules.restWeekdays.includes(wd)) {
+        schedulableLeft++; // 未排且非固定休息日，可参与分摊
+      }
+      probe = this.addDays(probe, 1);
+    }
+    let remain = Math.max(0, target - worked);
     // 连续计数延续区间开始之前的状态
     let sinceRest = this.consecutiveWorkDaysEnding(days, this.addDays(start, -1));
     let filled = 0;
@@ -692,13 +709,21 @@ export class ScheduleService {
         cur = this.addDays(cur, 1);
         continue;
       }
+      // 每日最少工时是下限：区间天数不够排时，单日自动往上加，尽快凑够目标
+      let dur = dailyMin;
+      if (schedulableLeft > 0 && remain / schedulableLeft > dailyMin) {
+        dur = Math.min(Math.ceil(remain / schedulableLeft), 16 * 60);
+      }
       const ne = entry !== undefined ? entry : (() => {
         const e = new DayEntry();
         e.date = cur;
         days.push(e);
         return e;
       })();
-      this.fillShiftsForDay(ne, dailyMin, rules);
+      this.fillShiftsForDay(ne, dur, rules);
+      worked += dur;
+      remain = Math.max(0, remain - dur);
+      schedulableLeft--;
       sinceRest++;
       filled++;
       cur = this.addDays(cur, 1);
