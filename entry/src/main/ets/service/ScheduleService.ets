@@ -111,6 +111,8 @@ export class ScheduleService {
     }
     this.prefs.putSync(KEY_RULES, JSON.stringify(rules));
     this.prefs.flush();
+    // 通知各页面重读规则
+    AppStorage.setOrCreate('rulesChanged', Date.now());
   }
 
   getDays(): DayEntry[] {
@@ -227,6 +229,8 @@ export class ScheduleService {
     this.cacheDays = days;
     this.prefs.putSync(KEY_DAYS, JSON.stringify(days));
     this.prefs.flush();
+    // 通知各页面重载数据
+    AppStorage.setOrCreate('scheduleDataVersion', Date.now());
     return true;
   }
 
@@ -237,6 +241,8 @@ export class ScheduleService {
     }
     this.prefs.putSync(KEY_DAYS, JSON.stringify(days));
     this.prefs.flush();
+    // 通知各页面重载数据
+    AppStorage.setOrCreate('scheduleDataVersion', Date.now());
   }
 
   clearAll(): void {
@@ -246,6 +252,8 @@ export class ScheduleService {
     }
     this.prefs.deleteSync(KEY_DAYS);
     this.prefs.flush();
+    // 通知各页面重载数据
+    AppStorage.setOrCreate('scheduleDataVersion', Date.now());
   }
 
   private parseRules(json: string): ShiftRules {

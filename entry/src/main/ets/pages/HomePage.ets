@@ -23,9 +23,15 @@ export struct HomePage {
   @State newEnd: string = '17:00';
   @State memoDraft: string = '';
   @State newTodo: string = '';
-  @StorageLink('dataCleared') @Watch('onDataCleared') dataCleared: number = 0;
+  @StorageLink('scheduleDataVersion') @Watch('onDataChanged') scheduleDataVersion: number = 0;
+  @StorageLink('rulesChanged') @Watch('onRulesChanged') rulesChanged: number = 0;
 
-  onDataCleared(): void {
+  onDataChanged(): void {
+    this.refresh();
+  }
+
+  onRulesChanged(): void {
+    this.rules = this.service.getRules();
     this.refresh();
   }
 

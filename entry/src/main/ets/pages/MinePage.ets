@@ -117,7 +117,6 @@ export struct MinePage {
           return;
         }
         if (this.service.importDays(trimmed)) {
-          AppStorage.setOrCreate('dataCleared', Date.now());
           promptAction.showToast({ message: $r('app.string.import_success') });
         } else {
           promptAction.showToast({ message: $r('app.string.import_failed_len', trimmed.length) });
@@ -247,8 +246,6 @@ export struct MinePage {
     }).then((res) => {
       if (res.index === 1) {
         this.service.clearAll();
-        // 通知各页面重新加载数据
-        AppStorage.setOrCreate('dataCleared', Date.now());
         promptAction.showToast({ message: $r('app.string.cleared') });
       }
     });

@@ -10,9 +10,15 @@ export struct SecondPage {  scroller: Scroller = new Scroller();
   @State viewMonth: number = 1;
   @State stats: MonthStats = new MonthStats();
   @State rules: ShiftRules = new ShiftRules();
-  @StorageLink('dataCleared') @Watch('onDataCleared') dataCleared: number = 0;
+  @StorageLink('scheduleDataVersion') @Watch('onDataChanged') scheduleDataVersion: number = 0;
+  @StorageLink('rulesChanged') @Watch('onRulesChanged') rulesChanged: number = 0;
 
-  onDataCleared(): void {
+  onDataChanged(): void {
+    this.refresh();
+  }
+
+  onRulesChanged(): void {
+    this.rules = this.service.getRules();
     this.refresh();
   }
   private service: ScheduleService = ScheduleService.getInstance();
