@@ -55,14 +55,17 @@ export async function addShiftToCalendar(context: common.UIAbilityContext, date:
     if (calendars.length === 0) {
       return false;
     }
-    const cal = calendars[0];
-    // 去重：同日历中已存在同标题且同开始时间的事件则跳过
-    const existing: calendarManager.Event[] = await cal.queryEventInstances(range.startMs, range.endMs);
-    for (const ev of existing) {
-      if (ev.title === '上班' && ev.startTime === range.startMs) {
-        return true;
+    // 去重：任一日历中已存在同标题且同开始时间的事件则跳过；
+    // 手动删除后查询不到，即可重新添加
+    for (const cal of calendars) {
+      const existing: calendarManager.Event[] = await cal.queryEventInstances(range.startMs, range.endMs);
+      for (const ev of existing) {
+        if (ev.title === '上班' && ev.startTime === range.startMs) {
+          return true;
+        }
       }
     }
+    const cal = calendars[0];
     const event: calendarManager.Event = {
       type: calendarManager.EventType.NORMAL,
       title: '上班',
