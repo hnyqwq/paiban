@@ -7,6 +7,7 @@ import {
 } from '../model/ScheduleTypes';
 import { ScheduleService } from '../service/ScheduleService';
 import { addShiftToCalendar, addShiftAlarm } from '../utils/CalendarReminder';
+import { CalendarView } from '../view/CalendarView';
 
 class DateShift {
   date: string = '';
@@ -16,6 +17,7 @@ class DateShift {
 @Component
 export struct ToolsPage {
   scroller: Scroller = new Scroller();
+  @State selDate: string = '';
   @State rules: ShiftRules = new ShiftRules();
   @State stats: MonthStats = new MonthStats();
   @StorageLink('scheduleDataVersion') @Watch('onDataChanged') scheduleDataVersion: number = 0;
@@ -23,6 +25,8 @@ export struct ToolsPage {
   private service: ScheduleService = ScheduleService.getInstance();
 
   aboutToAppear(): void {
+    const now = new Date();
+    this.selDate = dateKey(now.getFullYear(), now.getMonth() + 1, now.getDate());
     this.rules = this.service.getRules();
     this.refreshStats();
   }
@@ -283,6 +287,8 @@ export struct ToolsPage {
   build() {
     Scroll(this.scroller) {
       Column() {
+        CalendarView({ selectedDate: $selDate })
+
         this.sectionTitle($r('app.string.tools_section_overview'))
         Column() {
           Row() {

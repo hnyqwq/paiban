@@ -3,22 +3,18 @@ import { promptAction } from '@kit.ArkUI';
 import { common } from '@kit.AbilityKit';
 import { addShiftToCalendar, addShiftAlarm } from '../utils/CalendarReminder';
 import {
-  DayEntry, Shift, ShiftRules, MonthStats, TodoItem,
-  dateKey, daysInMonth, minutesToHoursText
+  DayEntry, Shift, ShiftRules, TodoItem,
+  dateKey, minutesToHoursText
 } from '../model/ScheduleTypes';
 import { ScheduleService } from '../service/ScheduleService';
-
-const WEEK_LABELS: string[] = ['日', '一', '二', '三', '四', '五', '六'];
+import { CalendarView } from '../view/CalendarView';
 
 @Component
 export struct HomePage {
   scroller: Scroller = new Scroller();
-  @State viewYear: number = 2025;
-  @State viewMonth: number = 1;
-  @State selectedDate: string = '';
+  @Watch('onSelectedDateChange') @State selectedDate: string = '';
   @State days: DayEntry[] = [];
   @State rules: ShiftRules = new ShiftRules();
-  @State monthStats: MonthStats = new MonthStats();
   // 新增班次表单
   @State showShiftForm: boolean = false;
   @State newStart: string = '09:00';
@@ -33,6 +29,13 @@ export struct HomePage {
   onDataChanged(): void {
     this.selectedShifts = [];
     this.refresh();
+  }
+
+  // CalendarView 切换日期后重置编辑态
+  onSelectedDateChange(): void {
+    this.selectedShifts = [];
+    this.editing = false;
+    this.showShiftForm = false;
   }
 
   isShiftSelected(index: number): boolean {
@@ -72,8 +75,6 @@ export struct HomePage {
 
   aboutToAppear(): void {
     const now = new Date();
-    this.viewYear = now.getFullYear();
-    this.viewMonth = now.getMonth() + 1;
     this.selectedDate = dateKey(now.getFullYear(), now.getMonth() + 1, now.getDate());
     this.rules = this.service.getRules();
     this.refresh();
@@ -82,39 +83,8 @@ export struct HomePage {
   refresh(): void {
     // 必须复制新数组：service 返回的是缓存引用，赋同一引用不会触发 UI 刷新
     this.days = this.service.getDays().slice();
-    this.monthStats = this.service.computeStats(this.days, this.viewYear, this.viewMonth, this.rules);
     const entry = this.service.findEntry(this.days, this.selectedDate);
     this.memoDraft = entry !== undefined ? entry.memo : '';
-  }
-
-  changeMonth(delta: number): void {
-    let m = this.viewMonth + delta;
-    let y = this.viewYear;
-    if (m < 1) {
-      m = 12;
-      y--;
-    } else if (m > 12) {
-      m = 1;
-      y++;
-    }
-    this.viewYear = y;
-    this.viewMonth = m;
-    this.refresh();
-  }
-
-  // 点击标题弹出年月选择器（官方 YEAR_AND_MONTH 模式，仅年、月两列）
-  showMonthPicker(): void {
-    this.getUIContext().showDatePickerDialog({
-      start: new Date(2000, 0, 1),
-      end: new Date(2100, 11, 31),
-      selected: new Date(this.viewYear, this.viewMonth - 1, 1),
-      mode: DatePickerMode.YEAR_AND_MONTH,
-      onDateAccept: (value: Date) => {
-        this.viewYear = value.getFullYear();
-        this.viewMonth = value.getMonth() + 1;
-        this.refresh();
-      }
-    });
   }
 
   saveDays(): void {
@@ -309,178 +279,6 @@ export struct HomePage {
     ne.date = this.selectedDate;
     ne.memo = entry !== undefined ? entry.memo : '';
     this.upsertEntry(ne);
-  }
-
-  // 格子渲染键：包含当日排班状态，删班次/改班次后立即重绘（如变休息）
-  cellKey(day: number): string {
-    const entry = this.service.findEntry(this.days, dateKey(this.viewYear, this.viewMonth, day));
-    if (entry === undefined) {
-      return `${day}-x`;
-    }
-    return `${day}-${entry.shifts.length}-${this.service.dayMinutes(entry)}`;
-  }
-
-  // 月历格子：前置空白 + 日期
-  calendarCells(): number[] {
-    const first = new Date(this.viewYear, this.viewMonth - 1, 1);
-    const blanks = first.getDay(); // 0=周日
-    const cells: number[] = [];
-    for (let i = 0; i < blanks; i++) {
-      cells.push(0);
-    }
-    const total = daysInMonth(this.viewYear, this.viewMonth);
-    for (let d = 1; d <= total; d++) {
-      cells.push(d);
-    }
-    return cells;
-  }
-
-  dayCellInfo(day: number): Resource | string {
-    const entry = this.service.findEntry(this.days, dateKey(this.viewYear, this.viewMonth, day));
-    if (entry === undefined) {
-      return '';
-    }
-    const dm = this.service.dayMinutes(entry);
-    if (dm > 0) {
-      return minutesToHoursText(dm);
-    }
-    return $r('app.string.rest_marker');
-  }
-
-  dayIsRest(day: number): boolean {
-    return this.service.isRestDay(this.service.findEntry(this.days, dateKey(this.viewYear, this.viewMonth, day)));
-  }
-
-  // 今天的工时文本（无班次返回空串）
-  todayHoursText(day: number): string {
-    const dm = this.service.dayMinutes(this.service.findEntry(this.days, dateKey(this.viewYear, this.viewMonth, day)));
-    return dm > 0 ? minutesToHoursText(dm) : '';
-  }
-
-  // 选中日期实心蓝底，今天不加背景（用「今日」文字标记）
-  cellBackground(day: number): ResourceColor {
-    const key = dateKey(this.viewYear, this.viewMonth, day);
-    if (this.selectedDate === key) {
-      return '#0A59F7';
-    }
-    return Color.Transparent;
-  }
-
-  isTodayCell(day: number): boolean {
-    const now = new Date();
-    return dateKey(this.viewYear, this.viewMonth, day) === dateKey(now.getFullYear(), now.getMonth() + 1, now.getDate());
-  }
-
-  cellTextPrimary(day: number): ResourceColor {
-    return this.selectedDate === dateKey(this.viewYear, this.viewMonth, day) ? Color.White : $r('sys.color.font_primary');
-  }
-
-  @Builder
-  calendarCell(day: number) {
-    Column() {
-      Text(day > 0 ? `${day}` : '')
-        .fontSize(15)
-        .fontWeight(this.selectedDate === dateKey(this.viewYear, this.viewMonth, day) ? FontWeight.Bold : FontWeight.Normal)
-        .fontColor(this.cellTextPrimary(day))
-      if (day > 0) {
-        if (this.isTodayCell(day)) {
-          Row() {
-            // 蓝底（选中）时用白字，否则用品牌蓝
-            Text($r('app.string.today_label'))
-              .fontSize(10)
-              .fontWeight(FontWeight.Medium)
-              .fontColor(this.selectedDate === dateKey(this.viewYear, this.viewMonth, day) ? Color.White : $r('sys.color.brand'))
-            if (this.dayIsRest(day)) {
-              Text('  ')
-                .fontSize(10)
-              Text($r('app.string.rest_marker'))
-                .fontSize(10)
-                .fontWeight(FontWeight.Medium)
-                .fontColor(this.selectedDate === dateKey(this.viewYear, this.viewMonth, day) ? Color.White : $r('sys.color.warning'))
-            } else if (this.todayHoursText(day) !== '') {
-              Text('  ')
-                .fontSize(10)
-              Text(this.todayHoursText(day))
-                .fontSize(10)
-                .fontWeight(FontWeight.Medium)
-                .fontColor(this.selectedDate === dateKey(this.viewYear, this.viewMonth, day) ? Color.White : $r('sys.color.brand'))
-            }
-          }
-        } else {
-          Text(this.dayCellInfo(day))
-            .fontSize(10)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(this.dayIsRest(day) ? $r('sys.color.warning') : $r('sys.color.brand'))
-        }
-      } else {
-        Text('').fontSize(10)
-      }
-    }
-    .width('100%')
-    .height(48)
-    .justifyContent(FlexAlign.Center)
-    .borderRadius(8)
-    .backgroundColor(this.cellBackground(day))
-    .onClick(() => {
-      if (day > 0) {
-        this.selectedDate = dateKey(this.viewYear, this.viewMonth, day);
-        this.selectedShifts = [];
-        this.editing = false;
-        this.showShiftForm = false;
-        this.refresh();
-      }
-    })
-  }
-
-  @Builder
-  calendar() {
-    Column() {
-      Row() {
-        Text($r('app.string.month_title', this.viewYear, this.viewMonth))
-          .fontSize(20)
-          .fontWeight(FontWeight.Bold)
-          .onClick(() => this.showMonthPicker())
-        Blank()
-        Text('‹')
-          .fontSize(24)
-          .padding({ left: 16, right: 16 })
-          .onClick(() => this.changeMonth(-1))
-        Text('›')
-          .fontSize(24)
-          .padding({ left: 16, right: 16 })
-          .onClick(() => this.changeMonth(1))
-      }
-      .width('100%')
-
-      Row() {
-        ForEach(WEEK_LABELS, (w: string) => {
-          Text(w)
-            .fontSize(12)
-            .fontColor('#999999')
-            .width('100%')
-            .textAlign(TextAlign.Center)
-        })
-      }
-      .width('100%')
-      .margin({ top: 8 })
-
-      Grid() {
-        ForEach(this.calendarCells(), (d: number) => {
-          GridItem() {
-            this.calendarCell(d)
-          }
-        }, (d: number) => this.cellKey(d))
-      }
-      .columnsTemplate('1fr 1fr 1fr 1fr 1fr 1fr 1fr')
-      .columnsGap(2)
-      .rowsGap(2)
-      .height(48 * 6 + 12)
-      .margin({ top: 4 })
-    }
-    .padding(12)
-    .borderRadius(12)
-    .backgroundColor($r('sys.color.background_primary'))
-    .border({ width: 0.5, color: $r('sys.color.comp_divider') })
   }
 
   @Builder
@@ -760,7 +558,7 @@ export struct HomePage {
   build() {
     Scroll(this.scroller) {
       Column() {
-        this.calendar()
+        CalendarView({ selectedDate: $selectedDate })
         this.dayDetail()
         Text('') // 底部留白，避开悬浮 Tab 栏
           .height(100)
