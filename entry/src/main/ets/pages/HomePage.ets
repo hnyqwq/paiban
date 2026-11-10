@@ -542,17 +542,21 @@ export struct HomePage {
     return this.service.isRestDay(this.service.findEntry(this.days, dateKey(this.viewYear, this.viewMonth, day)));
   }
 
-  // 选中日期背景最深，今天次之
+  // 选中日期实心蓝底，今天实心浅蓝底，保证明显可见
   cellBackground(day: number): ResourceColor {
     const key = dateKey(this.viewYear, this.viewMonth, day);
     const now = new Date();
     if (this.selectedDate === key) {
-      return '#0A59F74D';
+      return '#0A59F7';
     }
     if (key === dateKey(now.getFullYear(), now.getMonth() + 1, now.getDate())) {
-      return '#0A59F733';
+      return '#CCE0FF';
     }
     return Color.Transparent;
+  }
+
+  cellTextPrimary(day: number): ResourceColor {
+    return this.selectedDate === dateKey(this.viewYear, this.viewMonth, day) ? Color.White : $r('sys.color.font_primary');
   }
 
   @Builder
@@ -561,7 +565,7 @@ export struct HomePage {
       Text(day > 0 ? `${day}` : '')
         .fontSize(15)
         .fontWeight(this.selectedDate === dateKey(this.viewYear, this.viewMonth, day) ? FontWeight.Bold : FontWeight.Normal)
-        .fontColor(this.selectedDate === dateKey(this.viewYear, this.viewMonth, day) ? $r('sys.color.brand') : undefined)
+        .fontColor(this.cellTextPrimary(day))
       if (day > 0) {
         Text(this.dayCellInfo(day))
           .fontSize(9)
