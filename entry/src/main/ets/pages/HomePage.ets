@@ -542,6 +542,19 @@ export struct HomePage {
     return this.service.isRestDay(this.service.findEntry(this.days, dateKey(this.viewYear, this.viewMonth, day)));
   }
 
+  // 选中日期背景最深，今天次之
+  cellBackground(day: number): ResourceColor {
+    const key = dateKey(this.viewYear, this.viewMonth, day);
+    const now = new Date();
+    if (this.selectedDate === key) {
+      return '#0A59F74D';
+    }
+    if (key === dateKey(now.getFullYear(), now.getMonth() + 1, now.getDate())) {
+      return '#0A59F733';
+    }
+    return Color.Transparent;
+  }
+
   @Builder
   calendarCell(day: number) {
     Column() {
@@ -561,7 +574,7 @@ export struct HomePage {
     .height(48)
     .justifyContent(FlexAlign.Center)
     .borderRadius(8)
-    .backgroundColor(this.selectedDate === dateKey(this.viewYear, this.viewMonth, day) ? '#0A59F74D' : Color.Transparent)
+    .backgroundColor(this.cellBackground(day))
     .onClick(() => {
       if (day > 0) {
         this.selectedDate = dateKey(this.viewYear, this.viewMonth, day);
