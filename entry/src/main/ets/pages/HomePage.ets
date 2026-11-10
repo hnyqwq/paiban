@@ -25,11 +25,42 @@ export struct HomePage {
   @State newEnd: string = '17:00';
   @State memoDraft: string = '';
   @State newTodo: string = '';
+  @State selectedShifts: number[] = []; // 本日勾选的班次下标
+  @State editing: boolean = false;      // 开始排班后才显示编辑/工具按钮
   @StorageLink('scheduleDataVersion') @Watch('onDataChanged') scheduleDataVersion: number = 0;
   @StorageLink('rulesChanged') @Watch('onRulesChanged') rulesChanged: number = 0;
 
   onDataChanged(): void {
+    this.selectedShifts = [];
     this.refresh();
+  }
+
+  isShiftSelected(index: number): boolean {
+    return this.selectedShifts.includes(index);
+  }
+
+  toggleShiftSelected(index: number, isChecked: boolean): void {
+    const idx = this.selectedShifts.indexOf(index);
+    if (isChecked && idx === -1) {
+      this.selectedShifts.push(index);
+    } else if (!isChecked && idx >= 0) {
+      this.selectedShifts.splice(idx, 1);
+    }
+  }
+
+  // 取勾选的班次；未勾选则取本日全部班次
+  targetShifts(): Shift[] {
+    const shifts = this.service.findEntry(this.days, this.selectedDate)?.shifts ?? [];
+    if (this.selectedShifts.length === 0) {
+      return shifts;
+    }
+    const picked: Shift[] = [];
+    for (const i of this.selectedShifts) {
+      if (i >= 0 && i < shifts.length) {
+        picked.push(shifts[i]);
+      }
+    }
+    return picked;
   }
 
   onRulesChanged(): void {
@@ -160,8 +191,11 @@ export struct HomePage {
     this.upsertEntry(entry);
   }
 
-  // 发布系统闹钟提醒（先选提前量）
-  addAlarmForShift(s: Shift): void {
+  // 发布系统闹钟提醒（先选提前量，可批量）
+  addAlarmForShifts(shifts: Shift[]): void {
+    if (shifts.length === 0) {
+      return;
+    }
     const ctx = AppStorage.get<common.UIAbilityContext>('context');
     if (ctx === undefined) {
       return;
@@ -181,20 +215,45 @@ export struct HomePage {
       if (res.index < 0 || res.index >= leads.length) {
         return;
       }
-      addShiftAlarm(ctx, this.selectedDate, s, leads[res.index]).then((ok: boolean) => {
-        promptAction.showToast({ message: ok ? $r('app.string.added_ok') : $r('app.string.add_failed') });
+      let allOk = true;
+      let last: Promise<void> = Promise.resolve();
+      for (const s of shifts) {
+        last = last.then(() => {
+          return addShiftAlarm(ctx, this.selectedDate, s, leads[res.index]).then((ok: boolean) => {
+            if (!ok) {
+              allOk = false;
+            }
+          });
+        });
+      }
+      last.then(() => {
+        promptAction.showToast({ message: allOk ? $r('app.string.added_ok') : $r('app.string.add_failed') });
       });
     });
   }
 
-  // 写入系统日历
-  addCalendarForShift(s: Shift): void {
+  // 写入系统日历（可批量）
+  addCalendarForShifts(shifts: Shift[]): void {
+    if (shifts.length === 0) {
+      return;
+    }
     const ctx = AppStorage.get<common.UIAbilityContext>('context');
     if (ctx === undefined) {
       return;
     }
-    addShiftToCalendar(ctx, this.selectedDate, s).then((ok: boolean) => {
-      promptAction.showToast({ message: ok ? $r('app.string.added_ok') : $r('app.string.add_failed') });
+    let allOk = true;
+    let last: Promise<void> = Promise.resolve();
+    for (const s of shifts) {
+      last = last.then(() => {
+        return addShiftToCalendar(ctx, this.selectedDate, s).then((ok: boolean) => {
+          if (!ok) {
+            allOk = false;
+          }
+        });
+      });
+    }
+    last.then(() => {
+      promptAction.showToast({ message: allOk ? $r('app.string.added_ok') : $r('app.string.add_failed') });
     });
   }
 
@@ -502,10 +561,13 @@ export struct HomePage {
     .height(48)
     .justifyContent(FlexAlign.Center)
     .borderRadius(8)
-    .backgroundColor(this.selectedDate === dateKey(this.viewYear, this.viewMonth, day) ? '#0A59F71A' : Color.Transparent)
+    .backgroundColor(this.selectedDate === dateKey(this.viewYear, this.viewMonth, day) ? '#0A59F74D' : Color.Transparent)
     .onClick(() => {
       if (day > 0) {
         this.selectedDate = dateKey(this.viewYear, this.viewMonth, day);
+        this.selectedShifts = [];
+        this.editing = false;
+        this.showShiftForm = false;
         this.refresh();
       }
     })
@@ -638,36 +700,44 @@ export struct HomePage {
       }
       .width('100%')
 
-      // 已排班次
+      // 当天没日程：开始排班放在前面
+      if (!this.editing && this.targetShifts().length === 0 && this.selectedShifts.length === 0) {
+        Button($r('app.string.start_schedule'))
+          .width('100%')
+          .margin({ top: 8 })
+          .onClick(() => {
+            this.editing = true;
+          })
+      }
+
+      // 已排班次（编辑模式下勾选后可批量加闹钟/日历）
       List() {
         ForEach(this.service.findEntry(this.days, this.selectedDate)?.shifts ?? [], (s: Shift, i: number) => {
           ListItem() {
             Row() {
+              if (this.editing) {
+                Checkbox()
+                  .select(this.isShiftSelected(i))
+                  .width(18)
+                  .height(18)
+                  .onChange((isChecked: boolean) => {
+                    this.toggleShiftSelected(i, isChecked);
+                  })
+              }
               Text(`${s.start} - ${s.end}`)
                 .fontSize(15)
+                .margin({ left: this.editing ? 10 : 0 })
               Text(minutesToHoursText(s.durationMinutes()))
                 .fontSize(13)
                 .fontColor('#0A59F7')
                 .margin({ left: 12 })
               Blank()
-              Text($r('app.string.add_alarm'))
-                .fontSize(13)
-                .fontColor($r('sys.color.brand'))
-                .margin({ right: 10 })
-                .onClick(() => {
-                  this.addAlarmForShift(s);
-                })
-              Text($r('app.string.add_calendar'))
-                .fontSize(13)
-                .fontColor($r('sys.color.brand'))
-                .margin({ right: 10 })
-                .onClick(() => {
-                  this.addCalendarForShift(s);
-                })
-              Text($r('app.string.delete'))
-                .fontSize(13)
-                .fontColor($r('sys.color.warning'))
-                .onClick(() => this.removeShift(i))
+              if (this.editing) {
+                Text($r('app.string.delete'))
+                  .fontSize(13)
+                  .fontColor($r('sys.color.warning'))
+                  .onClick(() => this.removeShift(i))
+              }
             }
             .width('100%')
             .padding(10)
@@ -679,15 +749,51 @@ export struct HomePage {
       }
       .width('100%')
 
-      if (this.showShiftForm) {
-        this.shiftForm()
-      } else {
-        Button($r('app.string.add_shift'))
+      if (this.editing) {
+        if (this.showShiftForm) {
+          this.shiftForm()
+        } else {
+          Button($r('app.string.add_shift'))
+            .width('100%')
+            .buttonStyle(ButtonStyleMode.NORMAL)
+            .margin({ top: 8 })
+            .onClick(() => {
+              this.showShiftForm = true;
+            })
+        }
+
+        // 批量：勾选的班次（未勾选则本日全部）
+        Row({ space: 8 }) {
+          Button($r('app.string.add_alarm'))
+            .buttonStyle(ButtonStyleMode.NORMAL)
+            .fontSize(13)
+            .layoutWeight(1)
+            .onClick(() => this.addAlarmForShifts(this.targetShifts()))
+          Button($r('app.string.add_calendar'))
+            .buttonStyle(ButtonStyleMode.NORMAL)
+            .fontSize(13)
+            .layoutWeight(1)
+            .onClick(() => this.addCalendarForShifts(this.targetShifts()))
+        }
+        .width('100%')
+        .margin({ top: 8 })
+
+        Button($r('app.string.done_schedule'))
+          .width('100%')
+          .margin({ top: 8 })
+          .onClick(() => {
+            this.editing = false;
+            this.selectedShifts = [];
+            this.showShiftForm = false;
+          })
+      } else if (this.targetShifts().length > 0 || this.selectedShifts.length > 0) {
+        // 有日程：开始排班放在后面
+        Button($r('app.string.start_schedule'))
           .width('100%')
           .buttonStyle(ButtonStyleMode.NORMAL)
           .margin({ top: 8 })
           .onClick(() => {
-            this.showShiftForm = true;
+            this.editing = true;
           })
       }
 
@@ -797,8 +903,10 @@ export struct HomePage {
         this.calendar()
         this.progressLine()
         this.violationBanner()
-        this.actionRow()
-        this.rangeActionRow()
+        if (this.editing) {
+          this.actionRow()
+          this.rangeActionRow()
+        }
         this.dayDetail()
         Text('') // 底部留白，避开悬浮 Tab 栏
           .height(100)

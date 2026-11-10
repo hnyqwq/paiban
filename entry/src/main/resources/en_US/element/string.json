@@ -30,6 +30,8 @@
     { "name": "added_ok", "value": "Added" },
     { "name": "add_failed", "value": "Failed" },
     { "name": "add_shift_btn", "value": "Add shift" },
+    { "name": "start_schedule", "value": "Start scheduling" },
+    { "name": "done_schedule", "value": "Done" },
     { "name": "cancel", "value": "Cancel" },
     { "name": "delete", "value": "Delete" },
     { "name": "mark_rest", "value": "Mark rest" },

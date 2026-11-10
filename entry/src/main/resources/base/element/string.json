@@ -30,6 +30,8 @@
     { "name": "added_ok", "value": "已添加" },
     { "name": "add_failed", "value": "添加失败" },
     { "name": "add_shift_btn", "value": "添加班次" },
+    { "name": "start_schedule", "value": "开始排班" },
+    { "name": "done_schedule", "value": "完成排班" },
     { "name": "cancel", "value": "取消" },
     { "name": "delete", "value": "删除" },
     { "name": "mark_rest", "value": "标记休息" },
