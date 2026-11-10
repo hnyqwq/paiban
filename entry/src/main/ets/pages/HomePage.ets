@@ -552,7 +552,6 @@ export struct HomePage {
     .borderRadius(12)
     .backgroundColor($r('sys.color.background_primary'))
     .border({ width: 0.5, color: $r('sys.color.comp_divider') })
-    .margin({ top: 8 })
   }
 
   build() {
