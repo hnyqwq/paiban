@@ -1,4 +1,4 @@
-// 首页：月历 + 每日排班编辑 + 今日日程 + 备忘录
+// 排班页：月历 + 排班编辑 + 工具 + 概览
 import { promptAction } from '@kit.ArkUI';
 import { common } from '@kit.AbilityKit';
 import { addShiftToCalendar, addShiftAlarm } from '../utils/CalendarReminder';
@@ -10,7 +10,7 @@ import { ScheduleService } from '../service/ScheduleService';
 import { CalendarView } from '../view/CalendarView';
 
 @Component
-export struct HomePage {
+export struct SchedulingPage {
   scroller: Scroller = new Scroller();
   @Watch('onSelectedDateChange') @State selectedDate: string = '';
   @State days: DayEntry[] = [];

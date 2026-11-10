@@ -1,8 +1,8 @@
 // 主框架：HdsNavigation + HdsTabs 悬浮底栏（照搬 hny）
-import { HomePage } from './HomePage';
+import { AgendaPage } from './AgendaPage';
+import { SchedulingPage } from './SchedulingPage';
 import { SecondPage } from './SecondPage';
 import { MinePage } from './MinePage';
-import { ToolsPage } from './ToolsPage';
 import {
   HdsNavigation,
   HdsNavigationTitleMode,
@@ -26,8 +26,8 @@ struct Index {
   private tabsController: HdsTabsController = new HdsTabsController();
   // 各页滚动器，绑定顶栏滚动磨砂效果（照搬 hny）
   private scrollerHome: Scroller = new Scroller();
-  private scrollerStats: Scroller = new Scroller();
   private scrollerTools: Scroller = new Scroller();
+  private scrollerStats: Scroller = new Scroller();
   private scrollerMine: Scroller = new Scroller();
 
   private getCurScroll(): Scroller {
@@ -81,12 +81,12 @@ struct Index {
     HdsNavigation() {
       HdsTabs({ controller: this.tabsController }) {
         TabContent() {
-          HomePage({ scroller: this.scrollerHome })
+          AgendaPage({ scroller: this.scrollerHome })
         }
         .tabBar(new BottomTabBarStyle({ normal: this.symbolHome }, $r('app.string.tab_home')))
 
         TabContent() {
-          ToolsPage({ scroller: this.scrollerTools })
+          SchedulingPage({ scroller: this.scrollerTools })
         }
         .tabBar(new BottomTabBarStyle({ normal: this.symbolTools }, $r('app.string.tab_tools')))
 

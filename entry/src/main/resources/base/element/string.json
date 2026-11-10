@@ -16,10 +16,11 @@
       "name": "EntryAbility_label",
       "value": "星河排班"
     },
-    { "name": "tab_home", "value": "排班" },
+    { "name": "tab_home", "value": "日程" },
     { "name": "tab_discover", "value": "统计" },
     { "name": "tab_mine", "value": "我的" },
-    { "name": "tab_tools", "value": "工具" },
+    { "name": "tab_tools", "value": "排班" },
+    { "name": "agenda_empty", "value": "今天暂无日程" },
     { "name": "tools_section_schedule", "value": "排班工具" },
     { "name": "tools_section_overview", "value": "本月概览" },
     { "name": "tools_section_remind", "value": "提醒工具" },

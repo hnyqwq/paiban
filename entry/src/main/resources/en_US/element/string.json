@@ -16,10 +16,11 @@
       "name": "EntryAbility_label",
       "value": "Xinghe Shift Schedule"
     },
-    { "name": "tab_home", "value": "Schedule" },
+    { "name": "tab_home", "value": "Agenda" },
     { "name": "tab_discover", "value": "Stats" },
     { "name": "tab_mine", "value": "Me" },
-    { "name": "tab_tools", "value": "Tools" },
+    { "name": "tab_tools", "value": "Scheduling" },
+    { "name": "agenda_empty", "value": "No shifts today" },
     { "name": "tools_section_schedule", "value": "Schedule tools" },
     { "name": "tools_section_overview", "value": "This month" },
     { "name": "tools_section_remind", "value": "Reminder tools" },
