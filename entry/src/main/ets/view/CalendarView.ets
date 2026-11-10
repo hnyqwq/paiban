@@ -227,6 +227,6 @@ export struct CalendarView {
     }
     .padding(12)
     .borderRadius(12)
-    .backgroundColor($r('sys.color.background_primary'))
+    .backgroundColor(Color.Transparent)
   }
 }
