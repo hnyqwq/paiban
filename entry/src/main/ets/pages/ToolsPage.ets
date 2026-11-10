@@ -85,34 +85,61 @@ export struct ToolsPage {
     });
   }
 
+  // 先说明工具用途与步骤，用户点「开始」后再进入流程
+  showIntro(title: Resource, desc: Resource, onStart: () => void): void {
+    this.getUIContext().showAlertDialog({
+      title: title,
+      message: desc,
+      autoCancel: true,
+      buttons: [
+        { value: $r('app.string.cancel'), fontColor: $r('sys.color.font_secondary'), action: () => {} },
+        { value: $r('app.string.start'), fontColor: $r('sys.color.brand'), action: onStart }
+      ]
+    });
+  }
+
   syncMonth(): void {
-    const now = new Date();
-    this.getUIContext().showDatePickerDialog({
-      start: new Date(2000, 0, 1),
-      end: new Date(2100, 11, 31),
-      selected: new Date(now.getFullYear(), now.getMonth() + 1, 1),
-      mode: DatePickerMode.YEAR_AND_MONTH,
-      onDateAccept: (value: Date) => {
-        this.getUIContext().showAlertDialog({
-          title: $r('app.string.sync_confirm_title'),
-          message: $r('app.string.sync_confirm_msg'),
-          autoCancel: true,
-          buttons: [
-            { value: $r('app.string.cancel'), fontColor: $r('sys.color.font_secondary'), action: () => {} },
-            {
-              value: $r('app.string.btn_clear'),
-              fontColor: $r('sys.color.brand'),
-              action: () => {
-                const days = this.service.getDays();
-                const n = this.service.copyMonthTo(days, now.getFullYear(), now.getMonth() + 1,
-                  value.getFullYear(), value.getMonth() + 1);
-                this.saveDays(days);
-                promptAction.showToast({ message: $r('app.string.copied_sync', n) });
-              }
+    this.showIntro($r('app.string.sync_to_month'), $r('app.string.sync_desc'), () => {
+      const now = new Date();
+      // 第一步：选源月份
+      this.getUIContext().showDatePickerDialog({
+        start: new Date(2000, 0, 1),
+        end: new Date(2100, 11, 31),
+        selected: new Date(now.getFullYear(), now.getMonth(), 1),
+        mode: DatePickerMode.YEAR_AND_MONTH,
+        onDateAccept: (src: Date) => {
+          // 第二步：选目标月份
+          this.getUIContext().showDatePickerDialog({
+            start: new Date(2000, 0, 1),
+            end: new Date(2100, 11, 31),
+            selected: new Date(src.getFullYear(), src.getMonth() + 1, 1),
+            mode: DatePickerMode.YEAR_AND_MONTH,
+            onDateAccept: (dst: Date) => {
+              // 第三步：确认覆盖
+              this.getUIContext().showAlertDialog({
+                title: $r('app.string.sync_confirm_title'),
+                message: $r('app.string.sync_confirm_msg'),
+                autoCancel: true,
+                buttons: [
+                  { value: $r('app.string.cancel'), fontColor: $r('sys.color.font_secondary'), action: () => {} },
+                  {
+                    value: $r('app.string.btn_clear'),
+                    fontColor: $r('sys.color.brand'),
+                    action: () => {
+                      const days = this.service.getDays();
+                      const n = this.service.copyMonthTo(days,
+                        src.getFullYear(), src.getMonth() + 1,
+                        dst.getFullYear(), dst.getMonth() + 1);
+                      this.saveDays(days);
+                      promptAction.showToast({ message: $r('app.string.copied_sync', n) });
+                    }
+                  }
+                ]
+              });
             }
-          ]
-        });
-      }
+          });
+        }
+      });
     });
   }
 
@@ -164,15 +191,17 @@ export struct ToolsPage {
   }
 
   copyDay(): void {
-    this.pickDate(new Date(), (src: string) => {
-      this.pickDate(new Date(src + 'T00:00:00'), (dst: string) => {
-        const days = this.service.getDays();
-        if (this.service.copyDayTo(days, src, dst)) {
-          this.saveDays(days);
-          promptAction.showToast({ message: $r('app.string.copy_day_done') });
-        } else {
-          promptAction.showToast({ message: $r('app.string.copy_day_done') });
-        }
+    this.showIntro($r('app.string.copy_day'), $r('app.string.copyday_desc'), () => {
+      this.pickDate(new Date(), (src: string) => {
+        this.pickDate(new Date(src + 'T00:00:00'), (dst: string) => {
+          const days = this.service.getDays();
+          if (this.service.copyDayTo(days, src, dst)) {
+            this.saveDays(days);
+            promptAction.showToast({ message: $r('app.string.copy_day_done') });
+          } else {
+            promptAction.showToast({ message: $r('app.string.copy_day_done') });
+          }
+        });
       });
     });
   }
@@ -342,10 +371,14 @@ export struct ToolsPage {
         this.sectionTitle($r('app.string.tools_section_remind'))
         Column() {
           this.toolButton($r('app.string.batch_alarm'), (): void => {
-            this.pickRange((start: string, end: string) => this.batchAlarm(start, end));
+            this.showIntro($r('app.string.batch_alarm'), $r('app.string.batch_alarm_desc'), (): void => {
+              this.pickRange((start: string, end: string) => this.batchAlarm(start, end));
+            });
           })
           this.toolButton($r('app.string.batch_calendar'), (): void => {
-            this.pickRange((start: string, end: string) => this.batchCalendar(start, end));
+            this.showIntro($r('app.string.batch_calendar'), $r('app.string.batch_calendar_desc'), (): void => {
+              this.pickRange((start: string, end: string) => this.batchCalendar(start, end));
+            });
           })
         }
         .width('100%')
