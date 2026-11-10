@@ -1,5 +1,7 @@
 // 首页：月历 + 每日排班编辑 + 今日日程 + 备忘录
 import { promptAction } from '@kit.ArkUI';
+import { common } from '@kit.AbilityKit';
+import { addShiftToCalendar, addShiftAlarm } from '../utils/CalendarReminder';
 import {
   DayEntry, Shift, ShiftRules, MonthStats, TodoItem,
   dateKey, daysInMonth, minutesToHoursText
@@ -156,6 +158,28 @@ export struct HomePage {
     }
     entry.memo = this.memoDraft;
     this.upsertEntry(entry);
+  }
+
+  // 发布系统闹钟提醒
+  addAlarmForShift(s: Shift): void {
+    const ctx = AppStorage.get<common.UIAbilityContext>('context');
+    if (ctx === undefined) {
+      return;
+    }
+    addShiftAlarm(ctx, this.selectedDate, s).then((ok: boolean) => {
+      promptAction.showToast({ message: ok ? $r('app.string.added_ok') : $r('app.string.add_failed') });
+    });
+  }
+
+  // 写入系统日历
+  addCalendarForShift(s: Shift): void {
+    const ctx = AppStorage.get<common.UIAbilityContext>('context');
+    if (ctx === undefined) {
+      return;
+    }
+    addShiftToCalendar(ctx, this.selectedDate, s).then((ok: boolean) => {
+      promptAction.showToast({ message: ok ? $r('app.string.added_ok') : $r('app.string.add_failed') });
+    });
   }
 
   addTodo(): void {
@@ -610,6 +634,20 @@ export struct HomePage {
                 .fontColor('#0A59F7')
                 .margin({ left: 12 })
               Blank()
+              Text($r('app.string.add_alarm'))
+                .fontSize(13)
+                .fontColor($r('sys.color.brand'))
+                .margin({ right: 10 })
+                .onClick(() => {
+                  this.addAlarmForShift(s);
+                })
+              Text($r('app.string.add_calendar'))
+                .fontSize(13)
+                .fontColor($r('sys.color.brand'))
+                .margin({ right: 10 })
+                .onClick(() => {
+                  this.addCalendarForShift(s);
+                })
               Text($r('app.string.delete'))
                 .fontSize(13)
                 .fontColor($r('sys.color.warning'))
