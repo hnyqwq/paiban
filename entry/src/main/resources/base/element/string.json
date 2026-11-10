@@ -137,7 +137,7 @@
     { "name": "unit_minutes", "value": "分钟" },
     { "name": "unit_days", "value": "天" },
     { "name": "sync_to_month", "value": "同步整月" },
-    { "name": "copy_day", "value": "复制当天" },
+    { "name": "copy_day", "value": "复制某日到某日" },
     { "name": "auto_fill", "value": "自动排本月" },
     { "name": "sync_confirm_title", "value": "同步排班" },
     { "name": "sync_confirm_msg", "value": "将覆盖目标月份已有的排班，确定同步？" },

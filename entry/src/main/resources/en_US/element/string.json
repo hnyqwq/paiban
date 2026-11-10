@@ -137,7 +137,7 @@
     { "name": "unit_minutes", "value": "min" },
     { "name": "unit_days", "value": "d" },
     { "name": "sync_to_month", "value": "Sync month" },
-    { "name": "copy_day", "value": "Copy day" },
+    { "name": "copy_day", "value": "Copy a day to another" },
     { "name": "auto_fill", "value": "Auto-fill month" },
     { "name": "sync_confirm_title", "value": "Sync schedule" },
     { "name": "sync_confirm_msg", "value": "This will overwrite existing shifts in the target month. Continue?" },

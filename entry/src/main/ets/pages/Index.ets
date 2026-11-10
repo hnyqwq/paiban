@@ -32,10 +32,10 @@ struct Index {
 
   private getCurScroll(): Scroller {
     if (this.currentTab === 1) {
-      return this.scrollerStats;
+      return this.scrollerTools;
     }
     if (this.currentTab === 2) {
-      return this.scrollerTools;
+      return this.scrollerStats;
     }
     if (this.currentTab === 3) {
       return this.scrollerMine;
@@ -48,10 +48,10 @@ struct Index {
       return $r('app.string.tab_home');
     }
     if (this.currentTab === 1) {
-      return $r('app.string.tab_discover');
+      return $r('app.string.tab_tools');
     }
     if (this.currentTab === 2) {
-      return $r('app.string.tab_tools');
+      return $r('app.string.tab_discover');
     }
     return $r('app.string.tab_mine');
   }
@@ -86,14 +86,14 @@ struct Index {
         .tabBar(new BottomTabBarStyle({ normal: this.symbolHome }, $r('app.string.tab_home')))
 
         TabContent() {
-          SecondPage({ scroller: this.scrollerStats })
-        }
-        .tabBar(new BottomTabBarStyle({ normal: this.symbolStats }, $r('app.string.tab_discover')))
-
-        TabContent() {
           ToolsPage({ scroller: this.scrollerTools })
         }
         .tabBar(new BottomTabBarStyle({ normal: this.symbolTools }, $r('app.string.tab_tools')))
+
+        TabContent() {
+          SecondPage({ scroller: this.scrollerStats })
+        }
+        .tabBar(new BottomTabBarStyle({ normal: this.symbolStats }, $r('app.string.tab_discover')))
 
         TabContent() {
           MinePage({ scroller: this.scrollerMine })
