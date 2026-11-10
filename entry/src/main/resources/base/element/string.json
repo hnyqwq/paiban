@@ -21,6 +21,7 @@
     { "name": "tab_mine", "value": "我的" },
     { "name": "tab_tools", "value": "工具" },
     { "name": "tools_section_schedule", "value": "排班工具" },
+    { "name": "tools_section_overview", "value": "本月概览" },
     { "name": "tools_section_remind", "value": "提醒工具" },
     { "name": "batch_alarm", "value": "批量加闹钟" },
     { "name": "batch_calendar", "value": "批量加日历" },

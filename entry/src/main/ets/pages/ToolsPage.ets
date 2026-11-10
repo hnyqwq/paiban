@@ -2,8 +2,8 @@
 import { promptAction } from '@kit.ArkUI';
 import { common } from '@kit.AbilityKit';
 import {
-  DayEntry, Shift, ShiftRules,
-  dateKey, daysInMonth
+  DayEntry, Shift, ShiftRules, MonthStats,
+  dateKey, daysInMonth, minutesToHoursText
 } from '../model/ScheduleTypes';
 import { ScheduleService } from '../service/ScheduleService';
 import { addShiftToCalendar, addShiftAlarm } from '../utils/CalendarReminder';
@@ -17,10 +17,29 @@ class DateShift {
 export struct ToolsPage {
   scroller: Scroller = new Scroller();
   @State rules: ShiftRules = new ShiftRules();
+  @State stats: MonthStats = new MonthStats();
+  @StorageLink('scheduleDataVersion') @Watch('onDataChanged') scheduleDataVersion: number = 0;
+  @StorageLink('rulesChanged') @Watch('onRulesChanged') rulesChanged: number = 0;
   private service: ScheduleService = ScheduleService.getInstance();
 
   aboutToAppear(): void {
     this.rules = this.service.getRules();
+    this.refreshStats();
+  }
+
+  onDataChanged(): void {
+    this.refreshStats();
+  }
+
+  onRulesChanged(): void {
+    this.rules = this.service.getRules();
+    this.refreshStats();
+  }
+
+  refreshStats(): void {
+    const now = new Date();
+    this.stats = this.service.computeStats(this.service.getDays(),
+      now.getFullYear(), now.getMonth() + 1, this.rules);
   }
 
   // 保存并通知各页面刷新
@@ -264,6 +283,42 @@ export struct ToolsPage {
   build() {
     Scroll(this.scroller) {
       Column() {
+        this.sectionTitle($r('app.string.tools_section_overview'))
+        Column() {
+          Row() {
+            Text($r('app.string.progress_done', minutesToHoursText(this.stats.workedMinutes), this.rules.monthlyTargetHours))
+              .fontSize(13)
+            Blank()
+            Text($r('app.string.progress_need', minutesToHoursText(this.stats.remainingMinutes)))
+              .fontSize(13)
+              .fontColor($r('sys.color.brand'))
+              .fontWeight(FontWeight.Medium)
+          }
+          .width('100%')
+
+          Progress({ value: this.stats.workedMinutes, total: Math.max(this.stats.targetMinutes, 1), type: ProgressType.Linear })
+            .width('100%')
+            .margin({ top: 8 })
+
+          if (this.stats.violations.length > 0) {
+            Text($r('app.string.rule_reminders'))
+              .fontSize(12)
+              .fontColor($r('sys.color.warning'))
+              .margin({ top: 10 })
+            ForEach(this.stats.violations, (v: string) => {
+              Text(v)
+                .fontSize(12)
+                .fontColor($r('sys.color.font_secondary'))
+                .margin({ top: 2 })
+            }, (v: string) => v)
+          }
+        }
+        .width('100%')
+        .padding(12)
+        .borderRadius(12)
+        .backgroundColor($r('sys.color.background_primary'))
+        .border({ width: 0.5, color: $r('sys.color.comp_divider') })
+
         this.sectionTitle($r('app.string.tools_section_schedule'))
         Column() {
           this.toolButton($r('app.string.sync_to_month'), (): void => this.syncMonth())

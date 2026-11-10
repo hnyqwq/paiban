@@ -21,6 +21,7 @@
     { "name": "tab_mine", "value": "Me" },
     { "name": "tab_tools", "value": "Tools" },
     { "name": "tools_section_schedule", "value": "Schedule tools" },
+    { "name": "tools_section_overview", "value": "This month" },
     { "name": "tools_section_remind", "value": "Reminder tools" },
     { "name": "batch_alarm", "value": "Batch alarms" },
     { "name": "batch_calendar", "value": "Batch calendar" },

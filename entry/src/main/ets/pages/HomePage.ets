@@ -484,26 +484,6 @@ export struct HomePage {
   }
 
   @Builder
-  progressLine() {
-    Row() {
-      Text($r('app.string.progress_done', minutesToHoursText(this.monthStats.workedMinutes), this.rules.monthlyTargetHours))
-        .fontSize(13)
-      Blank()
-      Text($r('app.string.progress_need', minutesToHoursText(this.monthStats.remainingMinutes)))
-        .fontSize(13)
-        .fontColor('#0A59F7')
-        .fontWeight(FontWeight.Medium)
-    }
-    .width('100%')
-    .padding({ left: 12, right: 12, top: 10 })
-
-    Progress({ value: this.monthStats.workedMinutes, total: Math.max(this.monthStats.targetMinutes, 1), type: ProgressType.Linear })
-      .width('100%')
-      .margin({ top: 6 })
-      .padding({ left: 12, right: 12 })
-  }
-
-  @Builder
   shiftForm() {
     Column() {
       Text($r('app.string.tpl_title'))
@@ -777,36 +757,10 @@ export struct HomePage {
     .margin({ top: 8 })
   }
 
-  @Builder
-  violationBanner() {
-    if (this.monthStats.violations.length > 0) {
-      Column() {
-        Text($r('app.string.rule_reminders'))
-          .fontSize(12)
-          .fontColor($r('sys.color.warning'))
-          .margin({ bottom: 4 })
-        ForEach(this.monthStats.violations.slice(0, 3), (v: string) => {
-          Text(v)
-            .fontSize(12)
-            .fontColor($r('sys.color.font_secondary'))
-            .margin({ top: 2 })
-        }, (v: string) => v)
-      }
-      .width('100%')
-      .padding(12)
-      .borderRadius(8)
-      .backgroundColor($r('sys.color.comp_background_tertiary'))
-      .border({ width: 0.5, color: $r('sys.color.comp_divider') })
-      .margin({ top: 8 })
-    }
-  }
-
   build() {
     Scroll(this.scroller) {
       Column() {
         this.calendar()
-        this.progressLine()
-        this.violationBanner()
         this.dayDetail()
         Text('') // 底部留白，避开悬浮 Tab 栏
           .height(100)
