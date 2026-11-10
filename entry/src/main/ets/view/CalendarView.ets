@@ -64,6 +64,14 @@ export struct CalendarView {
     return cells;
   }
 
+  // 按实际行数算高度，避免固定 6 行多出空白
+  gridHeight(): number {
+    const total = daysInMonth(this.viewYear, this.viewMonth);
+    const blanks = new Date(this.viewYear, this.viewMonth - 1, 1).getDay();
+    const rows = Math.ceil((blanks + total) / 7);
+    return rows * 48 + (rows - 1) * 2;
+  }
+
   // 格子渲染键：包含当日排班状态，删班次/改班次后立即重绘（如变休息）
   cellKey(day: number): string {
     const entry = this.service.findEntry(this.service.getDays(), dateKey(this.viewYear, this.viewMonth, day));
@@ -213,7 +221,7 @@ export struct CalendarView {
       .columnsTemplate('1fr 1fr 1fr 1fr 1fr 1fr 1fr')
       .columnsGap(2)
       .rowsGap(2)
-      .height(48 * 6 + 12)
+      .height(this.gridHeight())
       .margin({ top: 4 })
     }
     .padding(12)
