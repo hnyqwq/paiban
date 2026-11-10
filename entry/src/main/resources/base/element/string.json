@@ -49,6 +49,7 @@
     { "name": "cancel", "value": "取消" },
     { "name": "delete", "value": "删除" },
     { "name": "mark_rest", "value": "标记休息" },
+    { "name": "mark_rest_confirm_msg", "value": "当天已有 %1$d 个班次，标记休息将删除这些班次。确定标记为休息？" },
     { "name": "cancel_rest", "value": "取消休息" },
     { "name": "memo", "value": "备忘录" },
     { "name": "memo_hint", "value": "记点什么…" },

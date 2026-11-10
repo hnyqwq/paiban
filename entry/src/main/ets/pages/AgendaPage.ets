@@ -275,6 +275,24 @@ export struct AgendaPage {
       this.saveDays();
       return;
     }
+    if (entry !== undefined && entry.shifts.length > 0) {
+      // 已有班次：先确认再覆盖，避免静默丢班次
+      this.getUIContext().showAlertDialog({
+        title: $r('app.string.mark_rest'),
+        message: $r('app.string.mark_rest_confirm_msg', entry.shifts.length),
+        autoCancel: true,
+        buttons: [
+          { value: $r('app.string.cancel'), fontColor: $r('sys.color.font_secondary'), action: () => {} },
+          { value: $r('app.string.mark_rest'), fontColor: $r('sys.color.brand'), action: () => this.doMarkRest() }
+        ]
+      });
+      return;
+    }
+    this.doMarkRest();
+  }
+
+  doMarkRest(): void {
+    const entry = this.service.findEntry(this.days, this.selectedDate);
     const ne = new DayEntry();
     ne.date = this.selectedDate;
     ne.memo = entry !== undefined ? entry.memo : '';
