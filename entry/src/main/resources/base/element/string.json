@@ -32,7 +32,7 @@
     { "name": "stats_title", "value": "统计 · %1$d年%2$d月" },
     { "name": "progress_done", "value": "本月已排 %1$s / 目标 %2$d h" },
     { "name": "progress_need", "value": "还需排 %1$s" },
-    { "name": "day_schedule", "value": "%1$s 日程" },
+    { "name": "day_schedule", "value": "日程 %1$s" },
     { "name": "add_shift", "value": "+ 添加班次" },
     { "name": "add_alarm", "value": "加闹钟" },
     { "name": "add_calendar", "value": "加日历" },
