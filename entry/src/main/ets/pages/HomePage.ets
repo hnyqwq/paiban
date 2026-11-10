@@ -570,17 +570,18 @@ export struct HomePage {
       if (day > 0) {
         if (this.isTodayCell(day)) {
           Row() {
+            // 蓝底（选中）时用白字，否则用品牌蓝
             Text($r('app.string.today_label'))
               .fontSize(10)
               .fontWeight(FontWeight.Medium)
-              .fontColor($r('sys.color.brand'))
+              .fontColor(this.selectedDate === dateKey(this.viewYear, this.viewMonth, day) ? Color.White : $r('sys.color.brand'))
             if (this.dayIsRest(day)) {
               Text('  ')
                 .fontSize(10)
               Text($r('app.string.rest_marker'))
                 .fontSize(10)
                 .fontWeight(FontWeight.Medium)
-                .fontColor($r('sys.color.warning'))
+                .fontColor(this.selectedDate === dateKey(this.viewYear, this.viewMonth, day) ? Color.White : $r('sys.color.warning'))
             }
           }
         } else {
