@@ -571,23 +571,26 @@ export struct HomePage {
         if (this.isTodayCell(day)) {
           Row() {
             Text($r('app.string.today_label'))
-              .fontSize(9)
+              .fontSize(10)
+              .fontWeight(FontWeight.Medium)
               .fontColor($r('sys.color.brand'))
             if (this.dayIsRest(day)) {
               Text('  ')
-                .fontSize(9)
+                .fontSize(10)
               Text($r('app.string.rest_marker'))
-                .fontSize(9)
+                .fontSize(10)
+                .fontWeight(FontWeight.Medium)
                 .fontColor($r('sys.color.warning'))
             }
           }
         } else {
           Text(this.dayCellInfo(day))
-            .fontSize(9)
+            .fontSize(10)
+            .fontWeight(FontWeight.Medium)
             .fontColor(this.dayIsRest(day) ? $r('sys.color.warning') : $r('sys.color.brand'))
         }
       } else {
-        Text('').fontSize(9)
+        Text('').fontSize(10)
       }
     }
     .width('100%')
