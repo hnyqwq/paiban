@@ -542,17 +542,18 @@ export struct HomePage {
     return this.service.isRestDay(this.service.findEntry(this.days, dateKey(this.viewYear, this.viewMonth, day)));
   }
 
-  // 选中日期实心蓝底，今天实心浅蓝底，保证明显可见
+  // 选中日期实心蓝底，今天不加背景（用「今日」文字标记）
   cellBackground(day: number): ResourceColor {
     const key = dateKey(this.viewYear, this.viewMonth, day);
-    const now = new Date();
     if (this.selectedDate === key) {
       return '#0A59F7';
     }
-    if (key === dateKey(now.getFullYear(), now.getMonth() + 1, now.getDate())) {
-      return '#CCE0FF';
-    }
     return Color.Transparent;
+  }
+
+  isTodayCell(day: number): boolean {
+    const now = new Date();
+    return dateKey(this.viewYear, this.viewMonth, day) === dateKey(now.getFullYear(), now.getMonth() + 1, now.getDate());
   }
 
   cellTextPrimary(day: number): ResourceColor {
@@ -567,9 +568,24 @@ export struct HomePage {
         .fontWeight(this.selectedDate === dateKey(this.viewYear, this.viewMonth, day) ? FontWeight.Bold : FontWeight.Normal)
         .fontColor(this.cellTextPrimary(day))
       if (day > 0) {
-        Text(this.dayCellInfo(day))
-          .fontSize(9)
-          .fontColor(this.dayIsRest(day) ? $r('sys.color.warning') : $r('sys.color.brand'))
+        if (this.isTodayCell(day)) {
+          Row() {
+            Text($r('app.string.today_label'))
+              .fontSize(9)
+              .fontColor($r('sys.color.brand'))
+            if (this.dayIsRest(day)) {
+              Text('  ')
+                .fontSize(9)
+              Text($r('app.string.rest_marker'))
+                .fontSize(9)
+                .fontColor($r('sys.color.warning'))
+            }
+          }
+        } else {
+          Text(this.dayCellInfo(day))
+            .fontSize(9)
+            .fontColor(this.dayIsRest(day) ? $r('sys.color.warning') : $r('sys.color.brand'))
+        }
       } else {
         Text('').fontSize(9)
       }

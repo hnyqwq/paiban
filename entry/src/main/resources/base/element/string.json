@@ -49,6 +49,7 @@
     { "name": "shift_start_hint", "value": "开始 09:00" },
     { "name": "shift_end_hint", "value": "结束 17:00" },
     { "name": "rest_marker", "value": "休" },
+    { "name": "today_label", "value": "今日" },
     { "name": "warn_gap", "value": "%1$d日：两个班次之间只休 %2$d 分钟，要求至少 %3$d 分钟" },
     { "name": "warn_min_daily", "value": "%1$d日：当日仅排 %2$s，少于最少 %3$d 小时" },
     { "name": "warn_workday_min", "value": "%1$d日：未排班也未标记休息，除休息日外每日要求至少 %2$d 小时" },

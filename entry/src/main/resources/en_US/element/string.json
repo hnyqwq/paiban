@@ -49,6 +49,7 @@
     { "name": "shift_start_hint", "value": "Start 09:00" },
     { "name": "shift_end_hint", "value": "End 17:00" },
     { "name": "rest_marker", "value": "R" },
+    { "name": "today_label", "value": "Today" },
     { "name": "warn_gap", "value": "Day %1$d: only %2$d min between shifts, need at least %3$d min" },
     { "name": "warn_min_daily", "value": "Day %1$d: scheduled %2$s, below the minimum of %3$d h" },
     { "name": "warn_workday_min", "value": "Day %1$d: unscheduled and not marked rest, non-rest days need at least %2$d h" },
