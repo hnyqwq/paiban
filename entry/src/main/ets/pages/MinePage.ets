@@ -137,7 +137,7 @@ export struct MinePage {
     try {
       const info = bundleManager.getBundleInfoForSelfSync(bundleManager.BundleFlag.GET_BUNDLE_INFO_DEFAULT);
       this.bundleName = info.name;
-      this.versionName = info.versionName;
+      this.versionName = `${info.versionName} (${info.versionCode})`;
     } catch (e) {
       hilog.error(0x0000, 'testTag', 'Failed to load bundle info. Cause: %{public}s', JSON.stringify(e));
     }

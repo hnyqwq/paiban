@@ -69,35 +69,42 @@ export async function addShiftToCalendar(context: common.UIAbilityContext, date:
   }
 }
 
-// 发布系统提醒（班次开始时间响铃，日历型一次性提醒）
-export async function addShiftAlarm(context: common.UIAbilityContext, date: string, shift: Shift): Promise<boolean> {
-  const ok = await ensurePermissions(context, ['ohos.permission.PUBLISH_AGENT_REMINDER']);
-  if (!ok) {
-    return false;
-  }
+// 发布系统提醒（班次开始时间提前 leadMinutes 分钟响铃，日历型一次性提醒）
+// PUBLISH_AGENT_REMINDER 为安装即授予的权限，无需也不能动态申请
+export async function addShiftAlarm(context: common.UIAbilityContext, date: string, shift: Shift,
+  leadMinutes: number): Promise<boolean> {
   try {
     const parts = date.split('-');
     const y = Number(parts[0]);
     const m = Number(parts[1]);
     const d = Number(parts[2]);
-    const s = Shift.minutesBetween(shift.start);
+    const s0 = Shift.minutesBetween(shift.start) - leadMinutes;
+    // 提前量可能把提醒时间推到前一天
+    let minutes = s0;
+    let remindDay = d;
+    if (minutes < 0) {
+      minutes += 24 * 60;
+      remindDay = d - 1;
+    }
+    const dt = new Date(y, m - 1, remindDay, 0, 0, 0);
     const dateTime: reminderAgentManager.LocalDateTime = {
-      year: y,
-      month: m,
-      day: d,
-      hour: Math.floor(s / 60),
-      minute: s % 60
+      year: dt.getFullYear(),
+      month: dt.getMonth() + 1,
+      day: dt.getDate(),
+      hour: Math.floor(minutes / 60),
+      minute: minutes % 60
     };
     const reminder: reminderAgentManager.ReminderRequestCalendar = {
       reminderType: reminderAgentManager.ReminderType.REMINDER_TYPE_CALENDAR,
       dateTime: dateTime,
-      title: '上班提醒',
+      title: leadMinutes > 0 ? `上班提醒（提前${leadMinutes}分钟）` : '上班提醒',
       content: `${shift.start} - ${shift.end}`,
       expiredContent: '已过上班时间'
     };
     await reminderAgentManager.publishReminder(reminder);
     return true;
   } catch (e) {
+    console.error('publishReminder failed:', JSON.stringify(e));
     return false;
   }
 }

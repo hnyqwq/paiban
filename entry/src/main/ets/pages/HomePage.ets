@@ -160,14 +160,30 @@ export struct HomePage {
     this.upsertEntry(entry);
   }
 
-  // 发布系统闹钟提醒
+  // 发布系统闹钟提醒（先选提前量）
   addAlarmForShift(s: Shift): void {
     const ctx = AppStorage.get<common.UIAbilityContext>('context');
     if (ctx === undefined) {
       return;
     }
-    addShiftAlarm(ctx, this.selectedDate, s).then((ok: boolean) => {
-      promptAction.showToast({ message: ok ? $r('app.string.added_ok') : $r('app.string.add_failed') });
+    const leads: number[] = [0, 30, 60, 120];
+    const labels: Resource[] = [$r('app.string.alarm_lead_none'), $r('app.string.alarm_lead_30'),
+      $r('app.string.alarm_lead_60'), $r('app.string.alarm_lead_120')];
+    promptAction.showActionMenu({
+      title: $r('app.string.alarm_lead_title'),
+      buttons: [
+        { text: labels[0], color: '#0A59F7' },
+        { text: labels[1], color: '#0A59F7' },
+        { text: labels[2], color: '#0A59F7' },
+        { text: labels[3], color: '#0A59F7' }
+      ]
+    }).then((res: promptAction.ActionMenuSuccessResponse) => {
+      if (res.index < 0 || res.index >= leads.length) {
+        return;
+      }
+      addShiftAlarm(ctx, this.selectedDate, s, leads[res.index]).then((ok: boolean) => {
+        promptAction.showToast({ message: ok ? $r('app.string.added_ok') : $r('app.string.add_failed') });
+      });
     });
   }
 
