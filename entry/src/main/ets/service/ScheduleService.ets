@@ -658,15 +658,15 @@ export class ScheduleService {
     const span = duration + Math.max(0, segCount - 1) * restGap;
     let cursor = 9 * 60;
     if (cursor + span > 1440) {
-      cursor = Math.max(0, 1440 - span - 1); // 留 1 分钟余量，最晚 23:59 结束
+      cursor = Math.max(0, 1440 - span); // 最早提前到 0:00，最晚 24:00 结束
     }
     let remaining = duration;
     while (remaining > 0) {
       const dur = Math.min(cap, remaining);
       const startMin = cursor % 1440;
       let endMin = cursor + dur;
-      if (endMin > 1439) {
-        endMin = 1439; // 任何段都不跨到第二天
+      if (endMin > 1440) {
+        endMin = 1440; // 任何段都不超过当天 24:00
       }
       const s = new Shift();
       s.start = `${pad2(Math.floor(startMin / 60))}:${pad2(startMin % 60)}`;
