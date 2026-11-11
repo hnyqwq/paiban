@@ -633,13 +633,21 @@ export class ScheduleService {
   private fillShiftsForDay(ne: DayEntry, duration: number, rules: ShiftRules): void {
     const template = this.parseShiftTemplate(rules.shiftTemplate);
     if (template.length > 0) {
+      // 模板总时长达到当日应排时长才使用模板；
+      // 否则模板会顶掉均摊结果，导致月总时长凑不够
+      let templateTotal = 0;
       for (const seg of template) {
-        const s = new Shift();
-        s.start = seg[0];
-        s.end = seg[1];
-        ne.shifts.push(s);
+        templateTotal += Shift.minutesBetween(seg[1]) - Shift.minutesBetween(seg[0]);
       }
-      return;
+      if (templateTotal >= duration) {
+        for (const seg of template) {
+          const s = new Shift();
+          s.start = seg[0];
+          s.end = seg[1];
+          ne.shifts.push(s);
+        }
+        return;
+      }
     }
     const cap = rules.maxContinuousWorkMinutes > 0
       ? Math.min(duration, rules.maxContinuousWorkMinutes)
