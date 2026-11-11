@@ -14,6 +14,12 @@ class DateShift {
   shift: Shift = new Shift();
 }
 
+// 添加班次表单里的一段（开始-结束）
+class SegStartEnd {
+  start: string = '';
+  end: string = '';
+}
+
 @Component
 export struct SchedulingPage {
   scroller: Scroller = new Scroller();
@@ -23,8 +29,7 @@ export struct SchedulingPage {
   @State stats: MonthStats = new MonthStats();
   // 新增班次表单与编辑态
   @State showShiftForm: boolean = false;
-  @State newStart: string = '09:00';
-  @State newEnd: string = '17:00';
+  @State newSegs: SegStartEnd[] = []; // 表单里逐段编辑的班次
   @State selectedShifts: number[] = []; // 本日勾选的班次下标
   @State editing: boolean = false;      // 开始排班后才显示编辑按钮
   @StorageLink('scheduleDataVersion') @Watch('onDataChanged') scheduleDataVersion: number = 0;
@@ -94,7 +99,21 @@ export struct SchedulingPage {
   }
 
   addShift(): void {
-    if (Shift.minutesBetween(this.newEnd) === Shift.minutesBetween(this.newStart)) {
+    // 收集表单里完整的段，一次加齐
+    const shifts: Shift[] = [];
+    for (const seg of this.newSegs) {
+      if (seg.start.trim() === '' || seg.end.trim() === '') {
+        continue;
+      }
+      if (Shift.minutesBetween(seg.start.trim()) === Shift.minutesBetween(seg.end.trim())) {
+        continue;
+      }
+      const s = new Shift();
+      s.start = seg.start.trim();
+      s.end = seg.end.trim();
+      shifts.push(s);
+    }
+    if (shifts.length === 0) {
       return;
     }
     const entry = this.service.findEntry(this.days, this.selectedDate);
@@ -103,41 +122,54 @@ export struct SchedulingPage {
       ne.date = this.selectedDate;
       return ne;
     })();
-    const s = new Shift();
-    s.start = this.newStart;
-    s.end = this.newEnd;
-    e.shifts.push(s);
+    for (const s of shifts) {
+      e.shifts.push(s);
+    }
     this.upsertEntry(e);
     this.showShiftForm = false;
   }
 
-  // 按规则里的自定义班次模板添加：如 08:00-12:00,14:00-18:00 多段一次加齐
-  applyCustomTemplate(): void {
-    const parts = this.rules.shiftTemplate.split(',');
-    const entry = this.service.findEntry(this.days, this.selectedDate);
-    const e = entry !== undefined ? entry : (() => {
-      const ne = new DayEntry();
-      ne.date = this.selectedDate;
-      return ne;
-    })();
-    for (const p of parts) {
-      const seg = p.split('-');
-      if (seg.length !== 2) {
-        continue;
-      }
-      const s = new Shift();
-      s.start = seg[0].trim();
-      s.end = seg[1].trim();
-      if (s.start === '' || s.end === '' || Shift.minutesBetween(s.start) === Shift.minutesBetween(s.end)) {
-        continue;
-      }
-      e.shifts.push(s);
-    }
-    if (e.shifts.length === 0) {
+  resetSegs(): void {
+    const seg = new SegStartEnd();
+    this.newSegs = [seg];
+  }
+
+  setSegs(start: string, end: string): void {
+    const seg = new SegStartEnd();
+    seg.start = start;
+    seg.end = end;
+    this.newSegs = [seg];
+  }
+
+  addNewSeg(): void {
+    this.newSegs.push(new SegStartEnd());
+  }
+
+  removeNewSeg(index: number): void {
+    if (this.newSegs.length <= 1) {
+      this.newSegs = [new SegStartEnd()];
       return;
     }
-    this.upsertEntry(e);
-    this.showShiftForm = false;
+    this.newSegs.splice(index, 1);
+  }
+
+  // 自定义模板填入逐段编辑，可再调整后添加
+  applyCustomTemplate(): void {
+    const segs: SegStartEnd[] = [];
+    const parts = this.rules.shiftTemplate.split(',');
+    for (const p of parts) {
+      const s = p.split('-');
+      if (s.length !== 2) {
+        continue;
+      }
+      const seg = new SegStartEnd();
+      seg.start = s[0].trim();
+      seg.end = s[1].trim();
+      segs.push(seg);
+    }
+    if (segs.length > 0) {
+      this.newSegs = segs;
+    }
   }
 
   removeShift(index: number): void {
@@ -544,16 +576,14 @@ export struct SchedulingPage {
           .fontSize(11)
           .layoutWeight(1)
           .onClick(() => {
-            this.newStart = '06:00';
-            this.newEnd = '14:00';
+            this.setSegs('06:00', '14:00');
           })
         Button($r('app.string.tpl_day'))
           .buttonStyle(ButtonStyleMode.NORMAL)
           .fontSize(11)
           .layoutWeight(1)
           .onClick(() => {
-            this.newStart = '09:00';
-            this.newEnd = '17:00';
+            this.setSegs('09:00', '17:00');
           })
       }
       .width('100%')
@@ -564,22 +594,20 @@ export struct SchedulingPage {
           .fontSize(11)
           .layoutWeight(1)
           .onClick(() => {
-            this.newStart = '14:00';
-            this.newEnd = '22:00';
+            this.setSegs('14:00', '22:00');
           })
         Button($r('app.string.tpl_night'))
           .buttonStyle(ButtonStyleMode.NORMAL)
           .fontSize(11)
           .layoutWeight(1)
           .onClick(() => {
-            this.newStart = '22:00';
-            this.newEnd = '06:00';
+            this.setSegs('22:00', '06:00');
           })
       }
       .width('100%')
       .margin({ top: 6 })
 
-      // 规则里设置的自定义班次模板（支持多段，一次加齐）
+      // 规则里设置的自定义班次模板：填入下面逐段编辑，可再调整
       if (this.rules.shiftTemplate.trim() !== '') {
         Button() {
           Text(this.rules.shiftTemplate)
@@ -593,23 +621,37 @@ export struct SchedulingPage {
         .onClick(() => this.applyCustomTemplate())
       }
 
-      Row() {
-        TextInput({ text: this.newStart, placeholder: '09:00' })
-          .type(InputType.Normal)
-          .width('45%')
-          .onChange((v: string) => {
-            this.newStart = v;
-          })
-        Text('→').margin({ left: 8, right: 8 })
-        TextInput({ text: this.newEnd, placeholder: '17:00' })
-          .type(InputType.Normal)
-          .width('45%')
-          .onChange((v: string) => {
-            this.newEnd = v;
-          })
-      }
-      .width('100%')
-      .margin({ top: 8 })
+      // 逐段编辑班次
+      ForEach(this.newSegs, (seg: SegStartEnd, i: number) => {
+        Row() {
+          TextInput({ text: seg.start, placeholder: '08:00' })
+            .type(InputType.Normal)
+            .layoutWeight(1)
+            .onChange((v: string) => {
+              seg.start = v;
+            })
+          Text('→').margin({ left: 6, right: 6 })
+          TextInput({ text: seg.end, placeholder: '12:00' })
+            .type(InputType.Normal)
+            .layoutWeight(1)
+            .onChange((v: string) => {
+              seg.end = v;
+            })
+          Text($r('app.string.delete'))
+            .fontSize(13)
+            .fontColor($r('sys.color.warning'))
+            .margin({ left: 10 })
+            .onClick(() => this.removeNewSeg(i))
+        }
+        .width('100%')
+        .margin({ top: 6 })
+      }, (seg: SegStartEnd, i: number) => `${i}-${seg.start}-${seg.end}`)
+      Button($r('app.string.add_segment'))
+        .width('100%')
+        .buttonStyle(ButtonStyleMode.NORMAL)
+        .fontSize(12)
+        .margin({ top: 6 })
+        .onClick(() => this.addNewSeg())
 
       Row() {
         Button($r('app.string.cancel'))
@@ -706,6 +748,7 @@ export struct SchedulingPage {
             .buttonStyle(ButtonStyleMode.NORMAL)
             .margin({ top: 8 })
             .onClick(() => {
+              this.resetSegs();
               this.showShiftForm = true;
             })
         }
