@@ -653,19 +653,30 @@ export class ScheduleService {
       ? Math.min(duration, rules.maxContinuousWorkMinutes)
       : duration;
     const restGap = rules.maxContinuousWorkMinutes > 0 ? Math.max(rules.mandatoryRestMinutes, 0) : 0;
-    let remaining = duration;
+    // 计算所需跨度；9:00 开始放不下就提前开始，确保当天内完成，不产生凌晨时段
+    const segCount = cap > 0 ? Math.ceil(duration / cap) : 1;
+    const span = duration + Math.max(0, segCount - 1) * restGap;
     let cursor = 9 * 60;
+    if (cursor + span > 1440) {
+      cursor = Math.max(0, 1440 - span - 1); // 留 1 分钟余量，最晚 23:59 结束
+    }
+    let remaining = duration;
     while (remaining > 0) {
       const dur = Math.min(cap, remaining);
-      // 跨午夜回绕：27:00 这类非法时间换算成次日 03:00
-      const startMin = ((cursor % 1440) + 1440) % 1440;
-      const endMin = ((cursor + dur) % 1440 + 1440) % 1440;
+      const startMin = cursor % 1440;
+      let endMin = cursor + dur;
+      if (endMin > 1439) {
+        endMin = 1439; // 任何段都不跨到第二天
+      }
       const s = new Shift();
       s.start = `${pad2(Math.floor(startMin / 60))}:${pad2(startMin % 60)}`;
       s.end = `${pad2(Math.floor(endMin / 60))}:${pad2(endMin % 60)}`;
       ne.shifts.push(s);
       remaining -= dur;
       cursor = cursor + dur + restGap;
+      if (cursor >= 1440) {
+        break; // 当天已排满，剩余时长放弃
+      }
     }
   }
 

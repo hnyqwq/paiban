@@ -30,6 +30,7 @@ export struct SchedulingPage {
   // 新增班次表单与编辑态
   @State showShiftForm: boolean = false;
   @State newSegs: SegStartEnd[] = []; // 表单里逐段编辑的班次
+  @State editShiftIndex: number = -1; // >=0 表示正在编辑该下标的班次
   @State selectedShifts: number[] = []; // 本日勾选的班次下标
   @State editing: boolean = false;      // 开始排班后才显示编辑按钮
   @StorageLink('scheduleDataVersion') @Watch('onDataChanged') scheduleDataVersion: number = 0;
@@ -114,6 +115,17 @@ export struct SchedulingPage {
       shifts.push(s);
     }
     if (shifts.length === 0) {
+      return;
+    }
+    if (this.editShiftIndex >= 0) {
+      // 编辑模式：用第一段替换该班次
+      const entry = this.service.findEntry(this.days, this.selectedDate);
+      if (entry !== undefined && this.editShiftIndex < entry.shifts.length) {
+        entry.shifts[this.editShiftIndex] = shifts[0];
+        this.upsertEntry(entry);
+      }
+      this.editShiftIndex = -1;
+      this.showShiftForm = false;
       return;
     }
     const entry = this.service.findEntry(this.days, this.selectedDate);
@@ -674,9 +686,10 @@ export struct SchedulingPage {
         Button($r('app.string.cancel'))
           .buttonStyle(ButtonStyleMode.NORMAL)
           .onClick(() => {
+            this.editShiftIndex = -1;
             this.showShiftForm = false;
           })
-        Button($r('app.string.add_shift_btn'))
+        Button(this.editShiftIndex >= 0 ? $r('app.string.save') : $r('app.string.add_shift_btn'))
           .margin({ left: 12 })
           .onClick(() => this.addShift())
       }
@@ -751,6 +764,18 @@ export struct SchedulingPage {
             .borderRadius(8)
             .backgroundColor($r('sys.color.comp_background_tertiary'))
             .margin({ top: 8 })
+            .onClick(() => {
+              // 编辑模式点班次行：载入该班次时间进行手动编辑
+              if (!this.editing) {
+                return;
+              }
+              this.editShiftIndex = i;
+              const seg = new SegStartEnd();
+              seg.start = s.start;
+              seg.end = s.end;
+              this.newSegs = [seg];
+              this.showShiftForm = true;
+            })
           }
         }, (s: Shift, i: number) => `${i}-${s.start}-${s.end}`)
       }
@@ -765,6 +790,7 @@ export struct SchedulingPage {
             .buttonStyle(ButtonStyleMode.NORMAL)
             .margin({ top: 8 })
             .onClick(() => {
+              this.editShiftIndex = -1;
               this.resetSegs();
               this.showShiftForm = true;
             })
