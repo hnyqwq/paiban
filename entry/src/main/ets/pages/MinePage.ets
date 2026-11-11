@@ -29,20 +29,23 @@ struct ImportDialog {
   build() {
     Column() {
       Row() {
-        Button($r('app.string.paste'))
-          .buttonStyle(ButtonStyleMode.NORMAL)
+        // 安全控件粘贴：免授权弹窗，读取剪贴板需用户点击此控件（文案由系统按语言显示「粘贴」）
+        PasteButton({ text: PasteDescription.PASTE })
           .fontSize(13)
-          .onClick(() => {
-            pasteboard.getSystemPasteboard().getData().then((data: pasteboard.PasteData) => {
-              const text = data.getPrimaryText();
+          .onClick((event: ClickEvent, result: PasteButtonOnClickResult) => {
+            if (result !== PasteButtonOnClickResult.SUCCESS) {
+              return;
+            }
+            try {
+              const text = pasteboard.getSystemPasteboard().getDataSync().getPrimaryText();
               if (text !== '') {
                 this.text = text;
               } else {
                 promptAction.showToast({ message: $r('app.string.clipboard_empty') });
               }
-            }).catch(() => {
+            } catch (e) {
               promptAction.showToast({ message: $r('app.string.clipboard_empty') });
-            });
+            }
           })
       }
       .width('100%')
