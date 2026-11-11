@@ -111,6 +111,35 @@ export struct SchedulingPage {
     this.showShiftForm = false;
   }
 
+  // 按规则里的自定义班次模板添加：如 08:00-12:00,14:00-18:00 多段一次加齐
+  applyCustomTemplate(): void {
+    const parts = this.rules.shiftTemplate.split(',');
+    const entry = this.service.findEntry(this.days, this.selectedDate);
+    const e = entry !== undefined ? entry : (() => {
+      const ne = new DayEntry();
+      ne.date = this.selectedDate;
+      return ne;
+    })();
+    for (const p of parts) {
+      const seg = p.split('-');
+      if (seg.length !== 2) {
+        continue;
+      }
+      const s = new Shift();
+      s.start = seg[0].trim();
+      s.end = seg[1].trim();
+      if (s.start === '' || s.end === '' || Shift.minutesBetween(s.start) === Shift.minutesBetween(s.end)) {
+        continue;
+      }
+      e.shifts.push(s);
+    }
+    if (e.shifts.length === 0) {
+      return;
+    }
+    this.upsertEntry(e);
+    this.showShiftForm = false;
+  }
+
   removeShift(index: number): void {
     const entry = this.service.findEntry(this.days, this.selectedDate);
     if (entry === undefined) {
@@ -550,6 +579,20 @@ export struct SchedulingPage {
       .width('100%')
       .margin({ top: 6 })
 
+      // 规则里设置的自定义班次模板（支持多段，一次加齐）
+      if (this.rules.shiftTemplate.trim() !== '') {
+        Button() {
+          Text(this.rules.shiftTemplate)
+            .fontSize(11)
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+        }
+        .buttonStyle(ButtonStyleMode.NORMAL)
+        .width('100%')
+        .margin({ top: 6 })
+        .onClick(() => this.applyCustomTemplate())
+      }
+
       Row() {
         TextInput({ text: this.newStart, placeholder: '09:00' })
           .type(InputType.Normal)
@@ -566,6 +609,7 @@ export struct SchedulingPage {
           })
       }
       .width('100%')
+      .margin({ top: 8 })
 
       Row() {
         Button($r('app.string.cancel'))
