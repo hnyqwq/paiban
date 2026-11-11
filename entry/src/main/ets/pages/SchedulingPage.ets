@@ -17,7 +17,6 @@ class DateShift {
 @Component
 export struct SchedulingPage {
   scroller: Scroller = new Scroller();
-  @State selDate: string = '';
   @State rules: ShiftRules = new ShiftRules();
   @State stats: MonthStats = new MonthStats();
   @StorageLink('scheduleDataVersion') @Watch('onDataChanged') scheduleDataVersion: number = 0;
@@ -25,8 +24,6 @@ export struct SchedulingPage {
   private service: ScheduleService = ScheduleService.getInstance();
 
   aboutToAppear(): void {
-    const now = new Date();
-    this.selDate = dateKey(now.getFullYear(), now.getMonth() + 1, now.getDate());
     this.rules = this.service.getRules();
     this.refreshStats();
   }
@@ -320,7 +317,7 @@ export struct SchedulingPage {
   build() {
     Scroll(this.scroller) {
       Column() {
-        CalendarView({ selectedDate: $selDate })
+        CalendarView()
 
         this.sectionTitle($r('app.string.tools_section_overview'))
         Column() {

@@ -6,17 +6,24 @@ const WEEK_LABELS: string[] = ['日', '一', '二', '三', '四', '五', '六'];
 
 @Component
 export struct CalendarView {
-  @Link selectedDate: string;
+  // 选中日期与查看的年月用 AppStorage 共享：日程页与排班页的日历联动
+  @StorageLink('calendarSelectedDate') selectedDate: string = '';
+  @StorageLink('calendarViewYear') viewYear: number = 0;
+  @StorageLink('calendarViewMonth') viewMonth: number = 0;
   @StorageLink('weekStart') @Watch('onWeekStartChange') weekStart: number = 0; // 0 周日开始 1 周一开始
   @StorageLink('scheduleDataVersion') @Watch('onDataChanged') scheduleDataVersion: number = 0;
-  @State viewYear: number = 2026;
-  @State viewMonth: number = 1;
   private service: ScheduleService = ScheduleService.getInstance();
 
   aboutToAppear(): void {
-    const now = new Date();
-    this.viewYear = now.getFullYear();
-    this.viewMonth = now.getMonth() + 1;
+    if (this.viewYear === 0 || this.viewMonth === 0) {
+      const now = new Date();
+      this.viewYear = now.getFullYear();
+      this.viewMonth = now.getMonth() + 1;
+    }
+    if (this.selectedDate === '') {
+      const now = new Date();
+      this.selectedDate = dateKey(now.getFullYear(), now.getMonth() + 1, now.getDate());
+    }
     this.weekStart = this.service.getWeekStart();
   }
 

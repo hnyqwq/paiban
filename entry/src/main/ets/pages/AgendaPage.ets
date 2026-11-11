@@ -12,7 +12,7 @@ import { CalendarView } from '../view/CalendarView';
 @Component
 export struct AgendaPage {
   scroller: Scroller = new Scroller();
-  @Watch('onSelectedDateChange') @State selectedDate: string = '';
+  @StorageLink('calendarSelectedDate') @Watch('onSelectedDateChange') selectedDate: string = '';
   @State days: DayEntry[] = [];
   @State rules: ShiftRules = new ShiftRules();
   // 新增班次表单
@@ -74,8 +74,10 @@ export struct AgendaPage {
   private service: ScheduleService = ScheduleService.getInstance();
 
   aboutToAppear(): void {
-    const now = new Date();
-    this.selectedDate = dateKey(now.getFullYear(), now.getMonth() + 1, now.getDate());
+    if (this.selectedDate === '') {
+      const now = new Date();
+      this.selectedDate = dateKey(now.getFullYear(), now.getMonth() + 1, now.getDate());
+    }
     this.rules = this.service.getRules();
     this.refresh();
   }
@@ -575,7 +577,7 @@ export struct AgendaPage {
   build() {
     Scroll(this.scroller) {
       Column() {
-        CalendarView({ selectedDate: $selectedDate })
+        CalendarView()
         this.dayDetail()
         Text('') // 底部留白，避开悬浮 Tab 栏
           .height(100)

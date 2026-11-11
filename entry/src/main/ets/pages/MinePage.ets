@@ -30,7 +30,7 @@ struct ImportDialog {
     Column() {
       Row() {
         // 安全控件粘贴：免授权弹窗，读取剪贴板需用户点击此控件（文案由系统按语言显示「粘贴」）
-        PasteButton({ text: PasteDescription.PASTE })
+        PasteButton()
           .fontSize(13)
           .onClick((event: ClickEvent, result: PasteButtonOnClickResult) => {
             if (result !== PasteButtonOnClickResult.SUCCESS) {
