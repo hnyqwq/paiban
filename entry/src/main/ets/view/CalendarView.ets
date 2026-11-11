@@ -7,6 +7,7 @@ const WEEK_LABELS: string[] = ['日', '一', '二', '三', '四', '五', '六'];
 @Component
 export struct CalendarView {
   @Link selectedDate: string;
+  @StorageLink('weekStart') @Watch('onWeekStartChange') weekStart: number = 0; // 0 周日开始 1 周一开始
   @StorageLink('scheduleDataVersion') @Watch('onDataChanged') scheduleDataVersion: number = 0;
   @State viewYear: number = 2026;
   @State viewMonth: number = 1;
@@ -16,6 +17,16 @@ export struct CalendarView {
     const now = new Date();
     this.viewYear = now.getFullYear();
     this.viewMonth = now.getMonth() + 1;
+    this.weekStart = this.service.getWeekStart();
+  }
+
+  onWeekStartChange(): void {
+    // 周起始日变化，表头与空白由状态自动重算
+  }
+
+  // 表头按周起始日旋转
+  weekdayLabels(): string[] {
+    return WEEK_LABELS.slice(this.weekStart).concat(WEEK_LABELS.slice(0, this.weekStart));
   }
 
   onDataChanged(): void {
@@ -49,10 +60,10 @@ export struct CalendarView {
     });
   }
 
-  // 月历格子：前置空白 + 日期
+  // 月历格子：前置空白 + 日期（空白按周起始日对齐）
   calendarCells(): number[] {
     const first = new Date(this.viewYear, this.viewMonth - 1, 1);
-    const blanks = first.getDay(); // 0=周日
+    const blanks = (first.getDay() - this.weekStart + 7) % 7;
     const cells: number[] = [];
     for (let i = 0; i < blanks; i++) {
       cells.push(0);
@@ -201,7 +212,7 @@ export struct CalendarView {
 
       // 星期表头：七个字均匀分布，对齐下方七列格子
       Row() {
-        ForEach(WEEK_LABELS, (w: string) => {
+        ForEach(this.weekdayLabels(), (w: string) => {
           Text(w)
             .fontSize(12)
             .fontColor($r('sys.color.font_tertiary'))

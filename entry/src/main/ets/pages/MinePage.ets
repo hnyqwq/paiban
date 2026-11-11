@@ -103,6 +103,7 @@ struct AppearanceSegment {
 export struct MinePage {
   scroller: Scroller = new Scroller();
   @State appearanceMode: number = 0; // 0 跟随系统 1 浅色 2 深色
+  @State weekStart: number = 0; // 0 周日开始 1 周一开始
   @State rules: ShiftRules = new ShiftRules();
   @State showRuleEditor: boolean = false;
   @State bundleName: string = '';
@@ -128,6 +129,7 @@ export struct MinePage {
 
   aboutToAppear(): void {
     this.appearanceMode = this.service.getAppearanceMode();
+    this.weekStart = this.service.getWeekStart();
     this.rules = this.service.getRules();
     this.loadBundleInfo();
   }
@@ -425,6 +427,29 @@ export struct MinePage {
           })
             .width('calc(100% - 24vp)')
             .margin({ left: 12, right: 12, top: 12, bottom: 12 })
+
+          Row() {
+            Text($r('app.string.week_start_title'))
+              .fontSize(14)
+              .layoutWeight(1)
+            Button($r('app.string.week_start_sun'))
+              .buttonStyle(this.weekStart === 0 ? ButtonStyleMode.EMPHASIZED : ButtonStyleMode.NORMAL)
+              .fontSize(12)
+              .onClick(() => {
+                this.weekStart = 0;
+                this.service.setWeekStart(0);
+              })
+            Button($r('app.string.week_start_mon'))
+              .buttonStyle(this.weekStart === 1 ? ButtonStyleMode.EMPHASIZED : ButtonStyleMode.NORMAL)
+              .fontSize(12)
+              .margin({ left: 8 })
+              .onClick(() => {
+                this.weekStart = 1;
+                this.service.setWeekStart(1);
+              })
+          }
+          .width('calc(100% - 24vp)')
+          .margin({ left: 12, right: 12, bottom: 12 })
         }
         .width('100%')
         .borderRadius(12)

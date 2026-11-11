@@ -9,6 +9,7 @@ import {
 const KEY_DAYS = 'schedule_days_v1';
 const KEY_RULES = 'shift_rules_v1';
 const KEY_APPEARANCE = 'appearance_mode_v1'; // 0 跟随系统 1 浅色 2 深色
+const KEY_WEEK_START = 'calendar_week_start_v1'; // 0 周日开始 1 周一开始
 const FULL_REST_DAY_MINUTES = 8 * 60;        // 休息日按整天 8h 估算休息时长
 
 export class ScheduleService {
@@ -92,6 +93,23 @@ export class ScheduleService {
     this.prefs.putSync(KEY_APPEARANCE, mode);
     this.prefs.flush();
     this.applyAppearance(mode);
+  }
+
+  // 日历周起始日：0 周日开始（默认）1 周一开始
+  getWeekStart(): number {
+    if (this.prefs === null) {
+      return 0;
+    }
+    return this.prefs.getSync(KEY_WEEK_START, 0) as number;
+  }
+
+  setWeekStart(mode: number): void {
+    if (this.prefs === null) {
+      return;
+    }
+    this.prefs.putSync(KEY_WEEK_START, mode);
+    this.prefs.flush();
+    AppStorage.setOrCreate('weekStart', mode);
   }
 
   getRules(): ShiftRules {
