@@ -115,6 +115,7 @@ export struct AgendaPage {
         .fontSize(16)
         .fontWeight(FontWeight.Bold)
         .width('100%')
+        .margin({ bottom: 8 })
 
       // 只读展示当天班次
       List() {
