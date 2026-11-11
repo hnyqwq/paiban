@@ -753,6 +753,19 @@ export struct SchedulingPage {
                 .margin({ left: 12 })
               Blank()
               if (this.editing) {
+                Text($r('app.string.edit'))
+                  .fontSize(13)
+                  .fontColor($r('sys.color.brand'))
+                  .margin({ right: 12 })
+                  .onClick(() => {
+                    // 手动编辑该班次时间
+                    this.editShiftIndex = i;
+                    const seg = new SegStartEnd();
+                    seg.start = s.start;
+                    seg.end = s.end;
+                    this.newSegs = [seg];
+                    this.showShiftForm = true;
+                  })
                 Text($r('app.string.delete'))
                   .fontSize(13)
                   .fontColor($r('sys.color.warning'))
@@ -764,18 +777,6 @@ export struct SchedulingPage {
             .borderRadius(8)
             .backgroundColor($r('sys.color.comp_background_tertiary'))
             .margin({ top: 8 })
-            .onClick(() => {
-              // 编辑模式点班次行：载入该班次时间进行手动编辑
-              if (!this.editing) {
-                return;
-              }
-              this.editShiftIndex = i;
-              const seg = new SegStartEnd();
-              seg.start = s.start;
-              seg.end = s.end;
-              this.newSegs = [seg];
-              this.showShiftForm = true;
-            })
           }
         }, (s: Shift, i: number) => `${i}-${s.start}-${s.end}`)
       }

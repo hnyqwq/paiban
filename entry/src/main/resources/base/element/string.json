@@ -49,6 +49,7 @@
     { "name": "tpl_custom", "value": "自定义预设规则" },
     { "name": "cancel", "value": "取消" },
     { "name": "save", "value": "保存" },
+    { "name": "edit", "value": "编辑" },
     { "name": "delete", "value": "删除" },
     { "name": "mark_rest", "value": "标记休息" },
     { "name": "mark_rest_confirm_msg", "value": "当天已有 %1$d 个班次，标记休息将删除这些班次。确定标记为休息？" },

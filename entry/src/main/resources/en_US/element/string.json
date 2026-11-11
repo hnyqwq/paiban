@@ -49,6 +49,7 @@
     { "name": "tpl_custom", "value": "Custom preset" },
     { "name": "cancel", "value": "Cancel" },
     { "name": "save", "value": "Save" },
+    { "name": "edit", "value": "Edit" },
     { "name": "delete", "value": "Delete" },
     { "name": "mark_rest", "value": "Mark rest" },
     { "name": "mark_rest_confirm_msg", "value": "This day already has %1$d shift(s). Marking it as rest will delete them. Continue?" },
