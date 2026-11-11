@@ -86,6 +86,36 @@ export function pad2(n: number): string {
   return n < 10 ? `0${n}` : `${n}`;
 }
 
+// 时间输入自动规范化：13→13:00，02→02:00，930→09:30，20.30/2030→20:30
+// 无数字（如空串）保持原样返回
+export function normalizeTime(raw: string): string {
+  const digits = raw.replace(/[^0-9]/g, '');
+  if (digits.length === 0) {
+    return raw;
+  }
+  let h = 0;
+  let m = 0;
+  if (digits.length <= 2) {
+    h = Number(digits);
+  } else if (digits.length === 3) {
+    h = Number(digits.slice(0, 1));
+    m = Number(digits.slice(1));
+  } else {
+    h = Number(digits.slice(0, digits.length - 2));
+    m = Number(digits.slice(-2));
+  }
+  if (Number.isNaN(h) || Number.isNaN(m)) {
+    return raw;
+  }
+  if (h > 23) {
+    h = 23;
+  }
+  if (m > 59) {
+    m = 59;
+  }
+  return `${pad2(h)}:${pad2(m)}`;
+}
+
 export function dateKey(year: number, month: number, day: number): string {
   return `${year}-${pad2(month)}-${pad2(day)}`;
 }

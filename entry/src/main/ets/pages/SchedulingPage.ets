@@ -2,8 +2,8 @@
 import { promptAction } from '@kit.ArkUI';
 import { common } from '@kit.AbilityKit';
 import {
-  DayEntry, Shift, ShiftRules, MonthStats,
-  dateKey, daysInMonth, minutesToHoursText
+  DayEntry, Shift, ShiftRules, MonthStats, TodoItem,
+  dateKey, daysInMonth, minutesToHoursText, normalizeTime
 } from '../model/ScheduleTypes';
 import { ScheduleService } from '../service/ScheduleService';
 import { addShiftToCalendar, addShiftAlarm } from '../utils/CalendarReminder';
@@ -630,12 +630,26 @@ export struct SchedulingPage {
             .onChange((v: string) => {
               seg.start = v;
             })
+            .onBlur(() => {
+              const n = normalizeTime(seg.start);
+              if (n !== seg.start) {
+                seg.start = n;
+                this.newSegs.splice(i, 1, seg);
+              }
+            })
           Text('→').margin({ left: 6, right: 6 })
           TextInput({ text: seg.end, placeholder: '12:00' })
             .type(InputType.Normal)
             .layoutWeight(1)
             .onChange((v: string) => {
               seg.end = v;
+            })
+            .onBlur(() => {
+              const n = normalizeTime(seg.end);
+              if (n !== seg.end) {
+                seg.end = n;
+                this.newSegs.splice(i, 1, seg);
+              }
             })
           Text($r('app.string.delete'))
             .fontSize(13)

@@ -4,7 +4,7 @@ import { promptAction, SegmentButtonV2Items, CapsuleSegmentButtonV2 } from '@kit
 import { common, bundleManager } from '@kit.AbilityKit';
 import { updateManager } from '@kit.AppGalleryKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
-import { ShiftRules } from '../model/ScheduleTypes';
+import { ShiftRules, normalizeTime } from '../model/ScheduleTypes';
 import { ScheduleService } from '../service/ScheduleService';
 
 function segString(res: Resource): string {
@@ -439,6 +439,14 @@ export struct MinePage {
               seg.start = v;
               this.syncTemplate();
             })
+            .onBlur(() => {
+              const n = normalizeTime(seg.start);
+              if (n !== seg.start) {
+                seg.start = n;
+                this.templateSegs.splice(i, 1, seg);
+                this.syncTemplate();
+              }
+            })
           Text('→').margin({ left: 6, right: 6 })
           TextInput({ text: seg.end, placeholder: '12:00' })
             .type(InputType.Normal)
@@ -446,6 +454,14 @@ export struct MinePage {
             .onChange((v: string) => {
               seg.end = v;
               this.syncTemplate();
+            })
+            .onBlur(() => {
+              const n = normalizeTime(seg.end);
+              if (n !== seg.end) {
+                seg.end = n;
+                this.templateSegs.splice(i, 1, seg);
+                this.syncTemplate();
+              }
             })
           Text($r('app.string.delete'))
             .fontSize(13)
