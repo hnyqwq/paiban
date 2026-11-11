@@ -166,25 +166,29 @@ export struct SchedulingPage {
   }
 
   rangeAuto(): void {
-    this.pickRange((start: string, end: string) => {
-      const days = this.service.getDays();
-      const n = this.service.autoFillRange(days, start, end, this.rules);
-      this.saveDays(days);
-      promptAction.showToast({ message: $r('app.string.range_filled', n) });
+    this.showIntro($r('app.string.range_auto'), $r('app.string.range_auto_desc'), () => {
+      this.pickRange((start: string, end: string) => {
+        const days = this.service.getDays();
+        const n = this.service.autoFillRange(days, start, end, this.rules);
+        this.saveDays(days);
+        promptAction.showToast({ message: $r('app.string.range_filled', n) });
+      });
     });
   }
 
   rangeCopy(): void {
-    this.pickDate(new Date(), (srcStart: string) => {
-      this.pickDate(new Date(srcStart + 'T00:00:00'), (srcEnd: string) => {
-        if (srcEnd < srcStart) {
-          return;
-        }
-        this.pickDate(new Date(srcEnd + 'T00:00:00'), (dstStart: string) => {
-          const days = this.service.getDays();
-          const n = this.service.copyRangeTo(days, srcStart, srcEnd, dstStart);
-          this.saveDays(days);
-          promptAction.showToast({ message: $r('app.string.range_copied', n) });
+    this.showIntro($r('app.string.range_copy'), $r('app.string.range_copy_desc'), () => {
+      this.pickDate(new Date(), (srcStart: string) => {
+        this.pickDate(new Date(srcStart + 'T00:00:00'), (srcEnd: string) => {
+          if (srcEnd < srcStart) {
+            return;
+          }
+          this.pickDate(new Date(srcEnd + 'T00:00:00'), (dstStart: string) => {
+            const days = this.service.getDays();
+            const n = this.service.copyRangeTo(days, srcStart, srcEnd, dstStart);
+            this.saveDays(days);
+            promptAction.showToast({ message: $r('app.string.range_copied', n) });
+          });
         });
       });
     });
