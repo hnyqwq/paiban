@@ -56,6 +56,7 @@
     { "name": "todo", "value": "待办" },
     { "name": "todo_hint", "value": "添加待办…" },
     { "name": "add", "value": "添加" },
+    { "name": "add_segment", "value": "添加一段" },
     { "name": "alarm_lead_title", "value": "提前多久提醒？" },
     { "name": "alarm_lead_none", "value": "不提前" },
     { "name": "alarm_lead_30", "value": "提前30分钟" },

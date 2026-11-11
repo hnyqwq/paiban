@@ -19,6 +19,12 @@ function segString(res: Resource): string {
   }
 }
 
+// 固定班次模板的一段（开始-结束）
+class TemplateSeg {
+  start: string = '';
+  end: string = '';
+}
+
 // 导入弹窗：粘贴导出的 JSON 后写入
 @CustomDialog
 struct ImportDialog {
@@ -109,6 +115,7 @@ export struct MinePage {
   @State weekStart: number = 0; // 0 周日开始 1 周一开始
   @State rules: ShiftRules = new ShiftRules();
   @State showRuleEditor: boolean = false;
+  @State templateSegs: TemplateSeg[] = []; // 模板逐段编辑状态
   @State bundleName: string = '';
   @State versionName: string = '';
   private service: ScheduleService = ScheduleService.getInstance();
@@ -146,6 +153,43 @@ export struct MinePage {
     } catch (e) {
       hilog.error(0x0000, 'testTag', 'Failed to load bundle info. Cause: %{public}s', JSON.stringify(e));
     }
+  }
+
+  // 打开规则编辑器：把模板字符串解析成一段一段
+  openRuleEditor(): void {
+    const segs: TemplateSeg[] = [];
+    const parts = this.rules.shiftTemplate.split(',');
+    for (const p of parts) {
+      const s = p.split('-');
+      if (s.length === 2) {
+        const seg = new TemplateSeg();
+        seg.start = s[0].trim();
+        seg.end = s[1].trim();
+        segs.push(seg);
+      }
+    }
+    this.templateSegs = segs;
+    this.showRuleEditor = true;
+  }
+
+  // 逐段编辑结果自动拼回模板字符串（完整的段才计入）
+  syncTemplate(): void {
+    const parts: string[] = [];
+    for (const seg of this.templateSegs) {
+      if (seg.start.trim() !== '' && seg.end.trim() !== '') {
+        parts.push(`${seg.start.trim()}-${seg.end.trim()}`);
+      }
+    }
+    this.rules.shiftTemplate = parts.join(',');
+  }
+
+  addSegment(): void {
+    this.templateSegs.push(new TemplateSeg());
+  }
+
+  removeSegment(index: number): void {
+    this.templateSegs.splice(index, 1);
+    this.syncTemplate();
   }
 
   saveRules(): void {
@@ -386,13 +430,38 @@ export struct MinePage {
       Text($r('app.string.rule_shift_template'))
         .fontSize(13)
         .margin({ top: 10 })
-      TextInput({ text: this.rules.shiftTemplate, placeholder: $r('app.string.rule_shift_template_hint') })
-        .type(InputType.Normal)
+      ForEach(this.templateSegs, (seg: TemplateSeg, i: number) => {
+        Row() {
+          TextInput({ text: seg.start, placeholder: '08:00' })
+            .type(InputType.Normal)
+            .layoutWeight(1)
+            .onChange((v: string) => {
+              seg.start = v;
+              this.syncTemplate();
+            })
+          Text('→').margin({ left: 6, right: 6 })
+          TextInput({ text: seg.end, placeholder: '12:00' })
+            .type(InputType.Normal)
+            .layoutWeight(1)
+            .onChange((v: string) => {
+              seg.end = v;
+              this.syncTemplate();
+            })
+          Text($r('app.string.delete'))
+            .fontSize(13)
+            .fontColor($r('sys.color.warning'))
+            .margin({ left: 10 })
+            .onClick(() => this.removeSegment(i))
+        }
         .width('100%')
-        .fontSize(13)
-        .onChange((v: string) => {
-          this.rules.shiftTemplate = v;
-        })
+        .margin({ top: 6 })
+      }, (seg: TemplateSeg, i: number) => `${i}-${seg.start}-${seg.end}`)
+      Button($r('app.string.add_segment'))
+        .width('100%')
+        .buttonStyle(ButtonStyleMode.NORMAL)
+        .fontSize(12)
+        .margin({ top: 6 })
+        .onClick(() => this.addSegment())
 
       Text($r('app.string.rule_mandatory_rest'))
         .fontSize(13)
@@ -471,7 +540,7 @@ export struct MinePage {
               .buttonStyle(ButtonStyleMode.NORMAL)
               .margin({ top: 12, bottom: 12, left: 12, right: 12 })
               .onClick(() => {
-                this.showRuleEditor = true;
+                this.openRuleEditor();
               })
           }
         }

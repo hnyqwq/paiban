@@ -56,6 +56,7 @@
     { "name": "todo", "value": "To-dos" },
     { "name": "todo_hint", "value": "Add a to-do…" },
     { "name": "add", "value": "Add" },
+    { "name": "add_segment", "value": "Add segment" },
     { "name": "alarm_lead_title", "value": "Remind me early by?" },
     { "name": "alarm_lead_none", "value": "On time" },
     { "name": "alarm_lead_30", "value": "30 min early" },
