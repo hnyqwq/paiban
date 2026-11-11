@@ -1,5 +1,5 @@
 // 共用月历组件：首页与工具页使用；选中日期实心蓝底白字
-import { dateKey, daysInMonth, minutesToHoursText } from '../model/ScheduleTypes';
+import { DayEntry, dateKey, daysInMonth, minutesToHoursText } from '../model/ScheduleTypes';
 import { ScheduleService } from '../service/ScheduleService';
 
 const WEEK_LABELS: string[] = ['日', '一', '二', '三', '四', '五', '六'];
@@ -12,9 +12,12 @@ export struct CalendarView {
   @StorageLink('calendarViewMonth') viewMonth: number = 0;
   @StorageLink('weekStart') @Watch('onWeekStartChange') weekStart: number = 0; // 0 周日开始 1 周一开始
   @StorageLink('scheduleDataVersion') @Watch('onDataChanged') scheduleDataVersion: number = 0;
+  @State viewDays: DayEntry[] = [];  // 可观察的日数据，格子渲染只依赖它
+  @State renderTick: number = 0;     // 数据变化时自增，强制格子重建
   private service: ScheduleService = ScheduleService.getInstance();
 
   aboutToAppear(): void {
+    this.viewDays = this.service.getDays().slice();
     if (this.viewYear === 0 || this.viewMonth === 0) {
       const now = new Date();
       this.viewYear = now.getFullYear();
@@ -37,7 +40,8 @@ export struct CalendarView {
   }
 
   onDataChanged(): void {
-    // 数据变化由 scheduleDataVersion 触发整树刷新，这里无需额外处理
+    this.viewDays = this.service.getDays().slice();
+    this.renderTick++;
   }
 
   changeMonth(delta: number): void {
@@ -92,7 +96,7 @@ export struct CalendarView {
 
   // 格子渲染键：包含当日排班状态，删班次/改班次后立即重绘（如变休息）
   cellKey(day: number): string {
-    const entry = this.service.findEntry(this.service.getDays(), dateKey(this.viewYear, this.viewMonth, day));
+    const entry = this.service.findEntry(this.viewDays, dateKey(this.viewYear, this.viewMonth, day));
     if (entry === undefined) {
       return `${day}-x`;
     }
@@ -118,7 +122,7 @@ export struct CalendarView {
   }
 
   dayCellInfo(day: number): Resource | string {
-    const entry = this.service.findEntry(this.service.getDays(), dateKey(this.viewYear, this.viewMonth, day));
+    const entry = this.service.findEntry(this.viewDays, dateKey(this.viewYear, this.viewMonth, day));
     if (entry === undefined) {
       return '';
     }
@@ -130,12 +134,12 @@ export struct CalendarView {
   }
 
   dayIsRest(day: number): boolean {
-    return this.service.isRestDay(this.service.findEntry(this.service.getDays(), dateKey(this.viewYear, this.viewMonth, day)));
+    return this.service.isRestDay(this.service.findEntry(this.viewDays, dateKey(this.viewYear, this.viewMonth, day)));
   }
 
   // 今天的工时文本（无班次返回空串）
   todayHoursText(day: number): string {
-    const dm = this.service.dayMinutes(this.service.findEntry(this.service.getDays(), dateKey(this.viewYear, this.viewMonth, day)));
+    const dm = this.service.dayMinutes(this.service.findEntry(this.viewDays, dateKey(this.viewYear, this.viewMonth, day)));
     return dm > 0 ? minutesToHoursText(dm) : '';
   }
 
@@ -235,7 +239,7 @@ export struct CalendarView {
           GridItem() {
             this.calendarCell(d)
           }
-        }, (d: number) => this.cellKey(d))
+        }, (d: number) => `${this.renderTick}-${this.cellKey(d)}`)
       }
       .columnsTemplate('1fr 1fr 1fr 1fr 1fr 1fr 1fr')
       .columnsGap(2)
