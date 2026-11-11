@@ -607,18 +607,21 @@ export struct SchedulingPage {
       .width('100%')
       .margin({ top: 6 })
 
-      // 规则里设置的自定义班次模板：填入下面逐段编辑，可再调整
-      if (this.rules.shiftTemplate.trim() !== '') {
-        Button() {
-          Text(this.rules.shiftTemplate)
-            .fontSize(11)
-            .maxLines(1)
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
-        }
+      // 自定义预设规则：把规则里保存的模板填入分段编辑
+      Button($r('app.string.tpl_custom'))
         .buttonStyle(ButtonStyleMode.NORMAL)
+        .fontSize(11)
         .width('100%')
         .margin({ top: 6 })
         .onClick(() => this.applyCustomTemplate())
+      if (this.rules.shiftTemplate.trim() !== '') {
+        Text(this.rules.shiftTemplate)
+          .fontSize(11)
+          .fontColor($r('sys.color.font_tertiary'))
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+          .width('100%')
+          .margin({ top: 4 })
       }
 
       // 逐段编辑班次

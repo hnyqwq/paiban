@@ -46,6 +46,7 @@
     { "name": "tpl_day", "value": "白班 09-17" },
     { "name": "tpl_evening", "value": "晚班 14-22" },
     { "name": "tpl_night", "value": "夜班 22-06" },
+    { "name": "tpl_custom", "value": "自定义预设规则" },
     { "name": "cancel", "value": "取消" },
     { "name": "delete", "value": "删除" },
     { "name": "mark_rest", "value": "标记休息" },

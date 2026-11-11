@@ -46,6 +46,7 @@
     { "name": "tpl_day", "value": "Day 09-17" },
     { "name": "tpl_evening", "value": "Evening 14-22" },
     { "name": "tpl_night", "value": "Night 22-06" },
+    { "name": "tpl_custom", "value": "Custom preset" },
     { "name": "cancel", "value": "Cancel" },
     { "name": "delete", "value": "Delete" },
     { "name": "mark_rest", "value": "Mark rest" },
