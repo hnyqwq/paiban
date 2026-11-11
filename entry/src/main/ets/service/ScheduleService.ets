@@ -654,16 +654,18 @@ export class ScheduleService {
       : duration;
     const restGap = rules.maxContinuousWorkMinutes > 0 ? Math.max(rules.mandatoryRestMinutes, 0) : 0;
     let remaining = duration;
-    let startMin = 9 * 60;
+    let cursor = 9 * 60;
     while (remaining > 0) {
       const dur = Math.min(cap, remaining);
-      const endMin = startMin + dur;
+      // 跨午夜回绕：27:00 这类非法时间换算成次日 03:00
+      const startMin = ((cursor % 1440) + 1440) % 1440;
+      const endMin = ((cursor + dur) % 1440 + 1440) % 1440;
       const s = new Shift();
       s.start = `${pad2(Math.floor(startMin / 60))}:${pad2(startMin % 60)}`;
       s.end = `${pad2(Math.floor(endMin / 60))}:${pad2(endMin % 60)}`;
       ne.shifts.push(s);
       remaining -= dur;
-      startMin = endMin + restGap;
+      cursor = cursor + dur + restGap;
     }
   }
 
@@ -682,6 +684,12 @@ export class ScheduleService {
       const start = seg[0].trim();
       const end = seg[1].trim();
       if (!/^\d{1,2}:\d{2}$/.test(start) || !/^\d{1,2}:\d{2}$/.test(end)) {
+        return [];
+      }
+      // 拒绝超 23 点的时间（如 27:00）
+      const sh = Number(start.split(':')[0]);
+      const eh = Number(end.split(':')[0]);
+      if (Number.isNaN(sh) || Number.isNaN(eh) || sh > 23 || eh > 23) {
         return [];
       }
       result.push([start, end]);
