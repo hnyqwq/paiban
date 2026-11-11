@@ -416,46 +416,6 @@ export struct MinePage {
   build() {
     Scroll(this.scroller) {
       Column() {
-        this.sectionTitle($r('app.string.section_appearance'))
-        Column() {
-          AppearanceSegment({
-            selected: this.appearanceMode,
-            onSelect: (index: number) => {
-              this.appearanceMode = index;
-              this.service.setAppearanceMode(index);
-            }
-          })
-            .width('calc(100% - 24vp)')
-            .margin({ left: 12, right: 12, top: 12, bottom: 12 })
-
-          Row() {
-            Text($r('app.string.week_start_title'))
-              .fontSize(14)
-              .layoutWeight(1)
-            Button($r('app.string.week_start_sun'))
-              .buttonStyle(this.weekStart === 0 ? ButtonStyleMode.EMPHASIZED : ButtonStyleMode.NORMAL)
-              .fontSize(12)
-              .onClick(() => {
-                this.weekStart = 0;
-                this.service.setWeekStart(0);
-              })
-            Button($r('app.string.week_start_mon'))
-              .buttonStyle(this.weekStart === 1 ? ButtonStyleMode.EMPHASIZED : ButtonStyleMode.NORMAL)
-              .fontSize(12)
-              .margin({ left: 8 })
-              .onClick(() => {
-                this.weekStart = 1;
-                this.service.setWeekStart(1);
-              })
-          }
-          .width('calc(100% - 24vp)')
-          .margin({ left: 12, right: 12, bottom: 12 })
-        }
-        .width('100%')
-        .borderRadius(12)
-        .backgroundColor($r('sys.color.background_primary'))
-        .border({ width: 0.5, color: $r('sys.color.comp_divider') })
-
         this.sectionTitle($r('app.string.section_rules'))
         Column() {
           this.ruleRow($r('app.string.rule_target'), this.rules.monthlyTargetHours, $r('app.string.unit_hours'))
@@ -540,6 +500,46 @@ export struct MinePage {
             .fontColor($r('sys.color.warning'))
             .margin({ top: 8, bottom: 12, left: 12, right: 12 })
             .onClick(() => this.clearData())
+        }
+        .width('100%')
+        .borderRadius(12)
+        .backgroundColor($r('sys.color.background_primary'))
+        .border({ width: 0.5, color: $r('sys.color.comp_divider') })
+
+        this.sectionTitle($r('app.string.section_appearance'))
+        Column() {
+          AppearanceSegment({
+            selected: this.appearanceMode,
+            onSelect: (index: number) => {
+              this.appearanceMode = index;
+              this.service.setAppearanceMode(index);
+            }
+          })
+            .width('calc(100% - 24vp)')
+            .margin({ left: 12, right: 12, top: 12, bottom: 12 })
+
+          Row() {
+            Text($r('app.string.week_start_title'))
+              .fontSize(14)
+              .layoutWeight(1)
+            Button($r('app.string.week_start_sun'))
+              .buttonStyle(this.weekStart === 0 ? ButtonStyleMode.EMPHASIZED : ButtonStyleMode.NORMAL)
+              .fontSize(12)
+              .onClick(() => {
+                this.weekStart = 0;
+                this.service.setWeekStart(0);
+              })
+            Button($r('app.string.week_start_mon'))
+              .buttonStyle(this.weekStart === 1 ? ButtonStyleMode.EMPHASIZED : ButtonStyleMode.NORMAL)
+              .fontSize(12)
+              .margin({ left: 8 })
+              .onClick(() => {
+                this.weekStart = 1;
+                this.service.setWeekStart(1);
+              })
+          }
+          .width('calc(100% - 24vp)')
+          .margin({ left: 12, right: 12, bottom: 12 })
         }
         .width('100%')
         .borderRadius(12)

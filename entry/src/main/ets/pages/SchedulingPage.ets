@@ -360,11 +360,11 @@ export struct SchedulingPage {
 
         this.sectionTitle($r('app.string.tools_section_schedule'))
         Column() {
-          this.toolButton($r('app.string.sync_to_month'), (): void => this.syncMonth())
-          this.toolButton($r('app.string.range_copy'), (): void => this.rangeCopy())
-          this.toolButton($r('app.string.copy_day'), (): void => this.copyDay())
-          this.toolButton($r('app.string.range_auto'), (): void => this.rangeAuto())
           this.toolButton($r('app.string.auto_fill'), (): void => this.autoFillMonth())
+          this.toolButton($r('app.string.range_auto'), (): void => this.rangeAuto())
+          this.toolButton($r('app.string.sync_to_month'), (): void => this.syncMonth())
+          this.toolButton($r('app.string.copy_day'), (): void => this.copyDay())
+          this.toolButton($r('app.string.range_copy'), (): void => this.rangeCopy())
         }
         .width('100%')
         .padding(12)
