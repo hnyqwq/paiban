@@ -611,7 +611,6 @@ export class ScheduleService {
       if (worked >= target) {
         break;
       }
-      const dur = Math.min(perDay, target - worked);
       const ne = (() => {
         const e = this.findEntry(days, key);
         if (e !== undefined) {
@@ -622,8 +621,8 @@ export class ScheduleService {
         days.push(created);
         return created;
       })();
-      this.fillShiftsForDay(ne, dur, rules);
-      worked += dur;
+      this.fillShiftsForDay(ne, perDay, rules);
+      worked += perDay;
       filled++;
     }
     return filled;
@@ -687,26 +686,22 @@ export class ScheduleService {
   autoFillRange(days: DayEntry[], start: string, end: string, rules: ShiftRules): number {
     const dailyMin = (rules.minWorkHoursPerDay > 0 ? rules.minWorkHoursPerDay : 8) * 60;
     const target = rules.monthlyTargetHours * 60;
-    // 区间内已有班次工时 + 剩余目标
+    // 区间内已有班次工时
     let worked = 0;
-    let schedulableLeft = 0;
     let probe = start;
     while (probe <= end) {
       const e = this.findEntry(days, probe);
-      const wd = new Date(probe + 'T00:00:00').getDay();
       if (e !== undefined && e.shifts.length > 0) {
         worked += this.dayMinutes(e);
-      } else if (!rules.restWeekdays.includes(wd)) {
-        schedulableLeft++; // 未排且非固定休息日，可参与分摊
       }
       probe = this.addDays(probe, 1);
     }
-    let remain = Math.max(0, target - worked);
-    // 连续计数延续区间开始之前的状态
+    const remain = Math.max(0, target - worked);
+    // 第一遍：确定实际要排的天（跳过固定休息日/手动休息/连续上限强制休息），
+    // 均摊分母只用真实可排天数，避免最少工时被当成实际上限
+    const fillDays: string[] = [];
     let sinceRest = this.consecutiveWorkDaysEnding(days, this.addDays(start, -1));
-    let filled = 0;
     let cur = start;
-    // yyyy-MM-dd 字典序即日期序
     while (cur <= end) {
       const entry = this.findEntry(days, cur);
       if (entry !== undefined && entry.shifts.length > 0) {
@@ -720,7 +715,7 @@ export class ScheduleService {
         cur = this.addDays(cur, 1);
         continue;
       }
-      if (entry !== undefined && entry.shifts.length === 0) {
+      if (entry !== undefined) {
         sinceRest = 0; // 手动标记的休息日，保留
         cur = this.addDays(cur, 1);
         continue;
@@ -730,24 +725,33 @@ export class ScheduleService {
         cur = this.addDays(cur, 1);
         continue;
       }
-      // 每日最少工时是下限：区间天数不够排时，单日自动往上加，尽快凑够目标
-      let dur = dailyMin;
-      if (schedulableLeft > 0 && remain / schedulableLeft > dailyMin) {
-        dur = Math.min(Math.ceil(remain / schedulableLeft), 16 * 60);
-      }
-      const ne = entry !== undefined ? entry : (() => {
-        const e = new DayEntry();
-        e.date = cur;
-        days.push(e);
-        return e;
-      })();
-      this.fillShiftsForDay(ne, dur, rules);
-      worked += dur;
-      remain = Math.max(0, remain - dur);
-      schedulableLeft--;
+      fillDays.push(cur);
       sinceRest++;
-      filled++;
       cur = this.addDays(cur, 1);
+    }
+    if (remain === 0 || fillDays.length === 0) {
+      return 0;
+    }
+    // 每日最少工时是下限：天数不够排时单日自动往上加，尽快凑够目标
+    const perDay = Math.min(Math.max(dailyMin, Math.ceil(remain / fillDays.length)), 16 * 60);
+    let filled = 0;
+    for (const day of fillDays) {
+      if (worked >= target) {
+        break; // 目标工时已够
+      }
+      const ne = (() => {
+        const e = this.findEntry(days, day);
+        if (e !== undefined) {
+          return e;
+        }
+        const created = new DayEntry();
+        created.date = day;
+        days.push(created);
+        return created;
+      })();
+      this.fillShiftsForDay(ne, perDay, rules);
+      worked += perDay;
+      filled++;
     }
     return filled;
   }
