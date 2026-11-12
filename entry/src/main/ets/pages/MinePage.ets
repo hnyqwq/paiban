@@ -258,6 +258,15 @@ export struct MinePage {
     return this.rules.shiftTemplate;
   }
 
+  // 打开隐私协议（系统浏览器）
+  openPrivacy(): void {
+    const ctx = AppStorage.get<common.UIAbilityContext>('context');
+    if (ctx === undefined) {
+      return;
+    }
+    ctx.openLink('https://agreement-drcn.hispace.dbankcloud.cn/index.html?lang=zh&agreementId=2082051778836223232');
+  }
+
   exportData(): void {
     const json = JSON.stringify(this.service.getDays());
     const data = pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, json);
@@ -672,6 +681,24 @@ export struct MinePage {
         .borderRadius(12)
         .backgroundColor($r('sys.color.background_primary'))
         .border({ width: 0.5, color: $r('sys.color.comp_divider') })
+
+        // 隐私协议
+        Row() {
+          Text($r('app.string.privacy_policy'))
+            .fontSize(15)
+            .fontColor($r('sys.color.brand'))
+          Blank()
+          Text('›')
+            .fontSize(16)
+            .fontColor($r('sys.color.font_tertiary'))
+        }
+        .width('100%')
+        .padding(12)
+        .borderRadius(12)
+        .backgroundColor($r('sys.color.background_primary'))
+        .border({ width: 0.5, color: $r('sys.color.comp_divider') })
+        .margin({ top: 12 })
+        .onClick(() => this.openPrivacy())
 
         Text('')
           .height(100)

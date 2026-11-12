@@ -49,6 +49,7 @@
     { "name": "tpl_custom", "value": "自定义预设规则" },
     { "name": "cancel", "value": "取消" },
     { "name": "save", "value": "保存" },
+    { "name": "privacy_policy", "value": "隐私协议" },
     { "name": "edit", "value": "编辑" },
     { "name": "delete", "value": "删除" },
     { "name": "mark_rest", "value": "标记休息" },
