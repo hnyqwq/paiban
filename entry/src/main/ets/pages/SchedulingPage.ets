@@ -37,6 +37,7 @@ export struct SchedulingPage {
   @State editing: boolean = false;      // 开始排班后才显示编辑按钮
   @StorageLink('scheduleDataVersion') @Watch('onDataChanged') scheduleDataVersion: number = 0;
   @StorageLink('rulesChanged') @Watch('onRulesChanged') rulesChanged: number = 0;
+  @State renderTick: number = 0; // 数据/规则变化时自增，强制概览列表重建
   private service: ScheduleService = ScheduleService.getInstance();
 
   aboutToAppear(): void {
@@ -312,11 +313,13 @@ export struct SchedulingPage {
   onDataChanged(): void {
     this.loadDays();
     this.refreshStats();
+    this.renderTick++;
   }
 
   onRulesChanged(): void {
     this.rules = this.service.getRules();
     this.refreshStats();
+    this.renderTick++;
   }
 
   refreshStats(): void {
@@ -895,7 +898,7 @@ export struct SchedulingPage {
                 .fontSize(12)
                 .fontColor($r('sys.color.font_secondary'))
                 .margin({ top: 2 })
-            }, (v: string) => v)
+            }, (v: string) => `${this.renderTick}-${v}`)
           }
         }
         .width('100%')

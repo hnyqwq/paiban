@@ -12,14 +12,17 @@ export struct SecondPage {  scroller: Scroller = new Scroller();
   @State rules: ShiftRules = new ShiftRules();
   @StorageLink('scheduleDataVersion') @Watch('onDataChanged') scheduleDataVersion: number = 0;
   @StorageLink('rulesChanged') @Watch('onRulesChanged') rulesChanged: number = 0;
+  @State renderTick: number = 0; // 数据/规则变化时自增，强制图表与列表重建
 
   onDataChanged(): void {
     this.refresh();
+    this.renderTick++;
   }
 
   onRulesChanged(): void {
     this.rules = this.service.getRules();
     this.refresh();
+    this.renderTick++;
   }
   private service: ScheduleService = ScheduleService.getInstance();
 
@@ -151,7 +154,7 @@ export struct SecondPage {  scroller: Scroller = new Scroller();
           .layoutWeight(1)
           .height(100)
           .alignItems(HorizontalAlign.Center)
-        }, (m: number, i: number) => `${i}-${m}`)
+        }, (m: number, i: number) => `${this.renderTick}-${i}-${m}`)
       }
       .width('100%')
       .margin({ top: 8 })
@@ -183,7 +186,7 @@ export struct SecondPage {  scroller: Scroller = new Scroller();
             .fontColor($r('sys.color.font_secondary'))
             .margin({ top: 6 })
             .width('100%')
-        }, (v: string) => v)
+        }, (v: string) => `${this.renderTick}-${v}`)
       }
     }
     .width('100%')
