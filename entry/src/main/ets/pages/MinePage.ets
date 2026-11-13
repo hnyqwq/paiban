@@ -25,64 +25,6 @@ class TemplateSeg {
   end: string = '';
 }
 
-// 导入弹窗：粘贴导出的 JSON 后写入
-@CustomDialog
-struct ImportDialog {
-  controller?: CustomDialogController;
-  onConfirm: (text: string) => void = (_text: string) => {};
-  @State text: string = '';
-
-  build() {
-    Column() {
-      Row() {
-        // 安全控件粘贴：免授权弹窗，读取剪贴板需用户点击此控件（文案由系统按语言显示「粘贴」）
-        PasteButton()
-          .fontSize(13)
-          .onClick((event: ClickEvent, result: PasteButtonOnClickResult) => {
-            if (result !== PasteButtonOnClickResult.SUCCESS) {
-              return;
-            }
-            try {
-              const text = pasteboard.getSystemPasteboard().getDataSync().getPrimaryText();
-              if (text !== '') {
-                this.text = text;
-              } else {
-                promptAction.showToast({ message: $r('app.string.clipboard_empty') });
-              }
-            } catch (e) {
-              promptAction.showToast({ message: $r('app.string.clipboard_empty') });
-            }
-          })
-      }
-      .width('100%')
-      .justifyContent(FlexAlign.Start)
-
-      TextArea({ text: this.text, placeholder: $r('app.string.import_hint') })
-        .width('100%')
-        .height(140)
-        .margin({ top: 8 })
-      Row() {
-        Button($r('app.string.cancel'))
-          .buttonStyle(ButtonStyleMode.NORMAL)
-          .layoutWeight(1)
-          .onClick(() => {
-            this.controller?.close();
-          })
-        Button($r('app.string.import_data'))
-          .layoutWeight(1)
-          .margin({ left: 12 })
-          .onClick(() => {
-            this.onConfirm(this.text);
-            this.controller?.close();
-          })
-      }
-      .width('100%')
-      .margin({ top: 12 })
-    }
-    .padding(20)
-  }
-}
-
 // 外观选择：胶囊型分段按钮（@ComponentV2）
 @ComponentV2
 struct AppearanceSegment {
@@ -119,23 +61,24 @@ export struct MinePage {
   @State bundleName: string = '';
   @State versionName: string = '';
   private service: ScheduleService = ScheduleService.getInstance();
-  private importDialog: CustomDialogController = new CustomDialogController({
-    builder: ImportDialog({
-      onConfirm: (text: string) => {
-        const trimmed = text.trim();
-        if (trimmed === '') {
-          promptAction.showToast({ message: $r('app.string.import_empty') });
-          return;
-        }
-        if (this.service.importDays(trimmed)) {
-          promptAction.showToast({ message: $r('app.string.import_success') });
-        } else {
-          promptAction.showToast({ message: $r('app.string.import_failed_len', trimmed.length) });
-        }
-      }
-    }),
-    autoCancel: true
-  });
+  @State showImportEditor: boolean = false;
+  @State importText: string = '';
+
+  // 确认导入：解析并写入，成功后广播刷新
+  confirmImport(): void {
+    const trimmed = this.importText.trim();
+    if (trimmed === '') {
+      promptAction.showToast({ message: $r('app.string.import_empty') });
+      return;
+    }
+    if (this.service.importDays(trimmed)) {
+      promptAction.showToast({ message: $r('app.string.import_success') });
+      this.showImportEditor = false;
+      this.importText = '';
+    } else {
+      promptAction.showToast({ message: $r('app.string.import_failed_len', trimmed.length) });
+    }
+  }
 
   aboutToAppear(): void {
     this.appearanceMode = this.service.getAppearanceMode();
@@ -515,6 +458,7 @@ export struct MinePage {
       Column() {
         this.sectionTitle($r('app.string.section_rules'))
         Column() {
+          if (!this.showRuleEditor) {
           this.ruleRow($r('app.string.rule_target'), this.rules.monthlyTargetHours, $r('app.string.unit_hours'))
           Divider().strokeWidth(0.5)
           this.ruleRow($r('app.string.rule_min_daily'), this.rules.minWorkHoursPerDay, $r('app.string.unit_hours'))
@@ -556,17 +500,10 @@ export struct MinePage {
           }
           .width('100%')
           .padding(12)
+          }
 
           if (this.showRuleEditor) {
             this.ruleEditor()
-          } else {
-            Button($r('app.string.edit_rules'))
-              .width('calc(100% - 24vp)')
-              .buttonStyle(ButtonStyleMode.NORMAL)
-              .margin({ top: 12, bottom: 12, left: 12, right: 12 })
-              .onClick(() => {
-                this.openRuleEditor();
-              })
           }
         }
         .width('100%')
@@ -588,9 +525,63 @@ export struct MinePage {
               .fontSize(13)
               .layoutWeight(1)
               .margin({ top: 12, bottom: 4, right: 12 })
-              .onClick(() => this.importDialog.open())
+              .onClick(() => {
+                this.importText = '';
+                this.showImportEditor = true;
+              })
           }
           .width('100%')
+          if (this.showImportEditor) {
+            // 导入在主窗口内联执行：安全控件 PasteButton 在子窗口（CustomDialog）中拿不到临时授权
+            Column() {
+              Row() {
+                PasteButton()
+                  .fontSize(13)
+                  .onClick((event: ClickEvent, result: PasteButtonOnClickResult) => {
+                    if (result !== PasteButtonOnClickResult.SUCCESS) {
+                      return;
+                    }
+                    try {
+                      const text = pasteboard.getSystemPasteboard().getDataSync().getPrimaryText();
+                      if (text !== '') {
+                        this.importText = text;
+                      } else {
+                        promptAction.showToast({ message: $r('app.string.clipboard_empty') });
+                      }
+                    } catch (e) {
+                      promptAction.showToast({ message: $r('app.string.clipboard_empty') });
+                    }
+                  })
+              }
+              .width('100%')
+              .justifyContent(FlexAlign.Start)
+
+              TextArea({ text: this.importText, placeholder: $r('app.string.import_hint') })
+                .width('100%')
+                .height(140)
+                .margin({ top: 8 })
+                .onChange((v: string) => {
+                  this.importText = v;
+                })
+              Row() {
+                Button($r('app.string.cancel'))
+                  .buttonStyle(ButtonStyleMode.NORMAL)
+                  .layoutWeight(1)
+                  .onClick(() => {
+                    this.showImportEditor = false;
+                    this.importText = '';
+                  })
+                Button($r('app.string.import_data'))
+                  .layoutWeight(1)
+                  .margin({ left: 12 })
+                  .onClick(() => this.confirmImport())
+              }
+              .width('100%')
+              .margin({ top: 12 })
+            }
+            .width('calc(100% - 24vp)')
+            .margin({ left: 12, right: 12, top: 8 })
+          }
           Button($r('app.string.clear_data'))
             .width('calc(100% - 24vp)')
             .buttonStyle(ButtonStyleMode.NORMAL)
