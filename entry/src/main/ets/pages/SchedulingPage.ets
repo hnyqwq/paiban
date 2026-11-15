@@ -225,12 +225,13 @@ export struct SchedulingPage {
     }
   }
 
-  // 预设按钮两列网格的高度（每行 64vp）
+  // 预设按钮两列网格的高度（chip 高 56 + rowsGap 6，末行无 gap）
   presetGridHeight(): number {
     if (this.presets.length === 0) {
       return 0;
     }
-    return Math.ceil(this.presets.length / 2) * 64;
+    const rows = Math.ceil(this.presets.length / 2);
+    return rows * 56 + (rows - 1) * 6;
   }
 
   removeShift(index: number): void {

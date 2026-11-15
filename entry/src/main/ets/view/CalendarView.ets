@@ -10,6 +10,8 @@ const WEEK_LABELS: string[] = ['日', '一', '二', '三', '四', '五', '六'];
 class CalendarCell {
   key: string = '';
   day: number = 0;
+  name: string = '';        // 当天预设班次名称（预计算，避免渲染时重复查 entry）
+  nameColor: string = '';   // 名称颜色（空 = 用默认次要文字色）
 }
 
 @Component
@@ -95,6 +97,10 @@ export struct CalendarView {
       const cell = new CalendarCell();
       cell.key = `${this.weekStart}-${this.viewYear}-${this.viewMonth}-${this.renderTick}-${this.cellKey(d)}`;
       cell.day = d;
+      // 一次性预计算当天的班次名称与颜色：渲染热路径上每个格子只做一次 findEntry
+      cell.name = this.dayShiftNames(d);
+      const color = this.dayShiftNameColor(d);
+      cell.nameColor = typeof color === 'string' ? color : '';
       cells.push(cell);
     }
     return cells;
@@ -189,52 +195,53 @@ export struct CalendarView {
   }
 
   @Builder
-  calendarCell(day: number) {
+  calendarCell(cell: CalendarCell) {
     Column() {
-      Text(day > 0 ? `${day}` : '')
+      Text(cell.day > 0 ? `${cell.day}` : '')
         .fontSize(15)
-        .fontWeight(this.isSelected(day) ? FontWeight.Bold : FontWeight.Normal)
-        .fontColor(this.cellTextPrimary(day))
-      if (day > 0) {
-        if (this.isTodayCell(day)) {
+        .fontWeight(this.isSelected(cell.day) ? FontWeight.Bold : FontWeight.Normal)
+        .fontColor(this.cellTextPrimary(cell.day))
+      if (cell.day > 0) {
+        if (this.isTodayCell(cell.day)) {
           Row() {
             // 蓝底（选中）时用白字，否则用品牌蓝
             Text($r('app.string.today_label'))
               .fontSize(10)
               .fontWeight(FontWeight.Medium)
-              .fontColor(this.isSelected(day) ? Color.White : $r('sys.color.brand'))
-            if (this.dayIsRest(day)) {
+              .fontColor(this.isSelected(cell.day) ? Color.White : $r('sys.color.brand'))
+            if (this.dayIsRest(cell.day)) {
               Text('  ')
                 .fontSize(10)
               Text($r('app.string.rest_marker'))
                 .fontSize(10)
                 .fontWeight(FontWeight.Medium)
-                .fontColor(this.isSelected(day) ? Color.White : $r('sys.color.warning'))
-            } else if (this.todayHoursText(day) !== '') {
+                .fontColor(this.isSelected(cell.day) ? Color.White : $r('sys.color.warning'))
+            } else if (this.todayHoursText(cell.day) !== '') {
               Text('  ')
                 .fontSize(10)
-              Text(this.todayHoursText(day))
+              Text(this.todayHoursText(cell.day))
                 .fontSize(10)
                 .fontWeight(FontWeight.Medium)
-                .fontColor(this.isSelected(day) ? Color.White : $r('sys.color.brand'))
+                .fontColor(this.isSelected(cell.day) ? Color.White : $r('sys.color.brand'))
             }
           }
         } else {
-          Text(this.dayCellInfo(day))
+          Text(this.dayCellInfo(cell.day))
             .fontSize(10)
             .fontWeight(FontWeight.Medium)
-            .fontColor(this.dayIsRest(day) && !this.isSelected(day)
+            .fontColor(this.dayIsRest(cell.day) && !this.isSelected(cell.day)
               ? $r('sys.color.warning')
-              : (this.isSelected(day) ? Color.White : $r('sys.color.brand')))
+              : (this.isSelected(cell.day) ? Color.White : $r('sys.color.brand')))
         }
       } else {
         Text('').fontSize(10)
       }
-      // 预设班次名称：让日历直接看得到「早班 / 白班」等，而不只是工时
-      if (day > 0 && this.dayShiftNames(day) !== '') {
-        Text(this.dayShiftNames(day))
+      // 预设班次名称：让日历直接看得到「早班 / 白班」等，而不只是工时（值已在 calendarCells 预计算）
+      if (cell.name !== '') {
+        Text(cell.name)
           .fontSize(9)
-          .fontColor(this.isSelected(day) ? Color.White : this.dayShiftNameColor(day))
+          .fontColor(this.isSelected(cell.day) ? Color.White
+            : (cell.nameColor !== '' ? cell.nameColor : $r('sys.color.font_secondary')))
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
           .width('100%')
@@ -246,10 +253,10 @@ export struct CalendarView {
     .height(56)
     .justifyContent(FlexAlign.Center)
     .borderRadius(8)
-    .backgroundColor(this.cellBackground(day))
+    .backgroundColor(this.cellBackground(cell.day))
     .onClick(() => {
-      if (day > 0) {
-        this.selectedDate = dateKey(this.viewYear, this.viewMonth, day);
+      if (cell.day > 0) {
+        this.selectedDate = dateKey(this.viewYear, this.viewMonth, cell.day);
       }
     })
   }
@@ -289,7 +296,7 @@ export struct CalendarView {
       Grid() {
         ForEach(this.calendarCells(), (cell: CalendarCell) => {
           GridItem() {
-            this.calendarCell(cell.day)
+            this.calendarCell(cell)
           }
         }, (cell: CalendarCell) => cell.key)
       }

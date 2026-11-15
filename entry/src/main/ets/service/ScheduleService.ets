@@ -464,10 +464,11 @@ export class ScheduleService {
     const month = Number(parts[1]);
     const day = Number(parts[2]);
 
-    // 同一天班次间隔
+    // 同一天班次间隔（后一班次开始时间早于前一班次结束时间才视为跨天；
+    // 首尾相接（相等）视为当天衔接，间隔 0，需要参与最少间隔校验）
     for (let i = 1; i < entry.shifts.length; i++) {
       const prevEnd = Shift.minutesBetween(entry.shifts[i - 1].end);
-      const curStart = Shift.minutesBetween(entry.shifts[i].start) + (entry.shifts[i].start <= entry.shifts[i - 1].end ? 24 * 60 : 0);
+      const curStart = Shift.minutesBetween(entry.shifts[i].start) + (entry.shifts[i].start < entry.shifts[i - 1].end ? 24 * 60 : 0);
       const gap = curStart - prevEnd;
       if (gap < rules.dailyRestMinutes) {
         result.push(this.str($r('app.string.warn_gap'), day, gap, rules.dailyRestMinutes));
