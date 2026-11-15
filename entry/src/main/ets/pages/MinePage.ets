@@ -166,6 +166,64 @@ export struct MinePage {
     this.expandedGroup = '';
   }
 
+  // ===== 规则开关 =====
+  // 关 = 存 0（不限制/不校验）；开 = 恢复关闭前的数值，无记录时用默认值
+
+  private readonly ruleDefaults: Record<string, number> = {
+    'minWorkHoursPerDay': 6,
+    'dailyRestMinutes': 60,
+    'maxContinuousWorkMinutes': 360,
+    'restDaysPerMonth': 4,
+    'restHoursPerMonth': 40,
+    'maxConsecutiveWorkDays': 6
+  };
+  private ruleStash: Record<string, number> = {};
+
+  ruleValue(key: string): number {
+    if (key === 'minWorkHoursPerDay') {
+      return this.rules.minWorkHoursPerDay;
+    }
+    if (key === 'dailyRestMinutes') {
+      return this.rules.dailyRestMinutes;
+    }
+    if (key === 'maxContinuousWorkMinutes') {
+      return this.rules.maxContinuousWorkMinutes;
+    }
+    if (key === 'restDaysPerMonth') {
+      return this.rules.restDaysPerMonth;
+    }
+    if (key === 'restHoursPerMonth') {
+      return this.rules.restHoursPerMonth;
+    }
+    return this.rules.maxConsecutiveWorkDays;
+  }
+
+  setRuleValue(key: string, v: number): void {
+    if (key === 'minWorkHoursPerDay') {
+      this.rules.minWorkHoursPerDay = v;
+    } else if (key === 'dailyRestMinutes') {
+      this.rules.dailyRestMinutes = v;
+    } else if (key === 'maxContinuousWorkMinutes') {
+      this.rules.maxContinuousWorkMinutes = v;
+    } else if (key === 'restDaysPerMonth') {
+      this.rules.restDaysPerMonth = v;
+    } else if (key === 'restHoursPerMonth') {
+      this.rules.restHoursPerMonth = v;
+    } else {
+      this.rules.maxConsecutiveWorkDays = v;
+    }
+  }
+
+  toggleRule(key: string, isOn: boolean): void {
+    if (isOn) {
+      const stash = this.ruleStash[key];
+      this.setRuleValue(key, stash !== undefined ? stash : this.ruleDefaults[key]);
+    } else {
+      this.ruleStash[key] = this.ruleValue(key);
+      this.setRuleValue(key, 0);
+    }
+  }
+
   // ===== 预设排班 =====
 
   // 编辑器里的净工时（分钟）= 起止跨度 - 休息时长
@@ -455,15 +513,47 @@ export struct MinePage {
     .width('100%')
   }
 
+  // 带生效开关的规则行：标题放大靠左，右侧开关控制是否生效，打开才显示数值输入框
+  @Builder
+  ruleFieldWithToggle(label: Resource | string, key: string) {
+    Column() {
+      Row() {
+        Text(label)
+          .fontSize(15)
+          .fontWeight(FontWeight.Medium)
+          .layoutWeight(1)
+        Toggle({ type: ToggleType.Switch, isOn: this.ruleValue(key) > 0 })
+          .onChange((isOn: boolean) => {
+            this.toggleRule(key, isOn);
+          })
+      }
+      .width('100%')
+
+      if (this.ruleValue(key) > 0) {
+        TextInput({ text: `${this.ruleValue(key)}` })
+          .type(InputType.Number)
+          .width('100%')
+          .margin({ top: 6 })
+          .onChange((v: string) => {
+            this.setRuleValue(key, Number(v) || 0);
+          })
+      }
+    }
+    .width('100%')
+    .margin({ top: 12 })
+  }
+
   // 目标组编辑器：目标工时
   @Builder
   editorTarget() {
     Column() {
       Text($r('app.string.rule_target'))
-        .fontSize(13)
+        .fontSize(15)
+        .fontWeight(FontWeight.Medium)
       TextInput({ text: `${this.rules.monthlyTargetHours}` })
         .type(InputType.Number)
         .width('100%')
+        .margin({ top: 6 })
         .onChange((v: string) => {
           this.rules.monthlyTargetHours = Number(v) || 0;
         })
@@ -478,46 +568,25 @@ export struct MinePage {
   @Builder
   editorWork() {
     Column() {
-      Text($r('app.string.rule_min_daily'))
-        .fontSize(13)
-      TextInput({ text: `${this.rules.minWorkHoursPerDay}` })
-        .type(InputType.Number)
-        .width('100%')
-        .onChange((v: string) => {
-          this.rules.minWorkHoursPerDay = Number(v) || 0;
-        })
+      this.ruleFieldWithToggle($r('app.string.rule_min_daily'), 'minWorkHoursPerDay')
 
-      Text($r('app.string.rule_gap'))
-        .fontSize(13)
-        .margin({ top: 10 })
-      TextInput({ text: `${this.rules.dailyRestMinutes}` })
-        .type(InputType.Number)
-        .width('100%')
-        .onChange((v: string) => {
-          this.rules.dailyRestMinutes = Number(v) || 0;
-        })
+      this.ruleFieldWithToggle($r('app.string.rule_gap'), 'dailyRestMinutes')
 
-      Text($r('app.string.rule_max_continuous'))
-        .fontSize(13)
-        .margin({ top: 10 })
-      TextInput({ text: `${this.rules.maxContinuousWorkMinutes}` })
-        .type(InputType.Number)
-        .width('100%')
-        .onChange((v: string) => {
-          this.rules.maxContinuousWorkMinutes = Number(v) || 0;
-        })
+      this.ruleFieldWithToggle($r('app.string.rule_max_continuous'), 'maxContinuousWorkMinutes')
 
-      Text($r('app.string.rule_mandatory_rest'))
-        .fontSize(11)
-        .fontColor($r('sys.color.font_tertiary'))
-        .width('100%')
-        .margin({ top: 6 })
-      TextInput({ text: `${this.rules.mandatoryRestMinutes}` })
-        .type(InputType.Number)
-        .width('100%')
-        .onChange((v: string) => {
-          this.rules.mandatoryRestMinutes = Number(v) || 0;
-        })
+      if (this.rules.maxContinuousWorkMinutes > 0) {
+        Text($r('app.string.rule_mandatory_rest'))
+          .fontSize(11)
+          .fontColor($r('sys.color.font_tertiary'))
+          .width('100%')
+          .margin({ top: 6 })
+        TextInput({ text: `${this.rules.mandatoryRestMinutes}` })
+          .type(InputType.Number)
+          .width('100%')
+          .onChange((v: string) => {
+            this.rules.mandatoryRestMinutes = Number(v) || 0;
+          })
+      }
 
       this.editorFooter()
     }
@@ -529,38 +598,17 @@ export struct MinePage {
   @Builder
   editorRest() {
     Column() {
-      Text($r('app.string.rule_rest_days'))
-        .fontSize(13)
-      TextInput({ text: `${this.rules.restDaysPerMonth}` })
-        .type(InputType.Number)
-        .width('100%')
-        .onChange((v: string) => {
-          this.rules.restDaysPerMonth = Number(v) || 0;
-        })
+      this.ruleFieldWithToggle($r('app.string.rule_rest_days'), 'restDaysPerMonth')
 
-      Text($r('app.string.rule_rest_hours'))
-        .fontSize(13)
-        .margin({ top: 10 })
-      TextInput({ text: `${this.rules.restHoursPerMonth}` })
-        .type(InputType.Number)
-        .width('100%')
-        .onChange((v: string) => {
-          this.rules.restHoursPerMonth = Number(v) || 0;
-        })
+      this.ruleFieldWithToggle($r('app.string.rule_rest_hours'), 'restHoursPerMonth')
 
-      Text($r('app.string.rule_max_streak'))
-        .fontSize(13)
-        .margin({ top: 10 })
-      TextInput({ text: `${this.rules.maxConsecutiveWorkDays}` })
-        .type(InputType.Number)
-        .width('100%')
-        .onChange((v: string) => {
-          this.rules.maxConsecutiveWorkDays = Number(v) || 0;
-        })
+      this.ruleFieldWithToggle($r('app.string.rule_max_streak'), 'maxConsecutiveWorkDays')
 
       Text($r('app.string.rule_rest_weekdays'))
-        .fontSize(13)
-        .margin({ top: 10 })
+        .fontSize(15)
+        .fontWeight(FontWeight.Medium)
+        .width('100%')
+        .margin({ top: 12 })
       Row({ space: 6 }) {
         ForEach([0, 1, 2, 3, 4, 5, 6], (wd: number) => {
           Text(this.weekdayName(wd))
@@ -577,8 +625,10 @@ export struct MinePage {
       .margin({ top: 6 })
 
       Text($r('app.string.rule_shift_template'))
-        .fontSize(13)
-        .margin({ top: 10 })
+        .fontSize(15)
+        .fontWeight(FontWeight.Medium)
+        .width('100%')
+        .margin({ top: 12 })
       ForEach(this.templateSegs, (seg: TemplateSeg, i: number) => {
         Row() {
           TextInput({ text: seg.start, placeholder: '08:00' })
