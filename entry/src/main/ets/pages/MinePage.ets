@@ -471,11 +471,7 @@ export struct MinePage {
       this.editorFooter()
     }
     .width('100%')
-    .padding(12)
-    .borderRadius(12)
-    .backgroundColor($r('sys.color.background_primary'))
-    .border({ width: 0.5, color: $r('sys.color.comp_divider') })
-    .margin({ top: 8 })
+    .padding({ left: 12, right: 12, top: 4, bottom: 12 })
   }
 
   // 工时底线组编辑器：每日最少工时、班次间隔、单段最长连续（含超限强制休息）
@@ -526,11 +522,7 @@ export struct MinePage {
       this.editorFooter()
     }
     .width('100%')
-    .padding(12)
-    .borderRadius(12)
-    .backgroundColor($r('sys.color.background_primary'))
-    .border({ width: 0.5, color: $r('sys.color.comp_divider') })
-    .margin({ top: 8 })
+    .padding({ left: 12, right: 12, top: 4, bottom: 12 })
   }
 
   // 休息保障组编辑器：月休天数/时长、连续上限、固定休息日、班次模板
@@ -639,11 +631,7 @@ export struct MinePage {
       this.editorFooter()
     }
     .width('100%')
-    .padding(12)
-    .borderRadius(12)
-    .backgroundColor($r('sys.color.background_primary'))
-    .border({ width: 0.5, color: $r('sys.color.comp_divider') })
-    .margin({ top: 8 })
+    .padding({ left: 12, right: 12, top: 4, bottom: 12 })
   }
 
   // 预设排班列表行：颜色条 + 名称 + 时间段 + 净工时
@@ -858,17 +846,18 @@ export struct MinePage {
       Column() {
         this.sectionTitle($r('app.string.section_rules'))
         Column() {
-          if (this.expandedGroup === '') {
-            this.groupHeader($r('app.string.rule_group_target'), this.targetSummary(), 'target')
-            Divider().strokeWidth(0.5)
-            this.groupHeader($r('app.string.rule_group_work'), this.workSummary(), 'work')
-            Divider().strokeWidth(0.5)
-            this.groupHeader($r('app.string.rule_group_rest'), this.restSummary(), 'rest')
-          } else if (this.expandedGroup === 'target') {
+          this.groupHeader($r('app.string.rule_group_target'), this.targetSummary(), 'target')
+          if (this.expandedGroup === 'target') {
             this.editorTarget()
-          } else if (this.expandedGroup === 'work') {
+          }
+          Divider().strokeWidth(0.5)
+          this.groupHeader($r('app.string.rule_group_work'), this.workSummary(), 'work')
+          if (this.expandedGroup === 'work') {
             this.editorWork()
-          } else {
+          }
+          Divider().strokeWidth(0.5)
+          this.groupHeader($r('app.string.rule_group_rest'), this.restSummary(), 'rest')
+          if (this.expandedGroup === 'rest') {
             this.editorRest()
           }
         }
