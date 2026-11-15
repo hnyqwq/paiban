@@ -66,10 +66,11 @@ export async function addShiftToCalendar(context: common.UIAbilityContext, date:
       }
     }
     const cal = calendars[0];
+    const namePrefix = shift.name !== '' ? `${shift.name} ` : '';
     const event: calendarManager.Event = {
       type: calendarManager.EventType.NORMAL,
       title: '上班',
-      description: `${shift.start} - ${shift.end}`,
+      description: `${namePrefix}${shift.start} - ${shift.end}`,
       startTime: range.startMs,
       endTime: range.endMs
     };

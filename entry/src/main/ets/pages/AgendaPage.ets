@@ -9,18 +9,24 @@ import { CalendarView } from '../view/CalendarView';
 @Component
 export struct AgendaPage {
   scroller: Scroller = new Scroller();
-  @StorageLink('calendarSelectedDate') selectedDate: string = '';
+  @StorageLink('calendarSelectedDate') @Watch('onSelectedDateChange') selectedDate: string = '';
   @State days: DayEntry[] = [];
   @State memoDraft: string = '';
+  @State memoDate: string = ''; // memoDraft 当前所属的日期，避免切换日期时写错天
   @State newTodo: string = '';
   @StorageLink('scheduleDataVersion') @Watch('onDataChanged') scheduleDataVersion: number = 0;
   private service: ScheduleService = ScheduleService.getInstance();
+  private memoTimer: number = -1; // 备忘录输入防抖保存定时器
+  private leaving: boolean = false; // 页面即将销毁时不再刷新状态
 
   onDataChanged(): void {
-    this.refresh();
+    if (!this.leaving) {
+      this.refresh();
+    }
   }
 
   aboutToAppear(): void {
+    this.leaving = false;
     if (this.selectedDate === '') {
       const now = new Date();
       this.selectedDate = dateKey(now.getFullYear(), now.getMonth() + 1, now.getDate());
@@ -28,11 +34,31 @@ export struct AgendaPage {
     this.refresh();
   }
 
+  aboutToDisappear(): void {
+    // 离开页面时把还没保存的草稿写回所属日期；此刻不再刷新 UI 状态
+    this.leaving = true;
+    this.saveMemoNow();
+  }
+
+  // 切换日期：先把当前草稿存回上一天，再载入新一天的备忘录
+  onSelectedDateChange(): void {
+    this.saveMemoNow();
+    this.refresh();
+  }
+
   refresh(): void {
+    if (this.leaving) {
+      return;
+    }
     // 必须复制新数组：service 返回的是缓存引用，赋同一引用不会触发 UI 刷新
     this.days = this.service.getDays().slice();
+    // 自动保存的防抖窗口内不覆盖用户正在输入的内容
+    if (this.memoTimer >= 0) {
+      return;
+    }
     const entry = this.service.findEntry(this.days, this.selectedDate);
     this.memoDraft = entry !== undefined ? entry.memo : '';
+    this.memoDate = this.selectedDate;
   }
 
   saveDays(): void {
@@ -56,20 +82,52 @@ export struct AgendaPage {
     this.saveDays();
   }
 
-  saveMemo(): void {
-    const entry = this.service.findEntry(this.days, this.selectedDate);
+  cancelMemoTimer(): void {
+    if (this.memoTimer >= 0) {
+      clearTimeout(this.memoTimer);
+      this.memoTimer = -1;
+    }
+  }
+
+  // 立即保存：只写到 memoDate 对应的一天，切换日期/失焦时不会串到别的日期
+  saveMemoNow(): void {
+    this.cancelMemoTimer();
+    this.saveMemoTo(this.memoDate, this.memoDraft);
+  }
+
+  saveMemoTo(date: string, text: string): void {
+    if (date === '') {
+      return;
+    }
+    const entry = this.service.findEntry(this.days, date);
     if (entry === undefined) {
-      if (this.memoDraft.trim() === '') {
+      if (text.trim() === '') {
         return;
       }
       const ne = new DayEntry();
-      ne.date = this.selectedDate;
-      ne.memo = this.memoDraft;
+      ne.date = date;
+      ne.memo = text;
       this.upsertEntry(ne);
       return;
     }
-    entry.memo = this.memoDraft;
+    if (entry.memo === text) {
+      return;
+    }
+    entry.memo = text;
     this.upsertEntry(entry);
+  }
+
+  // 输入停顿 500ms 自动保存，保证每天独立保存、切页/切日期不丢
+  scheduleMemoSave(): void {
+    this.cancelMemoTimer();
+    this.memoTimer = setTimeout(() => {
+      this.memoTimer = -1;
+      this.saveMemoTo(this.memoDate, this.memoDraft);
+    }, 500);
+  }
+
+  saveMemo(): void {
+    this.saveMemoNow();
   }
 
   addTodo(): void {
@@ -117,18 +175,42 @@ export struct AgendaPage {
         .width('100%')
         .margin({ bottom: 8 })
 
-      // 只读展示当天班次
+      // 只读展示当天班次（名称/颜色/休息来自预设排班）
       List() {
         ForEach(this.service.findEntry(this.days, this.selectedDate)?.shifts ?? [], (s: Shift, i: number) => {
           ListItem() {
             Row() {
-              Text(`${s.start} - ${s.end}`)
-                .fontSize(15)
+              Text('')
+                .width(4)
+                .height(34)
+                .borderRadius(2)
+                .backgroundColor(s.color !== '' ? s.color : '#0A59F7')
+                .margin({ right: 10 })
+              Column() {
+                if (s.name !== '') {
+                  Text(s.name)
+                    .fontSize(13)
+                    .fontWeight(FontWeight.Medium)
+                    .fontColor(s.color !== '' ? s.color : $r('sys.color.font_primary'))
+                    .maxLines(1)
+                    .textOverflow({ overflow: TextOverflow.Ellipsis })
+                }
+                Text(`${s.start} - ${s.end}`)
+                  .fontSize(s.name !== '' ? 12 : 15)
+                  .fontColor(s.name !== '' ? $r('sys.color.font_secondary') : $r('sys.color.font_primary'))
+                if (s.breakMinutes > 0) {
+                  Text($r('app.string.preset_break_info', s.breakMinutes))
+                    .fontSize(10)
+                    .fontColor($r('sys.color.font_tertiary'))
+                    .margin({ top: 1 })
+                }
+              }
+              .alignItems(HorizontalAlign.Start)
+              .layoutWeight(1)
               Text(minutesToHoursText(s.durationMinutes()))
                 .fontSize(13)
                 .fontColor('#0A59F7')
-                .margin({ left: 12 })
-              Blank()
+                .margin({ left: 8 })
             }
             .width('100%')
             .padding(10)
@@ -136,7 +218,8 @@ export struct AgendaPage {
             .backgroundColor($r('sys.color.comp_background_tertiary'))
             .margin({ top: 8 })
           }
-        }, (s: Shift, i: number) => `${i}-${s.start}-${s.end}`)
+        }, (s: Shift, i: number) =>
+          `${i}-${s.start}-${s.end}-${s.name}-${s.color}-${s.breakMinutes}`)
       }
       .width('100%')
 
@@ -161,6 +244,7 @@ export struct AgendaPage {
         .margin({ top: 4 })
         .onChange((v: string) => {
           this.memoDraft = v;
+          this.scheduleMemoSave();
         })
         .onBlur(() => {
           this.saveMemo();

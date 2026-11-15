@@ -4,6 +4,14 @@ import { ScheduleService } from '../service/ScheduleService';
 
 const WEEK_LABELS: string[] = ['日', '一', '二', '三', '四', '五', '六'];
 
+// 月历格子：day = 0 表示月首空白占位格（不含相邻月日期）
+// 每个格子都带唯一 key：空白格若共用 key，ForEach 只会保留第一个，
+// 导致「周一开始」时 11 月 1 日这类周日日期整体左移、落到错误的星期列下
+class CalendarCell {
+  key: string = '';
+  day: number = 0;
+}
+
 @Component
 export struct CalendarView {
   // 选中日期与查看的年月用 AppStorage 共享：日程页与排班页的日历联动
@@ -72,26 +80,32 @@ export struct CalendarView {
   }
 
   // 月历格子：前置空白 + 日期（空白按周起始日对齐）
-  calendarCells(): number[] {
+  calendarCells(): CalendarCell[] {
     const first = new Date(this.viewYear, this.viewMonth - 1, 1);
     const blanks = (first.getDay() - this.weekStart + 7) % 7;
-    const cells: number[] = [];
+    const cells: CalendarCell[] = [];
     for (let i = 0; i < blanks; i++) {
-      cells.push(0);
+      const cell = new CalendarCell();
+      cell.key = `${this.weekStart}-${this.viewYear}-${this.viewMonth}-blank-${i}`;
+      cell.day = 0;
+      cells.push(cell);
     }
     const total = daysInMonth(this.viewYear, this.viewMonth);
     for (let d = 1; d <= total; d++) {
-      cells.push(d);
+      const cell = new CalendarCell();
+      cell.key = `${this.weekStart}-${this.viewYear}-${this.viewMonth}-${this.renderTick}-${this.cellKey(d)}`;
+      cell.day = d;
+      cells.push(cell);
     }
     return cells;
   }
 
-  // 按实际行数算高度，避免固定 6 行多出空白
+  // 按实际行数算高度，避免固定 6 行多出空白；空白数须与 calendarCells 一致（含周起始日）
   gridHeight(): number {
     const total = daysInMonth(this.viewYear, this.viewMonth);
-    const blanks = new Date(this.viewYear, this.viewMonth - 1, 1).getDay();
+    const blanks = (new Date(this.viewYear, this.viewMonth - 1, 1).getDay() - this.weekStart + 7) % 7;
     const rows = Math.ceil((blanks + total) / 7);
-    return rows * 48 + (rows - 1) * 2;
+    return rows * 56 + (rows - 1) * 2;
   }
 
   // 格子渲染键：包含当日排班状态，删班次/改班次后立即重绘（如变休息）
@@ -135,6 +149,33 @@ export struct CalendarView {
 
   dayIsRest(day: number): boolean {
     return this.service.isRestDay(this.service.findEntry(this.viewDays, dateKey(this.viewYear, this.viewMonth, day)));
+  }
+
+  // 当天预设班次名称：多个名称去重后压缩成「名称 +N」；没有名称（手动添加的班次）返回空串
+  dayShiftNames(day: number): string {
+    const entry = this.service.findEntry(this.viewDays, dateKey(this.viewYear, this.viewMonth, day));
+    if (entry === undefined || entry.shifts.length === 0) {
+      return '';
+    }
+    const names: string[] = [];
+    for (const s of entry.shifts) {
+      if (s.name !== '' && !names.includes(s.name)) {
+        names.push(s.name);
+      }
+    }
+    if (names.length === 0) {
+      return '';
+    }
+    return names.length === 1 ? names[0] : `${names[0]} +${names.length - 1}`;
+  }
+
+  // 名称颜色跟随第一个班次的预设颜色，未设置颜色时用次要文字色
+  dayShiftNameColor(day: number): ResourceColor {
+    const entry = this.service.findEntry(this.viewDays, dateKey(this.viewYear, this.viewMonth, day));
+    if (entry !== undefined && entry.shifts.length > 0 && entry.shifts[0].color !== '') {
+      return entry.shifts[0].color;
+    }
+    return $r('sys.color.font_secondary');
   }
 
   // 今天的工时文本（无班次返回空串）
@@ -189,9 +230,20 @@ export struct CalendarView {
       } else {
         Text('').fontSize(10)
       }
+      // 预设班次名称：让日历直接看得到「早班 / 白班」等，而不只是工时
+      if (day > 0 && this.dayShiftNames(day) !== '') {
+        Text(this.dayShiftNames(day))
+          .fontSize(9)
+          .fontColor(this.isSelected(day) ? Color.White : this.dayShiftNameColor(day))
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+          .width('100%')
+          .textAlign(TextAlign.Center)
+          .margin({ top: 1 })
+      }
     }
     .width('100%')
-    .height(48)
+    .height(56)
     .justifyContent(FlexAlign.Center)
     .borderRadius(8)
     .backgroundColor(this.cellBackground(day))
@@ -221,25 +273,25 @@ export struct CalendarView {
       }
       .width('100%')
 
-      // 星期表头：七个字均匀分布，对齐下方七列格子
-      Row() {
+      // 星期表头：space 与下方 Grid 的 columnsGap 一致，七列宽度逐像素对齐
+      Row({ space: 2 }) {
         ForEach(this.weekdayLabels(), (w: string) => {
           Text(w)
             .fontSize(12)
             .fontColor($r('sys.color.font_tertiary'))
             .layoutWeight(1)
             .textAlign(TextAlign.Center)
-        })
+        }, (w: string) => `${this.weekStart}-${w}`)
       }
       .width('100%')
       .margin({ top: 8 })
 
       Grid() {
-        ForEach(this.calendarCells(), (d: number) => {
+        ForEach(this.calendarCells(), (cell: CalendarCell) => {
           GridItem() {
-            this.calendarCell(d)
+            this.calendarCell(cell.day)
           }
-        }, (d: number) => `${this.renderTick}-${this.cellKey(d)}`)
+        }, (cell: CalendarCell) => cell.key)
       }
       .columnsTemplate('1fr 1fr 1fr 1fr 1fr 1fr 1fr')
       .columnsGap(2)

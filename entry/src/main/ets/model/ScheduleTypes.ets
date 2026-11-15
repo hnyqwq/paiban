@@ -3,6 +3,9 @@
 export class Shift {
   start: string = '09:00'; // HH:mm
   end: string = '17:00';   // HH:mm，end <= start 视为跨天
+  name: string = '';        // 班次名称（来自预设排班，空 = 未命名）
+  color: string = '';       // 班次颜色（来自预设排班，空 = 主题蓝）
+  breakMinutes: number = 0; // 休息时长（分钟），计算工时时扣除
 
   static minutesBetween(hm: string): number {
     const parts = hm.split(':');
@@ -14,16 +17,44 @@ export class Shift {
     return h * 60 + m;
   }
 
-  // 班次时长（分钟），支持跨天
-  durationMinutes(): number {
-    const s = Shift.minutesBetween(this.start);
-    let e = Shift.minutesBetween(this.end);
+  // 起止跨度（分钟），跨天按 +24h 处理
+  static spanMinutes(start: string, end: string): number {
+    const s = Shift.minutesBetween(start);
+    let e = Shift.minutesBetween(end);
     if (e <= s) {
       e += 24 * 60;
     }
-    return e - s;
+    return Math.max(0, e - s);
+  }
+
+  // 班次时长（分钟），支持跨天；设置了休息时长则扣除，最低为 0
+  durationMinutes(): number {
+    const span = Shift.spanMinutes(this.start, this.end);
+    return Math.max(0, span - Math.max(0, this.breakMinutes));
   }
 }
+
+// 预设排班：在「我的」里自定义的常用班次
+export class PresetShift {
+  id: string = '';
+  name: string = '';
+  color: string = '#0A59F7';
+  start: string = '09:00';
+  end: string = '17:00';
+  breakMinutes: number = 0; // 休息时长（分钟）
+
+  // 计入工时的分钟数 = 起止跨度 - 休息时长
+  netMinutes(): number {
+    const span = Shift.spanMinutes(this.start, this.end);
+    return Math.max(0, span - Math.max(0, this.breakMinutes));
+  }
+}
+
+// 预设排班可选的班次颜色（也可作为默认值）
+export const PRESET_COLORS: string[] = [
+  '#0A59F7', '#00A870', '#ED6F21', '#E84026',
+  '#6B4EFF', '#00A6A6', '#D94B8A', '#6B7280'
+];
 
 export class TodoItem {
   text: string = '';

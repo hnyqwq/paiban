@@ -2,14 +2,16 @@
 import { preferences } from '@kit.ArkData';
 import { common, ConfigurationConstant } from '@kit.AbilityKit';
 import {
-  DayEntry, Shift, ShiftRules, MonthStats, TodoItem,
+  DayEntry, Shift, ShiftRules, MonthStats, TodoItem, PresetShift, PRESET_COLORS,
   dateKey, daysInMonth, minutesToHoursText, pad2
 } from '../model/ScheduleTypes';
+import { FormCardData } from '../form/FormCardData';
 
 const KEY_DAYS = 'schedule_days_v1';
 const KEY_RULES = 'shift_rules_v1';
 const KEY_APPEARANCE = 'appearance_mode_v1'; // 0 跟随系统 1 浅色 2 深色
 const KEY_WEEK_START = 'calendar_week_start_v1'; // 0 周日开始 1 周一开始
+const KEY_PRESETS = 'preset_shifts_v1'; // 预设排班（名称/颜色/起止/休息）
 const FULL_REST_DAY_MINUTES = 8 * 60;        // 休息日按整天 8h 估算休息时长
 
 export class ScheduleService {
@@ -33,6 +35,8 @@ export class ScheduleService {
       this.uiCtx = context;
       const appearance = this.getAppearanceMode();
       this.applyAppearance(appearance);
+      // 启动时同步刷新桌面卡片，避免上次异常退出留下旧数据
+      this.notifyCards();
     } catch (e) {
       console.error('ScheduleService init failed:', JSON.stringify(e));
     }
@@ -110,6 +114,95 @@ export class ScheduleService {
     this.prefs.putSync(KEY_WEEK_START, mode);
     this.prefs.flush();
     AppStorage.setOrCreate('weekStart', mode);
+    this.notifyCards();
+  }
+
+  // 数据变化后通知桌面卡片刷新（内部做 800ms 合并）
+  private notifyCards(): void {
+    if (this.uiCtx !== null) {
+      FormCardData.requestRefresh(this.uiCtx);
+    }
+  }
+
+  // ===== 预设排班 =====
+
+  // 默认预设：早/白/晚/夜四个常用班次，首次使用时展示，可自由增删改
+  private defaultPresets(): PresetShift[] {
+    const list: PresetShift[] = [];
+    this.pushDefaultPreset(list, 'default_early', this.str($r('app.string.preset_default_early')), '早班',
+      PRESET_COLORS[0], '06:00', '14:00');
+    this.pushDefaultPreset(list, 'default_day', this.str($r('app.string.preset_default_day')), '白班',
+      PRESET_COLORS[1], '09:00', '17:00');
+    this.pushDefaultPreset(list, 'default_evening', this.str($r('app.string.preset_default_evening')), '晚班',
+      PRESET_COLORS[2], '14:00', '22:00');
+    this.pushDefaultPreset(list, 'default_night', this.str($r('app.string.preset_default_night')), '夜班',
+      PRESET_COLORS[4], '22:00', '06:00');
+    return list;
+  }
+
+  private pushDefaultPreset(list: PresetShift[], id: string, localizedName: string, fallbackName: string,
+    color: string, start: string, end: string): void {
+    const preset = new PresetShift();
+    preset.id = id;
+    preset.name = localizedName !== '' ? localizedName : fallbackName;
+    preset.color = color;
+    preset.start = start;
+    preset.end = end;
+    preset.breakMinutes = 0;
+    list.push(preset);
+  }
+
+  getPresets(): PresetShift[] {
+    if (this.prefs === null) {
+      return this.defaultPresets();
+    }
+    const json = this.prefs.getSync(KEY_PRESETS, '') as string;
+    if (json === '') {
+      return this.defaultPresets();
+    }
+    const list = this.parsePresets(json);
+    // 用户把预设全部删光时保留空列表（json 为 "[]"），不要自动恢复默认值
+    if (list.length === 0 && json.trim() !== '[]') {
+      return this.defaultPresets();
+    }
+    return list;
+  }
+
+  savePresets(presets: PresetShift[]): void {
+    if (this.prefs === null) {
+      return;
+    }
+    this.prefs.putSync(KEY_PRESETS, JSON.stringify(presets));
+    this.prefs.flush();
+    // 通知排班页的预设按钮刷新
+    AppStorage.setOrCreate('presetsChanged', Date.now());
+  }
+
+  private parsePresets(json: string): PresetShift[] {
+    try {
+      const raw = JSON.parse(json) as PresetShift[];
+      if (!Array.isArray(raw)) {
+        return [];
+      }
+      const result: PresetShift[] = [];
+      for (const r of raw) {
+        if (r === undefined || r === null || typeof r.name !== 'string' || r.name === '') {
+          continue;
+        }
+        const preset = new PresetShift();
+        preset.id = typeof r.id === 'string' && r.id !== '' ? r.id : `p_${result.length}_${Date.now()}`;
+        preset.name = r.name;
+        preset.color = typeof r.color === 'string' && r.color !== '' ? r.color : PRESET_COLORS[0];
+        preset.start = typeof r.start === 'string' && r.start !== '' ? r.start : '09:00';
+        preset.end = typeof r.end === 'string' && r.end !== '' ? r.end : '17:00';
+        preset.breakMinutes = typeof r.breakMinutes === 'number' && r.breakMinutes > 0
+          ? Math.floor(r.breakMinutes) : 0;
+        result.push(preset);
+      }
+      return result;
+    } catch (e) {
+      return [];
+    }
   }
 
   getRules(): ShiftRules {
@@ -158,6 +251,9 @@ export class ScheduleService {
             const sh = new Shift();
             sh.start = s.start;
             sh.end = s.end;
+            sh.name = s.name ?? '';
+            sh.color = s.color ?? '';
+            sh.breakMinutes = s.breakMinutes ?? 0;
             entry.shifts.push(sh);
           }
         }
@@ -215,6 +311,9 @@ export class ScheduleService {
             const sh = new Shift();
             sh.start = s.start;
             sh.end = s.end;
+            sh.name = s.name ?? '';
+            sh.color = s.color ?? '';
+            sh.breakMinutes = s.breakMinutes ?? 0;
             entry.shifts.push(sh);
           }
         }
@@ -249,6 +348,7 @@ export class ScheduleService {
     this.prefs.flush();
     // 通知各页面重载数据
     AppStorage.setOrCreate('scheduleDataVersion', Date.now());
+    this.notifyCards();
     return true;
   }
 
@@ -261,6 +361,7 @@ export class ScheduleService {
     this.prefs.flush();
     // 通知各页面重载数据
     AppStorage.setOrCreate('scheduleDataVersion', Date.now());
+    this.notifyCards();
   }
 
   clearAll(): void {
@@ -272,6 +373,7 @@ export class ScheduleService {
     this.prefs.flush();
     // 通知各页面重载数据
     AppStorage.setOrCreate('scheduleDataVersion', Date.now());
+    this.notifyCards();
   }
 
   private parseRules(json: string): ShiftRules {
@@ -527,6 +629,9 @@ export class ScheduleService {
         const ns = new Shift();
         ns.start = s.start;
         ns.end = s.end;
+        ns.name = s.name;
+        ns.color = s.color;
+        ns.breakMinutes = s.breakMinutes;
         shifts.push(ns);
       }
       dst.shifts = shifts;
@@ -552,6 +657,9 @@ export class ScheduleService {
       const ns = new Shift();
       ns.start = s.start;
       ns.end = s.end;
+      ns.name = s.name;
+      ns.color = s.color;
+      ns.breakMinutes = s.breakMinutes;
       shifts.push(ns);
     }
     dst.shifts = shifts;

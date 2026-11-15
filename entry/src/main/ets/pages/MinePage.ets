@@ -4,7 +4,7 @@ import { promptAction, SegmentButtonV2Items, CapsuleSegmentButtonV2 } from '@kit
 import { common, bundleManager } from '@kit.AbilityKit';
 import { updateManager } from '@kit.AppGalleryKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
-import { ShiftRules, normalizeTime } from '../model/ScheduleTypes';
+import { ShiftRules, Shift, PresetShift, PRESET_COLORS, normalizeTime, minutesToHoursText } from '../model/ScheduleTypes';
 import { ScheduleService } from '../service/ScheduleService';
 
 function segString(res: Resource): string {
@@ -58,6 +58,16 @@ export struct MinePage {
   @State rules: ShiftRules = new ShiftRules();
   @State showRuleEditor: boolean = false;
   @State templateSegs: TemplateSeg[] = []; // 模板逐段编辑状态
+  // 预设排班
+  @State presets: PresetShift[] = [];
+  @State showPresetEditor: boolean = false;
+  @State editingPresetIndex: number = -1;
+  @State presetName: string = '';
+  @State presetColor: string = PRESET_COLORS[0];
+  @State presetStart: string = '09:00';
+  @State presetEnd: string = '17:00';
+  @State presetBreak: number = 0;
+  private presetColors: string[] = PRESET_COLORS;
   @State bundleName: string = '';
   @State versionName: string = '';
   private service: ScheduleService = ScheduleService.getInstance();
@@ -84,6 +94,7 @@ export struct MinePage {
     this.appearanceMode = this.service.getAppearanceMode();
     this.weekStart = this.service.getWeekStart();
     this.rules = this.service.getRules();
+    this.presets = this.service.getPresets();
     this.loadBundleInfo();
   }
 
@@ -141,6 +152,120 @@ export struct MinePage {
     this.rules = this.service.getRules();
     this.showRuleEditor = false;
     promptAction.showToast({ message: $r('app.string.rule_saved') });
+  }
+
+  // 取消编辑：丢弃未保存的修改，恢复为已存储的规则
+  cancelEdit(): void {
+    this.rules = this.service.getRules();
+    this.showRuleEditor = false;
+  }
+
+  // ===== 预设排班 =====
+
+  // 编辑器里的净工时（分钟）= 起止跨度 - 休息时长
+  presetNetMinutes(): number {
+    return Math.max(0, Shift.spanMinutes(this.presetStart, this.presetEnd) - Math.max(0, this.presetBreak));
+  }
+
+  // index < 0 表示新增，否则编辑对应预设
+  openPresetEditor(index: number): void {
+    if (index >= 0 && index < this.presets.length) {
+      const preset = this.presets[index];
+      this.editingPresetIndex = index;
+      this.presetName = preset.name;
+      this.presetColor = preset.color;
+      this.presetStart = preset.start;
+      this.presetEnd = preset.end;
+      this.presetBreak = preset.breakMinutes;
+    } else {
+      this.editingPresetIndex = -1;
+      this.presetName = '';
+      this.presetColor = PRESET_COLORS[0];
+      this.presetStart = '09:00';
+      this.presetEnd = '17:00';
+      this.presetBreak = 0;
+    }
+    this.showPresetEditor = true;
+  }
+
+  cancelPresetEdit(): void {
+    this.showPresetEditor = false;
+    this.editingPresetIndex = -1;
+  }
+
+  savePreset(): void {
+    const name = this.presetName.trim();
+    if (name === '') {
+      promptAction.showToast({ message: $r('app.string.preset_name_required') });
+      return;
+    }
+    const start = normalizeTime(this.presetStart.trim());
+    const end = normalizeTime(this.presetEnd.trim());
+    const timePattern = /^\d{1,2}:\d{2}$/;
+    if (!timePattern.test(start) || !timePattern.test(end)) {
+      promptAction.showToast({ message: $r('app.string.preset_time_invalid') });
+      return;
+    }
+    let breakMinutes = Math.floor(this.presetBreak);
+    if (Number.isNaN(breakMinutes) || breakMinutes < 0) {
+      breakMinutes = 0;
+    }
+    if (breakMinutes > 24 * 60) {
+      breakMinutes = 24 * 60;
+    }
+    const next: PresetShift[] = this.presets.slice();
+    const preset = new PresetShift();
+    if (this.editingPresetIndex >= 0 && this.editingPresetIndex < next.length) {
+      preset.id = next[this.editingPresetIndex].id;
+    } else {
+      preset.id = `p_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+    }
+    preset.name = name;
+    preset.color = this.presetColor;
+    preset.start = start;
+    preset.end = end;
+    preset.breakMinutes = breakMinutes;
+    if (this.editingPresetIndex >= 0 && this.editingPresetIndex < next.length) {
+      next[this.editingPresetIndex] = preset;
+    } else {
+      next.push(preset);
+    }
+    this.presets = next;
+    this.service.savePresets(next);
+    this.showPresetEditor = false;
+    this.editingPresetIndex = -1;
+    promptAction.showToast({ message: $r('app.string.preset_saved') });
+  }
+
+  confirmDeletePreset(index: number): void {
+    if (index < 0 || index >= this.presets.length) {
+      return;
+    }
+    const preset = this.presets[index];
+    promptAction.showDialog({
+      title: $r('app.string.preset_delete_title'),
+      message: $r('app.string.preset_delete_msg', preset.name),
+      buttons: [
+        { text: $r('app.string.cancel'), color: $r('sys.color.font_secondary') },
+        { text: $r('app.string.delete'), color: $r('sys.color.warning') }
+      ]
+    }).then((res) => {
+      if (res.index !== 1) {
+        return;
+      }
+      const next: PresetShift[] = this.presets.slice();
+      next.splice(index, 1);
+      this.presets = next;
+      this.service.savePresets(next);
+      if (this.editingPresetIndex === index) {
+        this.showPresetEditor = false;
+        this.editingPresetIndex = -1;
+      } else if (this.editingPresetIndex > index) {
+        // 删除靠前的预设后，正在编辑的下标要跟着前移
+        this.editingPresetIndex -= 1;
+      }
+      promptAction.showToast({ message: $r('app.string.preset_deleted') });
+    });
   }
 
   // 星期名，从资源按名取（wd_0..wd_6）
@@ -441,16 +566,232 @@ export struct MinePage {
           this.rules.mandatoryRestMinutes = Number(v) || 0;
         })
 
-      Button($r('app.string.save_rules'))
-        .width('100%')
-        .margin({ top: 14, bottom: 4 })
-        .onClick(() => this.saveRules())
+      Row({ space: 12 }) {
+        Button($r('app.string.cancel'))
+          .buttonStyle(ButtonStyleMode.NORMAL)
+          .layoutWeight(1)
+          .margin({ top: 14, bottom: 4 })
+          .onClick(() => this.cancelEdit())
+        Button($r('app.string.save_rules'))
+          .layoutWeight(1)
+          .margin({ top: 14, bottom: 4 })
+          .onClick(() => this.saveRules())
+      }
+      .width('100%')
     }
     .width('100%')
     .padding(12)
     .borderRadius(12)
     .backgroundColor($r('sys.color.background_primary'))
     .border({ width: 0.5, color: $r('sys.color.comp_divider') })
+    .margin({ top: 8 })
+  }
+
+  // 预设排班列表行：颜色条 + 名称 + 时间段 + 净工时
+  @Builder
+  presetRow(preset: PresetShift, index: number) {
+    Column() {
+      Row() {
+        Text('')
+          .width(4)
+          .height(34)
+          .borderRadius(2)
+          .backgroundColor(preset.color)
+          .margin({ right: 10 })
+        Column() {
+          Text(preset.name)
+            .fontSize(15)
+            .fontWeight(FontWeight.Medium)
+            .fontColor($r('sys.color.font_primary'))
+          Text(`${preset.start} - ${preset.end}`)
+            .fontSize(12)
+            .fontColor($r('sys.color.font_secondary'))
+            .margin({ top: 1 })
+        }
+        .alignItems(HorizontalAlign.Start)
+        .layoutWeight(1)
+        Text(minutesToHoursText(preset.netMinutes()))
+          .fontSize(15)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(preset.color)
+        Text($r('app.string.edit'))
+          .fontSize(13)
+          .fontColor($r('sys.color.brand'))
+          .margin({ left: 12 })
+          .onClick(() => this.openPresetEditor(index))
+        Text($r('app.string.delete'))
+          .fontSize(13)
+          .fontColor($r('sys.color.warning'))
+          .margin({ left: 10 })
+          .onClick(() => this.confirmDeletePreset(index))
+      }
+      .width('100%')
+
+      if (preset.breakMinutes > 0) {
+        Text($r('app.string.preset_break_info', preset.breakMinutes))
+          .fontSize(11)
+          .fontColor($r('sys.color.font_tertiary'))
+          .width('100%')
+          .margin({ left: 14, top: 2 })
+      }
+    }
+    .width('100%')
+    .padding(10)
+    .borderRadius(8)
+    .backgroundColor($r('sys.color.comp_background_tertiary'))
+    .margin({ top: 6 })
+  }
+
+  // 预设班次编辑器：名称、颜色、起止时间、休息时长，底部实时显示净工时
+  @Builder
+  presetEditor() {
+    Column() {
+      Text(this.editingPresetIndex >= 0 ? $r('app.string.preset_edit_title') : $r('app.string.preset_new_title'))
+        .fontSize(15)
+        .fontWeight(FontWeight.Medium)
+        .width('100%')
+
+      Text($r('app.string.preset_name'))
+        .fontSize(12)
+        .fontColor($r('sys.color.font_tertiary'))
+        .width('100%')
+        .margin({ top: 10 })
+      TextInput({ text: this.presetName, placeholder: $r('app.string.preset_name_hint') })
+        .width('100%')
+        .onChange((v: string) => {
+          this.presetName = v;
+        })
+
+      Text($r('app.string.preset_color'))
+        .fontSize(12)
+        .fontColor($r('sys.color.font_tertiary'))
+        .width('100%')
+        .margin({ top: 10 })
+      Flex({ wrap: FlexWrap.Wrap }) {
+        ForEach(this.presetColors, (c: string) => {
+          Stack() {
+            Text('')
+              .width(26)
+              .height(26)
+              .borderRadius(13)
+              .backgroundColor(c)
+            if (this.presetColor === c) {
+              Text('✓')
+                .fontSize(13)
+                .fontWeight(FontWeight.Bold)
+                .fontColor(Color.White)
+            }
+          }
+          .width(34)
+          .height(34)
+          .borderRadius(17)
+          .border({ width: this.presetColor === c ? 2 : 0, color: $r('sys.color.font_primary') })
+          .margin({ right: 8, bottom: 6 })
+          .onClick(() => {
+            this.presetColor = c;
+          })
+        }, (c: string) => c)
+      }
+      .width('100%')
+      .margin({ top: 4 })
+
+      Row({ space: 10 }) {
+        Column() {
+          Text($r('app.string.preset_start'))
+            .fontSize(12)
+            .fontColor($r('sys.color.font_tertiary'))
+          TextInput({ text: this.presetStart })
+            .type(InputType.Normal)
+            .width('100%')
+            .onChange((v: string) => {
+              this.presetStart = v;
+            })
+            .onBlur(() => {
+              this.presetStart = normalizeTime(this.presetStart.trim());
+            })
+        }
+        .layoutWeight(1)
+
+        Column() {
+          Text($r('app.string.preset_end'))
+            .fontSize(12)
+            .fontColor($r('sys.color.font_tertiary'))
+          TextInput({ text: this.presetEnd })
+            .type(InputType.Normal)
+            .width('100%')
+            .onChange((v: string) => {
+              this.presetEnd = v;
+            })
+            .onBlur(() => {
+              this.presetEnd = normalizeTime(this.presetEnd.trim());
+            })
+        }
+        .layoutWeight(1)
+      }
+      .width('100%')
+      .margin({ top: 10 })
+      .alignItems(VerticalAlign.Bottom)
+
+      Text($r('app.string.preset_break'))
+        .fontSize(12)
+        .fontColor($r('sys.color.font_tertiary'))
+        .width('100%')
+        .margin({ top: 10 })
+      TextInput({ text: `${this.presetBreak}`, placeholder: $r('app.string.preset_break_hint') })
+        .type(InputType.Number)
+        .width('100%')
+        .onChange((v: string) => {
+          const n = Number(v);
+          this.presetBreak = Number.isNaN(n) || n < 0 ? 0 : n;
+        })
+
+      // 时间段 + 净工时预览：设置了休息则按扣除后的工时展示
+      Column() {
+        Row() {
+          Text(`${this.presetStart} - ${this.presetEnd}`)
+            .fontSize(15)
+            .fontWeight(FontWeight.Medium)
+          Blank()
+          Text($r('app.string.preset_total', minutesToHoursText(this.presetNetMinutes())))
+            .fontSize(15)
+            .fontWeight(FontWeight.Medium)
+            .fontColor($r('sys.color.brand'))
+        }
+        .width('100%')
+
+        if (this.presetBreak > 0) {
+          Text($r('app.string.preset_deducted', minutesToHoursText(this.presetBreak)))
+            .fontSize(11)
+            .fontColor($r('sys.color.font_tertiary'))
+            .width('100%')
+            .margin({ top: 2 })
+        }
+      }
+      .width('100%')
+      .padding(10)
+      .borderRadius(8)
+      .backgroundColor($r('sys.color.background_primary'))
+      .border({ width: 0.5, color: $r('sys.color.comp_divider') })
+      .margin({ top: 10 })
+
+      Row({ space: 12 }) {
+        Button($r('app.string.cancel'))
+          .buttonStyle(ButtonStyleMode.NORMAL)
+          .layoutWeight(1)
+          .margin({ top: 12, bottom: 4 })
+          .onClick(() => this.cancelPresetEdit())
+        Button($r('app.string.save'))
+          .layoutWeight(1)
+          .margin({ top: 12, bottom: 4 })
+          .onClick(() => this.savePreset())
+      }
+      .width('100%')
+    }
+    .width('100%')
+    .padding(12)
+    .borderRadius(10)
+    .backgroundColor($r('sys.color.comp_background_tertiary'))
+    .margin({ top: 8 })
   }
 
   build() {
@@ -504,7 +845,53 @@ export struct MinePage {
 
           if (this.showRuleEditor) {
             this.ruleEditor()
+          } else {
+            Button($r('app.string.edit_rules'))
+              .width('calc(100% - 24vp)')
+              .buttonStyle(ButtonStyleMode.NORMAL)
+              .margin({ top: 12, bottom: 12, left: 12, right: 12 })
+              .onClick(() => {
+                this.openRuleEditor();
+              })
           }
+        }
+        .width('100%')
+        .borderRadius(12)
+        .backgroundColor($r('sys.color.background_primary'))
+        .border({ width: 0.5, color: $r('sys.color.comp_divider') })
+
+        this.sectionTitle($r('app.string.section_presets'))
+        Column() {
+          Text($r('app.string.presets_desc'))
+            .fontSize(11)
+            .fontColor($r('sys.color.font_tertiary'))
+            .width('100%')
+            .padding({ left: 12, right: 12, top: 10 })
+          Column() {
+            if (this.presets.length === 0) {
+              Text($r('app.string.preset_empty'))
+                .fontSize(13)
+                .fontColor($r('sys.color.font_tertiary'))
+                .width('100%')
+                .padding({ top: 10, bottom: 4 })
+            } else {
+              ForEach(this.presets, (preset: PresetShift, index: number) => {
+                this.presetRow(preset, index)
+              }, (preset: PresetShift) =>
+                `${preset.id}-${preset.name}-${preset.color}-${preset.start}-${preset.end}-${preset.breakMinutes}`)
+            }
+            if (this.showPresetEditor) {
+              this.presetEditor()
+            } else {
+              Button($r('app.string.preset_add'))
+                .width('100%')
+                .buttonStyle(ButtonStyleMode.NORMAL)
+                .margin({ top: 10 })
+                .onClick(() => this.openPresetEditor(-1))
+            }
+          }
+          .width('100%')
+          .padding({ left: 12, right: 12, top: 2, bottom: 12 })
         }
         .width('100%')
         .borderRadius(12)

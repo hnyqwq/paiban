@@ -2,7 +2,7 @@
 import { promptAction } from '@kit.ArkUI';
 import { common } from '@kit.AbilityKit';
 import {
-  DayEntry, Shift, ShiftRules, MonthStats, TodoItem,
+  DayEntry, Shift, ShiftRules, MonthStats, TodoItem, PresetShift,
   dateKey, daysInMonth, minutesToHoursText, normalizeTime
 } from '../model/ScheduleTypes';
 import { ScheduleService } from '../service/ScheduleService';
@@ -35,15 +35,23 @@ export struct SchedulingPage {
   private readonly showAlarmFeature: boolean = false;
   @State selectedShifts: number[] = []; // 本日勾选的班次下标
   @State editing: boolean = false;      // 开始排班后才显示编辑按钮
+  @State presets: PresetShift[] = [];    // 「我的」里自定义的预设排班
+  @State appliedPresetId: string = '';   // 当前添加到表单的预设
   @StorageLink('scheduleDataVersion') @Watch('onDataChanged') scheduleDataVersion: number = 0;
   @StorageLink('rulesChanged') @Watch('onRulesChanged') rulesChanged: number = 0;
+  @StorageLink('presetsChanged') @Watch('onPresetsChanged') presetsChanged: number = 0;
   @State renderTick: number = 0; // 数据/规则变化时自增，强制概览列表重建
   private service: ScheduleService = ScheduleService.getInstance();
 
   aboutToAppear(): void {
     this.loadDays();
     this.rules = this.service.getRules();
+    this.presets = this.service.getPresets();
     this.refreshStats();
+  }
+
+  onPresetsChanged(): void {
+    this.presets = this.service.getPresets();
   }
 
   onSelectedDateChange(): void {
@@ -102,6 +110,16 @@ export struct SchedulingPage {
     this.loadDays();
   }
 
+  // 当前表单选中的预设（未选返回 undefined）
+  findAppliedPreset(): PresetShift | undefined {
+    for (const preset of this.presets) {
+      if (preset.id === this.appliedPresetId) {
+        return preset;
+      }
+    }
+    return undefined;
+  }
+
   addShift(): void {
     // 收集表单里完整的段，一次加齐
     const shifts: Shift[] = [];
@@ -121,14 +139,19 @@ export struct SchedulingPage {
       return;
     }
     if (this.editShiftIndex >= 0) {
-      // 编辑模式：用第一段替换该班次
+      // 编辑模式：替换该班次的时间，保留原名称/颜色/休息
       const entry = this.service.findEntry(this.days, this.selectedDate);
       if (entry !== undefined && this.editShiftIndex < entry.shifts.length) {
+        const old = entry.shifts[this.editShiftIndex];
+        shifts[0].name = old.name;
+        shifts[0].color = old.color;
+        shifts[0].breakMinutes = old.breakMinutes;
         entry.shifts[this.editShiftIndex] = shifts[0];
         this.upsertEntry(entry);
       }
       this.editShiftIndex = -1;
       this.showShiftForm = false;
+      this.appliedPresetId = '';
       return;
     }
     const entry = this.service.findEntry(this.days, this.selectedDate);
@@ -137,9 +160,17 @@ export struct SchedulingPage {
       ne.date = this.selectedDate;
       return ne;
     })();
+    // 应用了预设且只有一段时，把预设的名称/颜色/休息带到班次上
+    const preset = shifts.length === 1 ? this.findAppliedPreset() : undefined;
     for (const s of shifts) {
+      if (preset !== undefined) {
+        s.name = preset.name;
+        s.color = preset.color;
+        s.breakMinutes = preset.breakMinutes;
+      }
       e.shifts.push(s);
     }
+    this.appliedPresetId = '';
     this.upsertEntry(e);
     this.showShiftForm = false;
   }
@@ -147,25 +178,31 @@ export struct SchedulingPage {
   resetSegs(): void {
     const seg = new SegStartEnd();
     this.newSegs = [seg];
+    this.appliedPresetId = '';
   }
 
-  setSegs(start: string, end: string): void {
+  // 点预设按钮：一键填入起止时间，并记住名称/颜色/休息
+  applyPreset(preset: PresetShift): void {
     const seg = new SegStartEnd();
-    seg.start = start;
-    seg.end = end;
+    seg.start = preset.start;
+    seg.end = preset.end;
     this.newSegs = [seg];
+    this.appliedPresetId = preset.id;
   }
 
   addNewSeg(): void {
     this.newSegs.push(new SegStartEnd());
+    this.appliedPresetId = '';
   }
 
   removeNewSeg(index: number): void {
     if (this.newSegs.length <= 1) {
       this.newSegs = [new SegStartEnd()];
+      this.appliedPresetId = '';
       return;
     }
     this.newSegs.splice(index, 1);
+    this.appliedPresetId = '';
   }
 
   // 自定义模板填入逐段编辑，可再调整后添加
@@ -184,7 +221,16 @@ export struct SchedulingPage {
     }
     if (segs.length > 0) {
       this.newSegs = segs;
+      this.appliedPresetId = '';
     }
+  }
+
+  // 预设按钮两列网格的高度（每行 64vp）
+  presetGridHeight(): number {
+    if (this.presets.length === 0) {
+      return 0;
+    }
+    return Math.ceil(this.presets.length / 2) * 64;
   }
 
   removeShift(index: number): void {
@@ -581,48 +627,63 @@ export struct SchedulingPage {
   }
 
   @Builder
+  presetChip(preset: PresetShift) {
+    Column() {
+      Text(preset.name)
+        .fontSize(12)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(preset.color)
+        .maxLines(1)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+        .width('100%')
+      Text(`${preset.start}-${preset.end} · ${minutesToHoursText(preset.netMinutes())}`)
+        .fontSize(10)
+        .fontColor($r('sys.color.font_secondary'))
+        .margin({ top: 2 })
+    }
+    .alignItems(HorizontalAlign.Start)
+    .width('100%')
+    .height(56)
+    .justifyContent(FlexAlign.Center)
+    .padding({ left: 8, right: 8 })
+    .borderRadius(8)
+    .backgroundColor($r('sys.color.comp_background_tertiary'))
+    .border({
+      width: this.appliedPresetId === preset.id ? 1.5 : 0.5,
+      color: this.appliedPresetId === preset.id ? preset.color : $r('sys.color.comp_divider')
+    })
+    .onClick(() => this.applyPreset(preset))
+  }
+
+  @Builder
   shiftForm() {
     Column() {
-      Text($r('app.string.tpl_title'))
+      Text($r('app.string.section_presets'))
         .fontSize(12)
         .fontColor($r('sys.color.font_tertiary'))
         .width('100%')
-      Row({ space: 6 }) {
-        Button($r('app.string.tpl_early'))
-          .buttonStyle(ButtonStyleMode.NORMAL)
+      if (this.presets.length === 0) {
+        Text($r('app.string.presets_none_in_form'))
           .fontSize(11)
-          .layoutWeight(1)
-          .onClick(() => {
-            this.setSegs('06:00', '14:00');
-          })
-        Button($r('app.string.tpl_day'))
-          .buttonStyle(ButtonStyleMode.NORMAL)
-          .fontSize(11)
-          .layoutWeight(1)
-          .onClick(() => {
-            this.setSegs('09:00', '17:00');
-          })
+          .fontColor($r('sys.color.font_tertiary'))
+          .width('100%')
+          .margin({ top: 6 })
+      } else {
+        Grid() {
+          ForEach(this.presets, (preset: PresetShift) => {
+            GridItem() {
+              this.presetChip(preset)
+            }
+          }, (preset: PresetShift) =>
+            `${preset.id}-${preset.name}-${preset.start}-${preset.end}-${preset.breakMinutes}`)
+        }
+        .columnsTemplate('1fr 1fr')
+        .columnsGap(6)
+        .rowsGap(6)
+        .height(this.presetGridHeight())
+        .width('100%')
+        .margin({ top: 6 })
       }
-      .width('100%')
-      .margin({ top: 4 })
-      Row({ space: 6 }) {
-        Button($r('app.string.tpl_evening'))
-          .buttonStyle(ButtonStyleMode.NORMAL)
-          .fontSize(11)
-          .layoutWeight(1)
-          .onClick(() => {
-            this.setSegs('14:00', '22:00');
-          })
-        Button($r('app.string.tpl_night'))
-          .buttonStyle(ButtonStyleMode.NORMAL)
-          .fontSize(11)
-          .layoutWeight(1)
-          .onClick(() => {
-            this.setSegs('22:00', '06:00');
-          })
-      }
-      .width('100%')
-      .margin({ top: 6 })
 
       // 自定义预设规则：把规则里保存的模板填入分段编辑
       Button($r('app.string.tpl_custom'))
@@ -692,6 +753,7 @@ export struct SchedulingPage {
           .buttonStyle(ButtonStyleMode.NORMAL)
           .onClick(() => {
             this.editShiftIndex = -1;
+            this.appliedPresetId = '';
             this.showShiftForm = false;
           })
         Button(this.editShiftIndex >= 0 ? $r('app.string.save') : $r('app.string.add_shift_btn'))
@@ -749,13 +811,38 @@ export struct SchedulingPage {
                     this.toggleShiftSelected(i, isChecked);
                   })
               }
-              Text(`${s.start} - ${s.end}`)
-                .fontSize(15)
-                .margin({ left: this.editing ? 10 : 0 })
+              // 班次颜色条：使用预设颜色，未命名班次用默认蓝
+              Text('')
+                .width(4)
+                .height(34)
+                .borderRadius(2)
+                .backgroundColor(s.color !== '' ? s.color : '#0A59F7')
+                .margin({ left: this.editing ? 10 : 0, right: 10 })
+              Column() {
+                if (s.name !== '') {
+                  Text(s.name)
+                    .fontSize(13)
+                    .fontWeight(FontWeight.Medium)
+                    .fontColor(s.color !== '' ? s.color : $r('sys.color.font_primary'))
+                    .maxLines(1)
+                    .textOverflow({ overflow: TextOverflow.Ellipsis })
+                }
+                Text(`${s.start} - ${s.end}`)
+                  .fontSize(s.name !== '' ? 12 : 15)
+                  .fontColor(s.name !== '' ? $r('sys.color.font_secondary') : $r('sys.color.font_primary'))
+                if (s.breakMinutes > 0) {
+                  Text($r('app.string.preset_break_info', s.breakMinutes))
+                    .fontSize(10)
+                    .fontColor($r('sys.color.font_tertiary'))
+                    .margin({ top: 1 })
+                }
+              }
+              .alignItems(HorizontalAlign.Start)
+              .layoutWeight(1)
               Text(minutesToHoursText(s.durationMinutes()))
                 .fontSize(13)
                 .fontColor('#0A59F7')
-                .margin({ left: 12 })
+                .margin({ left: 8 })
               Blank()
               if (this.editing) {
                 Text($r('app.string.edit'))
@@ -763,8 +850,9 @@ export struct SchedulingPage {
                   .fontColor($r('sys.color.brand'))
                   .margin({ right: 12 })
                   .onClick(() => {
-                    // 手动编辑该班次时间
+                    // 手动编辑该班次时间（保留名称/颜色/休息）
                     this.editShiftIndex = i;
+                    this.appliedPresetId = '';
                     const seg = new SegStartEnd();
                     seg.start = s.start;
                     seg.end = s.end;
@@ -783,7 +871,8 @@ export struct SchedulingPage {
             .backgroundColor($r('sys.color.comp_background_tertiary'))
             .margin({ top: 8 })
           }
-        }, (s: Shift, i: number) => `${i}-${s.start}-${s.end}`)
+        }, (s: Shift, i: number) =>
+          `${i}-${s.start}-${s.end}-${s.name}-${s.color}-${s.breakMinutes}`)
       }
       .width('100%')
 
