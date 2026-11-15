@@ -474,26 +474,61 @@ export struct MinePage {
     .onClick(() => this.openGroupEditor(group))
   }
 
-  // 三组规则的展示摘要（值 + 单位，纯数字组合不需要新文案）
+  // 按资源名取参数化文案
+  resText(name: string, a?: number): string {
+    try {
+      const context = AppStorage.get<common.UIAbilityContext>('context');
+      if (context === undefined) {
+        return '';
+      }
+      if (a === undefined) {
+        return context.resourceManager.getStringByNameSync(name);
+      }
+      return context.resourceManager.getStringByNameSync(name, a);
+    } catch (e) {
+      return '';
+    }
+  }
+
+  // 三组规则的展示摘要：关闭（值为 0）的规则不在摘要中显示
   targetSummary(): string {
     return `${this.rules.monthlyTargetHours} ${segString($r('app.string.unit_hours'))}`;
   }
 
   workSummary(): string {
-    return `${this.rules.minWorkHoursPerDay}${segString($r('app.string.unit_hours'))}  ${this.rules.dailyRestMinutes}${segString($r('app.string.unit_minutes'))}  ≤${this.rules.maxContinuousWorkMinutes}${segString($r('app.string.unit_minutes'))}`;
+    const parts: string[] = [];
+    if (this.rules.minWorkHoursPerDay > 0) {
+      parts.push(this.resText('sum_min_hours', this.rules.minWorkHoursPerDay));
+    }
+    if (this.rules.dailyRestMinutes > 0) {
+      parts.push(this.resText('sum_gap', this.rules.dailyRestMinutes));
+    }
+    if (this.rules.maxContinuousWorkMinutes > 0) {
+      parts.push(this.resText('sum_continuous', this.rules.maxContinuousWorkMinutes));
+    }
+    return parts.join('  ');
   }
 
   restSummary(): string {
-    let s = `${this.rules.restDaysPerMonth}${segString($r('app.string.unit_days'))}  ${this.rules.restHoursPerMonth}${segString($r('app.string.unit_hours'))}  ≤${this.rules.maxConsecutiveWorkDays}${segString($r('app.string.unit_days'))}`;
+    const parts: string[] = [];
+    if (this.rules.restDaysPerMonth > 0) {
+      parts.push(this.resText('sum_rest_days', this.rules.restDaysPerMonth));
+    }
+    if (this.rules.restHoursPerMonth > 0) {
+      parts.push(this.resText('sum_rest_hours', this.rules.restHoursPerMonth));
+    }
+    if (this.rules.maxConsecutiveWorkDays > 0) {
+      parts.push(this.resText('sum_streak', this.rules.maxConsecutiveWorkDays));
+    }
     const wd = this.restWeekdaysText();
     if (wd !== '') {
-      s += `  ${wd}`;
+      parts.push(wd);
     }
     const tpl = this.shiftTemplateText();
     if (tpl !== '') {
-      s += `  ${tpl}`;
+      parts.push(tpl);
     }
-    return s;
+    return parts.join('  ');
   }
 
   // 分组编辑器底部：取消 / 保存
