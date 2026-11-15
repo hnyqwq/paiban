@@ -56,7 +56,7 @@ export struct MinePage {
   @State appearanceMode: number = 0; // 0 跟随系统 1 浅色 2 深色
   @State weekStart: number = 0; // 0 周日开始 1 周一开始
   @State rules: ShiftRules = new ShiftRules();
-  @State showRuleEditor: boolean = false;
+  @State expandedGroup: string = ''; // 当前展开的规则组：''=收起 'target'=目标 'work'=工时底线 'rest'=休息保障
   @State templateSegs: TemplateSeg[] = []; // 模板逐段编辑状态
   // 预设排班
   @State presets: PresetShift[] = [];
@@ -109,21 +109,27 @@ export struct MinePage {
     }
   }
 
-  // 打开规则编辑器：把模板字符串解析成一段一段
-  openRuleEditor(): void {
-    const segs: TemplateSeg[] = [];
-    const parts = this.rules.shiftTemplate.split(',');
-    for (const p of parts) {
-      const s = p.split('-');
-      if (s.length === 2) {
-        const seg = new TemplateSeg();
-        seg.start = s[0].trim();
-        seg.end = s[1].trim();
-        segs.push(seg);
-      }
+  // 打开/收起某个规则组：展开「休息保障」时把模板字符串解析成一段一段
+  openGroupEditor(group: string): void {
+    if (this.expandedGroup === group) {
+      this.expandedGroup = '';
+      return;
     }
-    this.templateSegs = segs;
-    this.showRuleEditor = true;
+    if (group === 'rest') {
+      const segs: TemplateSeg[] = [];
+      const parts = this.rules.shiftTemplate.split(',');
+      for (const p of parts) {
+        const s = p.split('-');
+        if (s.length === 2) {
+          const seg = new TemplateSeg();
+          seg.start = s[0].trim();
+          seg.end = s[1].trim();
+          segs.push(seg);
+        }
+      }
+      this.templateSegs = segs;
+    }
+    this.expandedGroup = group;
   }
 
   // 逐段编辑结果自动拼回模板字符串（完整的段才计入）
@@ -150,14 +156,14 @@ export struct MinePage {
     this.service.saveRules(this.rules);
     // 保存后收起编辑器，回到展示态并刷新数值
     this.rules = this.service.getRules();
-    this.showRuleEditor = false;
+    this.expandedGroup = '';
     promptAction.showToast({ message: $r('app.string.rule_saved') });
   }
 
   // 取消编辑：丢弃未保存的修改，恢复为已存储的规则
   cancelEdit(): void {
     this.rules = this.service.getRules();
-    this.showRuleEditor = false;
+    this.expandedGroup = '';
   }
 
   // ===== 预设排班 =====
@@ -386,26 +392,72 @@ export struct MinePage {
       .margin({ top: 16, bottom: 6 })
   }
 
+  // 规则组标题行：组名 + 摘要 + 箭头，点击展开/收起该组编辑器
   @Builder
-  ruleRow(label: Resource | string, value: number, unit: Resource | string) {
+  groupHeader(title: Resource | string, summary: string, group: string) {
     Row() {
-      Text(label)
+      Text(title)
         .fontSize(15)
+        .fontWeight(FontWeight.Medium)
       Blank()
-      Text(`${value}`)
-        .fontSize(15)
+      Text(summary)
+        .fontSize(12)
         .fontColor($r('sys.color.font_secondary'))
-      Text(unit)
-        .fontSize(15)
-        .fontColor($r('sys.color.font_secondary'))
-        .margin({ left: 4 })
+        .maxLines(1)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+        .constraintSize({ maxWidth: '55%' })
+      Text(this.expandedGroup === group ? '▾' : '›')
+        .fontSize(14)
+        .fontColor($r('sys.color.font_tertiary'))
+        .margin({ left: 8 })
     }
     .width('100%')
     .padding(12)
+    .onClick(() => this.openGroupEditor(group))
   }
 
+  // 三组规则的展示摘要（值 + 单位，纯数字组合不需要新文案）
+  targetSummary(): string {
+    return `${this.rules.monthlyTargetHours} ${segString($r('app.string.unit_hours'))}`;
+  }
+
+  workSummary(): string {
+    return `${this.rules.minWorkHoursPerDay}${segString($r('app.string.unit_hours'))}  ${this.rules.dailyRestMinutes}${segString($r('app.string.unit_minutes'))}  ≤${this.rules.maxContinuousWorkMinutes}${segString($r('app.string.unit_minutes'))}`;
+  }
+
+  restSummary(): string {
+    let s = `${this.rules.restDaysPerMonth}${segString($r('app.string.unit_days'))}  ${this.rules.restHoursPerMonth}${segString($r('app.string.unit_hours'))}  ≤${this.rules.maxConsecutiveWorkDays}${segString($r('app.string.unit_days'))}`;
+    const wd = this.restWeekdaysText();
+    if (wd !== '') {
+      s += `  ${wd}`;
+    }
+    const tpl = this.shiftTemplateText();
+    if (tpl !== '') {
+      s += `  ${tpl}`;
+    }
+    return s;
+  }
+
+  // 分组编辑器底部：取消 / 保存
   @Builder
-  ruleEditor() {
+  editorFooter() {
+    Row({ space: 12 }) {
+      Button($r('app.string.cancel'))
+        .buttonStyle(ButtonStyleMode.NORMAL)
+        .layoutWeight(1)
+        .margin({ top: 14, bottom: 4 })
+        .onClick(() => this.cancelEdit())
+      Button($r('app.string.save_rules'))
+        .layoutWeight(1)
+        .margin({ top: 14, bottom: 4 })
+        .onClick(() => this.saveRules())
+    }
+    .width('100%')
+  }
+
+  // 目标组编辑器：目标工时
+  @Builder
+  editorTarget() {
     Column() {
       Text($r('app.string.rule_target'))
         .fontSize(13)
@@ -416,24 +468,27 @@ export struct MinePage {
           this.rules.monthlyTargetHours = Number(v) || 0;
         })
 
+      this.editorFooter()
+    }
+    .width('100%')
+    .padding(12)
+    .borderRadius(12)
+    .backgroundColor($r('sys.color.background_primary'))
+    .border({ width: 0.5, color: $r('sys.color.comp_divider') })
+    .margin({ top: 8 })
+  }
+
+  // 工时底线组编辑器：每日最少工时、班次间隔、单段最长连续（含超限强制休息）
+  @Builder
+  editorWork() {
+    Column() {
       Text($r('app.string.rule_min_daily'))
         .fontSize(13)
-        .margin({ top: 10 })
       TextInput({ text: `${this.rules.minWorkHoursPerDay}` })
         .type(InputType.Number)
         .width('100%')
         .onChange((v: string) => {
           this.rules.minWorkHoursPerDay = Number(v) || 0;
-        })
-
-      Text($r('app.string.rule_workday_min'))
-        .fontSize(13)
-        .margin({ top: 10 })
-      TextInput({ text: `${this.rules.workdayMinHours}` })
-        .type(InputType.Number)
-        .width('100%')
-        .onChange((v: string) => {
-          this.rules.workdayMinHours = Number(v) || 0;
         })
 
       Text($r('app.string.rule_gap'))
@@ -446,9 +501,44 @@ export struct MinePage {
           this.rules.dailyRestMinutes = Number(v) || 0;
         })
 
-      Text($r('app.string.rule_rest_days'))
+      Text($r('app.string.rule_max_continuous'))
         .fontSize(13)
         .margin({ top: 10 })
+      TextInput({ text: `${this.rules.maxContinuousWorkMinutes}` })
+        .type(InputType.Number)
+        .width('100%')
+        .onChange((v: string) => {
+          this.rules.maxContinuousWorkMinutes = Number(v) || 0;
+        })
+
+      Text($r('app.string.rule_mandatory_rest'))
+        .fontSize(11)
+        .fontColor($r('sys.color.font_tertiary'))
+        .width('100%')
+        .margin({ top: 6 })
+      TextInput({ text: `${this.rules.mandatoryRestMinutes}` })
+        .type(InputType.Number)
+        .width('100%')
+        .onChange((v: string) => {
+          this.rules.mandatoryRestMinutes = Number(v) || 0;
+        })
+
+      this.editorFooter()
+    }
+    .width('100%')
+    .padding(12)
+    .borderRadius(12)
+    .backgroundColor($r('sys.color.background_primary'))
+    .border({ width: 0.5, color: $r('sys.color.comp_divider') })
+    .margin({ top: 8 })
+  }
+
+  // 休息保障组编辑器：月休天数/时长、连续上限、固定休息日、班次模板
+  @Builder
+  editorRest() {
+    Column() {
+      Text($r('app.string.rule_rest_days'))
+        .fontSize(13)
       TextInput({ text: `${this.rules.restDaysPerMonth}` })
         .type(InputType.Number)
         .width('100%')
@@ -474,16 +564,6 @@ export struct MinePage {
         .width('100%')
         .onChange((v: string) => {
           this.rules.maxConsecutiveWorkDays = Number(v) || 0;
-        })
-
-      Text($r('app.string.rule_max_continuous'))
-        .fontSize(13)
-        .margin({ top: 10 })
-      TextInput({ text: `${this.rules.maxContinuousWorkMinutes}` })
-        .type(InputType.Number)
-        .width('100%')
-        .onChange((v: string) => {
-          this.rules.maxContinuousWorkMinutes = Number(v) || 0;
         })
 
       Text($r('app.string.rule_rest_weekdays'))
@@ -556,28 +636,7 @@ export struct MinePage {
         .margin({ top: 6 })
         .onClick(() => this.addSegment())
 
-      Text($r('app.string.rule_mandatory_rest'))
-        .fontSize(13)
-        .margin({ top: 10 })
-      TextInput({ text: `${this.rules.mandatoryRestMinutes}` })
-        .type(InputType.Number)
-        .width('100%')
-        .onChange((v: string) => {
-          this.rules.mandatoryRestMinutes = Number(v) || 0;
-        })
-
-      Row({ space: 12 }) {
-        Button($r('app.string.cancel'))
-          .buttonStyle(ButtonStyleMode.NORMAL)
-          .layoutWeight(1)
-          .margin({ top: 14, bottom: 4 })
-          .onClick(() => this.cancelEdit())
-        Button($r('app.string.save_rules'))
-          .layoutWeight(1)
-          .margin({ top: 14, bottom: 4 })
-          .onClick(() => this.saveRules())
-      }
-      .width('100%')
+      this.editorFooter()
     }
     .width('100%')
     .padding(12)
@@ -799,60 +858,18 @@ export struct MinePage {
       Column() {
         this.sectionTitle($r('app.string.section_rules'))
         Column() {
-          if (!this.showRuleEditor) {
-          this.ruleRow($r('app.string.rule_target'), this.rules.monthlyTargetHours, $r('app.string.unit_hours'))
-          Divider().strokeWidth(0.5)
-          this.ruleRow($r('app.string.rule_min_daily'), this.rules.minWorkHoursPerDay, $r('app.string.unit_hours'))
-          Divider().strokeWidth(0.5)
-          this.ruleRow($r('app.string.rule_workday_min'), this.rules.workdayMinHours, $r('app.string.unit_hours'))
-          Divider().strokeWidth(0.5)
-          this.ruleRow($r('app.string.rule_gap'), this.rules.dailyRestMinutes, $r('app.string.unit_minutes'))
-          Divider().strokeWidth(0.5)
-          this.ruleRow($r('app.string.rule_rest_days'), this.rules.restDaysPerMonth, $r('app.string.unit_days'))
-          Divider().strokeWidth(0.5)
-          this.ruleRow($r('app.string.rule_rest_hours'), this.rules.restHoursPerMonth, $r('app.string.unit_hours'))
-          Divider().strokeWidth(0.5)
-          this.ruleRow($r('app.string.rule_max_streak'), this.rules.maxConsecutiveWorkDays, $r('app.string.unit_days'))
-          Divider().strokeWidth(0.5)
-          this.ruleRow($r('app.string.rule_max_continuous'), this.rules.maxContinuousWorkMinutes, $r('app.string.unit_minutes'))
-          Divider().strokeWidth(0.5)
-          this.ruleRow($r('app.string.rule_mandatory_rest'), this.rules.mandatoryRestMinutes, $r('app.string.unit_minutes'))
-          Divider().strokeWidth(0.5)
-          Row() {
-            Text($r('app.string.rule_shift_template'))
-              .fontSize(15)
-            Blank()
-            Text(this.shiftTemplateText())
-              .fontSize(13)
-              .fontColor($r('sys.color.font_secondary'))
-              .maxLines(1)
-              .textOverflow({ overflow: TextOverflow.Ellipsis })
-              .constraintSize({ maxWidth: '60%' })
-          }
-          .width('100%')
-          .padding(12)
-          Row() {
-            Text($r('app.string.rule_rest_weekdays'))
-              .fontSize(15)
-            Blank()
-            Text(this.restWeekdaysText())
-              .fontSize(15)
-              .fontColor($r('sys.color.font_secondary'))
-          }
-          .width('100%')
-          .padding(12)
-          }
-
-          if (this.showRuleEditor) {
-            this.ruleEditor()
+          if (this.expandedGroup === '') {
+            this.groupHeader($r('app.string.rule_group_target'), this.targetSummary(), 'target')
+            Divider().strokeWidth(0.5)
+            this.groupHeader($r('app.string.rule_group_work'), this.workSummary(), 'work')
+            Divider().strokeWidth(0.5)
+            this.groupHeader($r('app.string.rule_group_rest'), this.restSummary(), 'rest')
+          } else if (this.expandedGroup === 'target') {
+            this.editorTarget()
+          } else if (this.expandedGroup === 'work') {
+            this.editorWork()
           } else {
-            Button($r('app.string.edit_rules'))
-              .width('calc(100% - 24vp)')
-              .buttonStyle(ButtonStyleMode.NORMAL)
-              .margin({ top: 12, bottom: 12, left: 12, right: 12 })
-              .onClick(() => {
-                this.openRuleEditor();
-              })
+            this.editorRest()
           }
         }
         .width('100%')
