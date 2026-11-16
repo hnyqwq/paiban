@@ -13,7 +13,7 @@ import {
   ScrollEffectType,
 } from '@kit.UIDesignKit';
 import { LengthMetrics, SymbolGlyphModifier } from '@kit.ArkUI';
-import { showAddCardDialog } from '../utils/AddCardButton';
+import { openCardManager } from '../utils/AddCardButton';
 
 @Entry
 @Component
@@ -140,7 +140,7 @@ struct Index {
               icon: new SymbolGlyphModifier($r('sys.symbol.plus_square_on_square'))
                 .fontColor([$r('sys.color.font_primary')]),
               action: () => {
-                showAddCardDialog();
+                openCardManager();
               }
             }
           }]
