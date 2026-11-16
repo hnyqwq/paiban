@@ -1,10 +1,20 @@
 // 日程页：月历 + 只读日程 + 备忘录 + 待办（排班编辑在「排班」页）
 import {
   DayEntry, Shift, TodoItem,
-  dateKey, minutesToHoursText
+  dateKey, minutesToHoursText, shiftCrossesDay, shiftMinutesOnOffsetDay
 } from '../model/ScheduleTypes';
 import { ScheduleService } from '../service/ScheduleService';
 import { CalendarView } from '../view/CalendarView';
+
+// 当日展示的班次条目：本日班次 + 昨日跨天班次的尾巴
+class DayShiftItem {
+  name: string = '';
+  color: string = '';
+  timeText: string = '';
+  hoursText: string = '';
+  breakText: string = '';
+  borrowed: boolean = false;
+}
 
 @Component
 export struct AgendaPage {
@@ -167,6 +177,55 @@ export struct AgendaPage {
     this.upsertEntry(entry);
   }
 
+  // 昨天的日期键
+  prevDateKey(): string {
+    const parts = this.selectedDate.split('-');
+    const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]) - 1);
+    return dateKey(d.getFullYear(), d.getMonth() + 1, d.getDate());
+  }
+
+  // 当日展示的班次条目：本日班次（结束跨天带「次日」）+ 昨日跨天班次的尾巴（计入当日时长）
+  dayShiftItems(): DayShiftItem[] {
+    const nextDay = this.service.str($r('app.string.shift_next_day'));
+    const prevDay = this.service.str($r('app.string.shift_prev_day'));
+    const items: DayShiftItem[] = [];
+    const own = this.service.findEntry(this.days, this.selectedDate);
+    if (own !== undefined) {
+      for (const s of own.shifts) {
+        const item = new DayShiftItem();
+        item.name = s.name;
+        item.color = s.color;
+        const endText = shiftCrossesDay(s) ? `${nextDay} ${s.end}` : s.end;
+        item.timeText = `${s.start} - ${endText}`;
+        item.hoursText = minutesToHoursText(shiftMinutesOnOffsetDay(s, 0));
+        if (s.breakMinutes > 0) {
+          item.breakText = this.service.str($r('app.string.preset_break_info'), s.breakMinutes);
+        }
+        items.push(item);
+      }
+    }
+    const prev = this.service.findEntry(this.days, this.prevDateKey());
+    if (prev !== undefined) {
+      for (const s of prev.shifts) {
+        const tail = shiftMinutesOnOffsetDay(s, 1);
+        if (tail <= 0) {
+          continue; // 未跨到今天
+        }
+        const item = new DayShiftItem();
+        item.name = s.name;
+        item.color = s.color;
+        item.timeText = `${prevDay} ${s.start} - ${s.end}`;
+        item.hoursText = minutesToHoursText(tail);
+        if (s.breakMinutes > 0) {
+          item.breakText = this.service.str($r('app.string.preset_break_info'), s.breakMinutes);
+        }
+        item.borrowed = true;
+        items.push(item);
+      }
+    }
+    return items;
+  }
+
   @Builder
   dayDetail() {
     Column() {
@@ -176,31 +235,31 @@ export struct AgendaPage {
         .width('100%')
         .margin({ bottom: 8 })
 
-      // 只读展示当天班次（名称/颜色/休息来自预设排班）
+      // 只读展示当天班次（本日班次 + 昨日跨天班次的尾巴，名称/颜色/休息来自预设排班）
       List() {
-        ForEach(this.service.findEntry(this.days, this.selectedDate)?.shifts ?? [], (s: Shift, i: number) => {
+        ForEach(this.dayShiftItems(), (item: DayShiftItem, i: number) => {
           ListItem() {
             Row() {
               Text('')
                 .width(4)
                 .height(34)
                 .borderRadius(2)
-                .backgroundColor(s.color !== '' ? s.color : '#0A59F7')
+                .backgroundColor(item.color !== '' ? item.color : '#0A59F7')
                 .margin({ right: 10 })
               Column() {
-                if (s.name !== '') {
-                  Text(s.name)
+                if (item.name !== '') {
+                  Text(item.name)
                     .fontSize(13)
                     .fontWeight(FontWeight.Medium)
-                    .fontColor(s.color !== '' ? s.color : $r('sys.color.font_primary'))
+                    .fontColor(item.color !== '' ? item.color : $r('sys.color.font_primary'))
                     .maxLines(1)
                     .textOverflow({ overflow: TextOverflow.Ellipsis })
                 }
-                Text(`${s.start} - ${s.end}`)
-                  .fontSize(s.name !== '' ? 12 : 15)
-                  .fontColor(s.name !== '' ? $r('sys.color.font_secondary') : $r('sys.color.font_primary'))
-                if (s.breakMinutes > 0) {
-                  Text($r('app.string.preset_break_info', s.breakMinutes))
+                Text(item.timeText)
+                  .fontSize(item.name !== '' ? 12 : 15)
+                  .fontColor(item.name !== '' ? $r('sys.color.font_secondary') : $r('sys.color.font_primary'))
+                if (item.breakText !== '') {
+                  Text(item.breakText)
                     .fontSize(10)
                     .fontColor($r('sys.color.font_tertiary'))
                     .margin({ top: 1 })
@@ -208,7 +267,7 @@ export struct AgendaPage {
               }
               .alignItems(HorizontalAlign.Start)
               .layoutWeight(1)
-              Text(minutesToHoursText(s.durationMinutes()))
+              Text(item.hoursText)
                 .fontSize(13)
                 .fontColor('#0A59F7')
                 .margin({ left: 8 })
@@ -219,8 +278,8 @@ export struct AgendaPage {
             .backgroundColor($r('sys.color.comp_background_tertiary'))
             .margin({ top: 8 })
           }
-        }, (s: Shift, i: number) =>
-          `${i}-${s.start}-${s.end}-${s.name}-${s.color}-${s.breakMinutes}`)
+        }, (item: DayShiftItem, i: number) =>
+          `${i}-${item.timeText}-${item.name}-${item.color}-${item.borrowed}`)
       }
       .width('100%')
 

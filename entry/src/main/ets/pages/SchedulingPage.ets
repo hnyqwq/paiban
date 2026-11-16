@@ -3,7 +3,7 @@ import { promptAction } from '@kit.ArkUI';
 import { common } from '@kit.AbilityKit';
 import {
   DayEntry, Shift, ShiftRules, MonthStats, TodoItem, PresetShift,
-  dateKey, daysInMonth, minutesToHoursText, normalizeTime
+  dateKey, daysInMonth, minutesToHoursText, normalizeTime, shiftCrossesDay
 } from '../model/ScheduleTypes';
 import { ScheduleService } from '../service/ScheduleService';
 import { addShiftToCalendar, addShiftAlarm } from '../utils/CalendarReminder';
@@ -18,6 +18,8 @@ class DateShift {
 class SegStartEnd {
   start: string = '';
   end: string = '';
+  startPrev: boolean = false; // 开始时间属于昨日
+  endNext: boolean = false;   // 结束时间属于次日
 }
 
 @Component
@@ -134,6 +136,9 @@ export struct SchedulingPage {
       const s = new Shift();
       s.start = seg.start.trim();
       s.end = seg.end.trim();
+      s.startDayOffset = seg.startPrev ? -1 : 0;
+      // 显式标注次日，或结束早于开始的跨天兜底
+      s.endDayOffset = seg.endNext || Shift.minutesBetween(s.end) <= Shift.minutesBetween(s.start) ? 1 : 0;
       shifts.push(s);
     }
     if (shifts.length === 0) {
@@ -204,6 +209,15 @@ export struct SchedulingPage {
     }
     this.newSegs.splice(index, 1);
     this.appliedPresetId = '';
+  }
+
+  // 班次时间段文案：结束跨到次日时带「次日」前缀，开始属昨日时带「昨日」前缀
+  shiftTimeText(s: Shift): string {
+    const prev = this.service.str($r('app.string.shift_prev_day'));
+    const next = this.service.str($r('app.string.shift_next_day'));
+    const startText = s.startDayOffset < 0 ? `${prev} ${s.start}` : s.start;
+    const endText = shiftCrossesDay(s) ? `${next} ${s.end}` : s.end;
+    return `${startText} - ${endText}`;
   }
 
   // 预设按钮两列网格的高度（chip 高 56 + rowsGap 6，末行无 gap）
@@ -669,43 +683,78 @@ export struct SchedulingPage {
 
       // 逐段编辑班次
       ForEach(this.newSegs, (seg: SegStartEnd, i: number) => {
-        Row() {
-          TextInput({ text: seg.start, placeholder: '08:00' })
-            .type(InputType.Normal)
-            .layoutWeight(1)
-            .onChange((v: string) => {
-              seg.start = v;
-            })
-            .onBlur(() => {
-              const n = normalizeTime(seg.start);
-              if (n !== seg.start) {
-                seg.start = n;
+        Column() {
+          Row() {
+            TextInput({ text: seg.start, placeholder: '08:00' })
+              .type(InputType.Normal)
+              .layoutWeight(1)
+              .onChange((v: string) => {
+                seg.start = v;
+              })
+              .onBlur(() => {
+                const n = normalizeTime(seg.start);
+                if (n !== seg.start) {
+                  seg.start = n;
+                  this.newSegs.splice(i, 1, seg);
+                }
+              })
+            Text('→').margin({ left: 6, right: 6 })
+            TextInput({ text: seg.end, placeholder: '12:00' })
+              .type(InputType.Normal)
+              .layoutWeight(1)
+              .onChange((v: string) => {
+                seg.end = v;
+              })
+              .onBlur(() => {
+                const n = normalizeTime(seg.end);
+                if (n !== seg.end) {
+                  seg.end = n;
+                  this.newSegs.splice(i, 1, seg);
+                }
+              })
+            Text($r('app.string.delete'))
+              .fontSize(13)
+              .fontColor($r('sys.color.warning'))
+              .margin({ left: 10 })
+              .onClick(() => this.removeNewSeg(i))
+          }
+          .width('100%')
+
+          // 跨天标注：开始可标「昨日」，结束可标「次日」
+          Row({ space: 6 }) {
+            Text($r('app.string.shift_prev_day'))
+              .fontSize(11)
+              .padding({ left: 8, right: 8, top: 2, bottom: 2 })
+              .borderRadius(6)
+              .border({
+                width: seg.startPrev ? 1 : 0.5,
+                color: seg.startPrev ? $r('sys.color.brand') : $r('sys.color.comp_divider')
+              })
+              .fontColor(seg.startPrev ? $r('sys.color.brand') : $r('sys.color.font_tertiary'))
+              .onClick(() => {
+                seg.startPrev = !seg.startPrev;
                 this.newSegs.splice(i, 1, seg);
-              }
-            })
-          Text('→').margin({ left: 6, right: 6 })
-          TextInput({ text: seg.end, placeholder: '12:00' })
-            .type(InputType.Normal)
-            .layoutWeight(1)
-            .onChange((v: string) => {
-              seg.end = v;
-            })
-            .onBlur(() => {
-              const n = normalizeTime(seg.end);
-              if (n !== seg.end) {
-                seg.end = n;
+              })
+            Text($r('app.string.shift_next_day'))
+              .fontSize(11)
+              .padding({ left: 8, right: 8, top: 2, bottom: 2 })
+              .borderRadius(6)
+              .border({
+                width: seg.endNext ? 1 : 0.5,
+                color: seg.endNext ? $r('sys.color.brand') : $r('sys.color.comp_divider')
+              })
+              .fontColor(seg.endNext ? $r('sys.color.brand') : $r('sys.color.font_tertiary'))
+              .onClick(() => {
+                seg.endNext = !seg.endNext;
                 this.newSegs.splice(i, 1, seg);
-              }
-            })
-          Text($r('app.string.delete'))
-            .fontSize(13)
-            .fontColor($r('sys.color.warning'))
-            .margin({ left: 10 })
-            .onClick(() => this.removeNewSeg(i))
+              })
+          }
+          .width('100%')
+          .margin({ top: 4 })
         }
         .width('100%')
         .margin({ top: 6 })
-      }, (seg: SegStartEnd, i: number) => `${i}-${seg.start}-${seg.end}`)
+      }, (seg: SegStartEnd, i: number) => `${i}-${seg.start}-${seg.end}-${seg.startPrev}-${seg.endNext}`)
       Button($r('app.string.add_segment'))
         .width('100%')
         .buttonStyle(ButtonStyleMode.NORMAL)
@@ -792,7 +841,7 @@ export struct SchedulingPage {
                     .maxLines(1)
                     .textOverflow({ overflow: TextOverflow.Ellipsis })
                 }
-                Text(`${s.start} - ${s.end}`)
+                Text(this.shiftTimeText(s))
                   .fontSize(s.name !== '' ? 12 : 15)
                   .fontColor(s.name !== '' ? $r('sys.color.font_secondary') : $r('sys.color.font_primary'))
                 if (s.breakMinutes > 0) {
@@ -821,6 +870,8 @@ export struct SchedulingPage {
                     const seg = new SegStartEnd();
                     seg.start = s.start;
                     seg.end = s.end;
+                    seg.startPrev = s.startDayOffset < 0;
+                    seg.endNext = shiftCrossesDay(s);
                     this.newSegs = [seg];
                     this.showShiftForm = true;
                   })

@@ -3,7 +3,7 @@ import { preferences } from '@kit.ArkData';
 import { common, ConfigurationConstant } from '@kit.AbilityKit';
 import {
   DayEntry, Shift, ShiftRules, MonthStats, TodoItem, PresetShift, PRESET_COLORS,
-  dateKey, daysInMonth, minutesToHoursText, pad2, unionWorkedMinutes
+  dateKey, daysInMonth, minutesToHoursText, pad2, shiftAbsRange, unionMinutes, unionWorkedMinutes
 } from '../model/ScheduleTypes';
 import { FormCardData } from '../form/FormCardData';
 
@@ -257,6 +257,8 @@ export class ScheduleService {
             sh.name = s.name ?? '';
             sh.color = s.color ?? '';
             sh.breakMinutes = s.breakMinutes ?? 0;
+            sh.startDayOffset = s.startDayOffset ?? 0;
+            sh.endDayOffset = s.endDayOffset ?? 0;
             entry.shifts.push(sh);
           }
         }
@@ -317,6 +319,8 @@ export class ScheduleService {
             sh.name = s.name ?? '';
             sh.color = s.color ?? '';
             sh.breakMinutes = s.breakMinutes ?? 0;
+            sh.startDayOffset = s.startDayOffset ?? 0;
+            sh.endDayOffset = s.endDayOffset ?? 0;
             entry.shifts.push(sh);
           }
         }
@@ -414,7 +418,36 @@ export class ScheduleService {
       return 0;
     }
     // 重叠班次按并集计，避免重复计时
-    return unionWorkedMinutes(entry.shifts);
+    return unionWorkedMinutes(entry.shifts, 0);
+  }
+
+  // 某一天的实际在岗时长（分钟）：当日班次落在该日的部分 + 昨日跨天班次的次日尾巴，
+  // 合并去重后求和
+  dayMinutesOnDate(days: DayEntry[], date: string): number {
+    const intervals: number[][] = [];
+    const own = this.findEntry(days, date);
+    if (own !== undefined) {
+      for (const s of own.shifts) {
+        const range = shiftAbsRange(s);
+        const from = Math.max(range[0], 0);
+        const to = Math.min(range[1], 1440);
+        if (to > from) {
+          intervals.push([from, to]);
+        }
+      }
+    }
+    const prev = this.findEntry(days, this.addDays(date, -1));
+    if (prev !== undefined) {
+      for (const s of prev.shifts) {
+        const range = shiftAbsRange(s);
+        const from = Math.max(range[0] - 1440, 0);
+        const to = Math.min(range[1] - 1440, 1440);
+        if (to > from) {
+          intervals.push([from, to]);
+        }
+      }
+    }
+    return unionMinutes(intervals);
   }
 
   isRestDay(entry: DayEntry | undefined): boolean {
@@ -462,12 +495,11 @@ export class ScheduleService {
     const month = Number(parts[1]);
     const day = Number(parts[2]);
 
-    // 同一天班次间隔（后一班次开始时间早于前一班次结束时间才视为跨天；
-    // 首尾相接（相等）视为当天衔接，间隔 0，需要参与最少间隔校验）
-    for (let i = 1; i < entry.shifts.length; i++) {
-      const prevEnd = Shift.minutesBetween(entry.shifts[i - 1].end);
-      const curStart = Shift.minutesBetween(entry.shifts[i].start) + (entry.shifts[i].start < entry.shifts[i - 1].end ? 24 * 60 : 0);
-      const gap = curStart - prevEnd;
+    // 同一天班次间隔：按绝对时间排序后相邻工时段的间隔（后一班次开始早于前一班次结束视为跨天）
+    const ranges = entry.shifts.map((s: Shift) => shiftAbsRange(s))
+      .sort((a: number[], b: number[]) => a[0] - b[0]);
+    for (let i = 1; i < ranges.length; i++) {
+      const gap = ranges[i][0] - ranges[i - 1][1];
       if (gap < rules.dailyRestMinutes) {
         result.push(this.str($r('app.string.warn_gap'), day, gap, rules.dailyRestMinutes));
       }
@@ -492,10 +524,10 @@ export class ScheduleService {
       }
     }
 
-    // 每日最少工时：已排班日查当日工时；未排班且未标记休息的非休息日（仅统计到今天）也视为违规
+    // 每日最少工时：已排班日查当日实际在岗工时；未排班且未标记休息的非休息日（仅统计到今天）也视为违规
     if (rules.minWorkHoursPerDay > 0) {
       if (entry.shifts.length > 0) {
-        const dm = this.dayMinutes(entry);
+        const dm = this.dayMinutesOnDate(days, date);
         if (dm < rules.minWorkHoursPerDay * 60) {
           result.push(this.str($r('app.string.warn_min_daily'), day, minutesToHoursText(dm), rules.minWorkHoursPerDay));
         }
@@ -504,7 +536,9 @@ export class ScheduleService {
         const isCurrentMonth = today.getFullYear() === year && today.getMonth() + 1 === month;
         if (!isCurrentMonth || day <= today.getDate()) {
           const markedRest = entry !== undefined; // 有 entry 无班次 = 手动标记休息
-          if (!markedRest) {
+          // 昨日跨天班次的尾巴已覆盖当日工时时不再告警
+          const tailMinutes = this.dayMinutesOnDate(days, date);
+          if (!markedRest && tailMinutes < rules.minWorkHoursPerDay * 60) {
             result.push(this.str($r('app.string.warn_workday_min'), day, rules.minWorkHoursPerDay));
           }
         }
@@ -565,7 +599,7 @@ export class ScheduleService {
 
     for (let d = 1; d <= total; d++) {
       const entry = this.findEntry(days, dateKey(year, month, d));
-      const dm = this.dayMinutes(entry);
+      const dm = this.dayMinutesOnDate(days, dateKey(year, month, d));
       stats.dailyMinutes[d] = dm;
       if (dm > 0) {
         stats.workDays++;
@@ -630,6 +664,8 @@ export class ScheduleService {
         ns.name = s.name;
         ns.color = s.color;
         ns.breakMinutes = s.breakMinutes;
+        ns.startDayOffset = s.startDayOffset;
+        ns.endDayOffset = s.endDayOffset;
         shifts.push(ns);
       }
       dst.shifts = shifts;
@@ -658,6 +694,8 @@ export class ScheduleService {
       ns.name = s.name;
       ns.color = s.color;
       ns.breakMinutes = s.breakMinutes;
+      ns.startDayOffset = s.startDayOffset;
+      ns.endDayOffset = s.endDayOffset;
       shifts.push(ns);
     }
     dst.shifts = shifts;
@@ -703,7 +741,7 @@ export class ScheduleService {
     // 已排总工时与剩余目标
     let worked = 0;
     for (let d = 1; d <= total; d++) {
-      worked += this.dayMinutes(this.findEntry(days, dateKey(year, month, d)));
+      worked += this.dayMinutesOnDate(days, dateKey(year, month, d));
     }
     const remain = Math.max(0, target - worked);
     if (remain === 0 || openDays.length === 0) {
@@ -867,10 +905,7 @@ export class ScheduleService {
     let worked = 0;
     let probe = start;
     while (probe <= end) {
-      const e = this.findEntry(days, probe);
-      if (e !== undefined && e.shifts.length > 0) {
-        worked += this.dayMinutes(e);
-      }
+      worked += this.dayMinutesOnDate(days, probe);
       probe = this.addDays(probe, 1);
     }
     const remain = Math.max(0, target - worked);

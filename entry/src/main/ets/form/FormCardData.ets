@@ -4,7 +4,7 @@ import { preferences } from '@kit.ArkData';
 import { common } from '@kit.AbilityKit';
 import { formBindingData, formProvider, formInfo } from '@kit.FormKit';
 import { BusinessError } from '@kit.BasicServicesKit';
-import { DayEntry, Shift, dateKey, daysInMonth, minutesToHoursText, unionWorkedMinutes } from '../model/ScheduleTypes';
+import { DayEntry, Shift, dateKey, daysInMonth, minutesToHoursText, shiftCrossesDay, unionWorkedMinutes } from '../model/ScheduleTypes';
 
 const STORE_NAME = 'schedule_store';
 const KEY_DAYS = 'schedule_days_v1';
@@ -233,7 +233,7 @@ export class FormCardData {
         const item = new CardShift();
         item.name = shift.name !== undefined && shift.name !== ''
           ? shift.name : readText(context, 'form_unnamed_shift');
-        item.time = `${shift.start}-${shift.end}`;
+        item.time = `${shift.start}-${shiftCrossesDay(shift) ? readText(context, 'shift_next_day') + '-' : ''}${shift.end}`;
         item.hours = minutesToHoursText(shiftMinutes(shift));
         item.color = shift.color !== undefined && shift.color !== '' ? shift.color : DEFAULT_COLOR;
         payload.shifts.push(item);

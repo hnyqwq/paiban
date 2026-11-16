@@ -6,6 +6,8 @@ export class Shift {
   name: string = '';        // 班次名称（来自预设排班，空 = 未命名）
   color: string = '';       // 班次颜色（来自预设排班，空 = 主题蓝）
   breakMinutes: number = 0; // 休息时长（分钟），计算工时时扣除
+  startDayOffset: number = 0; // 开始日偏移：-1 昨日，0 当日
+  endDayOffset: number = 0;   // 结束日偏移：0 当日，1 次日
 
   static minutesBetween(hm: string): number {
     const parts = hm.split(':');
@@ -57,30 +59,60 @@ export const PRESET_COLORS: string[] = [
   '#6B4EFF', '#00A6A6', '#D94B8A', '#6B7280'
 ];
 
-// 一天班次的净工时（分钟）：各班次工时段（跨度扣除休息，休息按班次末尾计）
-// 先合并去重（重叠/相邻时段只计一次）再求和，避免重叠班次被重复计时
-export function unionWorkedMinutes(shifts: Shift[]): number {
-  const spans: number[][] = [];
-  for (const s of shifts) {
-    const start = Shift.minutesBetween(s.start);
-    let end = Shift.minutesBetween(s.end);
-    if (end <= start) {
-      end += 24 * 60; // 跨天
-    }
-    const workedEnd = Math.max(start, end - Math.max(0, s.breakMinutes));
-    spans.push([start, workedEnd]);
+// 班次相对其所属日期 0 点的绝对分钟区间；
+// end<=start 且未显式标注次日时，按跨天（+24h）兜底，兼容老数据
+export function shiftAbsRange(s: Shift): number[] {
+  const start = s.startDayOffset * 1440 + Shift.minutesBetween(s.start);
+  let end = s.endDayOffset * 1440 + Shift.minutesBetween(s.end);
+  if (end <= start) {
+    end += 24 * 60;
   }
-  spans.sort((a: number[], b: number[]) => a[0] - b[0]);
+  return [start, end];
+}
+
+// 班次是否跨到次日
+export function shiftCrossesDay(s: Shift): boolean {
+  return shiftAbsRange(s)[1] > 1440;
+}
+
+// 班次落在某天的时长（分钟）：dayOffset 0 = 班次所属日，-1 = 昨日
+export function shiftMinutesOnOffsetDay(s: Shift, dayOffset: number): number {
+  const range = shiftAbsRange(s);
+  const dayStart = dayOffset * 1440;
+  const from = Math.max(range[0], dayStart);
+  const to = Math.min(range[1], dayStart + 1440);
+  return Math.max(0, to - from);
+}
+
+// 一天班次的净工时（分钟）：取班次落在该天的工时段（跨度扣除休息，休息按班次末尾计），
+// 合并去重（重叠/相邻时段只计一次）后求和，避免重叠班次被重复计时
+export function unionWorkedMinutes(shifts: Shift[], dayOffset: number = 0): number {
+  const dayStart = dayOffset * 1440;
+  const intervals: number[][] = [];
+  for (const s of shifts) {
+    const range = shiftAbsRange(s);
+    const from = Math.max(range[0], dayStart);
+    const to = Math.min(range[1], dayStart + 1440);
+    if (to > from) {
+      intervals.push([from - dayStart, to - dayStart]);
+    }
+  }
+  return unionMinutes(intervals);
+}
+
+// 区间并集总长（分钟），intervals 为相对同一起点的 [start, end)
+export function unionMinutes(intervals: number[][]): number {
+  intervals.sort((a: number[], b: number[]) => a[0] - b[0]);
   let total = 0;
   let curStart = 0;
   let curEnd = 0;
-  for (const span of spans) {
-    if (span[0] > curEnd) {
+  for (const it of intervals) {
+    if (it[0] > curEnd) {
       total += curEnd - curStart;
-      curStart = span[0];
-      curEnd = span[1];
-    } else if (span[1] > curEnd) {
-      curEnd = span[1];
+      curStart = it[0];
+      curEnd = it[1];
+    } else if (it[1] > curEnd) {
+      curEnd = it[1];
     }
   }
   total += curEnd - curStart;

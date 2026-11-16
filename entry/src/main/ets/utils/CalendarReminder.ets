@@ -2,7 +2,7 @@
 import calendarManager from '@ohos.calendarManager';
 import reminderAgentManager from '@ohos.reminderAgentManager';
 import { abilityAccessCtrl, Permissions, common } from '@kit.AbilityKit';
-import { Shift } from '../model/ScheduleTypes';
+import { Shift, shiftCrossesDay } from '../model/ScheduleTypes';
 
 class ShiftTimeRange {
   startMs: number = 0;
@@ -67,10 +67,18 @@ export async function addShiftToCalendar(context: common.UIAbilityContext, date:
     }
     const cal = calendars[0];
     const namePrefix = shift.name !== '' ? `${shift.name} ` : '';
+    let endText = shift.end;
+    if (shiftCrossesDay(shift)) {
+      try {
+        endText = `${context.resourceManager.getStringByNameSync('shift_next_day')} ${shift.end}`;
+      } catch (e) {
+        // 取不到文案就用原样
+      }
+    }
     const event: calendarManager.Event = {
       type: calendarManager.EventType.NORMAL,
       title: '上班',
-      description: `${namePrefix}${shift.start} - ${shift.end}`,
+      description: `${namePrefix}${shift.start} - ${endText}`,
       startTime: range.startMs,
       endTime: range.endMs
     };
