@@ -151,7 +151,7 @@ export struct MinePage {
     if (ctx === undefined) {
       return;
     }
-    ctx.openLink('https://agreement-drcn.hispace.dbankcloud.cn/index.html?lang=zh&agreementId=2082051778836223232');
+    ctx.openLink('https://agreement-drcn.hispace.dbankcloud.cn/index.html?lang=zh&agreementId=2085312685611734272');
   }
 
   exportData(): void {
