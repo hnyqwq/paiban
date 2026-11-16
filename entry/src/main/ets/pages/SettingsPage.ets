@@ -819,8 +819,8 @@ export struct SettingsPage {
     Scroll(this.scroller) {
       Column() {
         if (this.isWideLayout) {
-          // 大屏双栏：规则在左，预设排班在右
-          Row() {
+          // 大屏双栏：规则在左，预设排班在右（两栏间距 8vp）
+          Row({ space: 8 }) {
             Column() {
               this.rulesSection()
             }
