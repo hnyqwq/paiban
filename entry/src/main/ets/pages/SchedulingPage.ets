@@ -146,7 +146,26 @@ export struct SchedulingPage {
     this.confirmSegLabels([seg], () => this.doAddSeg(i));
   }
 
-  // 逐段检查跨天标注：结束早于开始提醒加「次日」，反之提醒「昨日」；全部通过后执行 onConfirmed
+  // 取消该行输入：清空时间与标注
+  clearSeg(i: number): void {
+    const seg = this.newSegs[i];
+    if (seg === undefined) {
+      return;
+    }
+    seg.start = '';
+    seg.end = '';
+    seg.startPrev = false;
+    seg.endNext = false;
+    this.newSegs = this.newSegs.slice();
+  }
+
+  // 是否有段正在输入（有内容未确定）：是则隐藏加闹钟/加日历/完成排班
+  isSegEditing(): boolean {
+    return this.newSegs.some((seg: SegStartEnd) =>
+      seg.start.trim() !== '' || seg.end.trim() !== '');
+  }
+
+  // 点确定时自动检测：结束早于开始（跨天）则弹窗提醒，仅取消/确定两个按钮
   private confirmSegLabels(segs: SegStartEnd[], onConfirmed: () => void): boolean {
     for (let i = 0; i < segs.length; i++) {
       const seg = segs[i];
@@ -158,39 +177,19 @@ export struct SchedulingPage {
       if (sMin === eMin) {
         continue;
       }
-      if (eMin < sMin && !seg.endNext) {
-        // 结束早于开始：班次跨到次日，提醒添加「次日」标注
+      if (eMin < sMin) {
+        // 跨天：弹窗提醒（取消/确定）
         promptAction.showDialog({
           title: $r('app.string.shift_next_day'),
           message: $r('app.string.seg_next_day_hint'),
           buttons: [
-            { text: $r('app.string.seg_label_skip'), color: $r('sys.color.font_secondary') },
-            { text: $r('app.string.seg_label_add'), color: $r('sys.color.brand') }
+            { text: $r('app.string.cancel'), color: $r('sys.color.font_secondary') },
+            { text: $r('app.string.seg_label_confirm'), color: $r('sys.color.brand') }
           ]
         }).then((res) => {
           if (res.index === 1) {
-            seg.endNext = true;
+            this.confirmSegLabels(segs, onConfirmed);
           }
-          this.newSegs = this.newSegs.slice();
-          this.confirmSegLabels(segs, onConfirmed);
-        });
-        return false;
-      }
-      if (eMin > sMin && !seg.startPrev && !seg.endNext) {
-        // 结束不早于开始：班次可能起于昨日，提醒添加「昨日」标注
-        promptAction.showDialog({
-          title: $r('app.string.shift_prev_day'),
-          message: $r('app.string.seg_prev_day_hint'),
-          buttons: [
-            { text: $r('app.string.seg_label_skip'), color: $r('sys.color.font_secondary') },
-            { text: $r('app.string.seg_label_add'), color: $r('sys.color.brand') }
-          ]
-        }).then((res) => {
-          if (res.index === 1) {
-            seg.startPrev = true;
-          }
-          this.newSegs = this.newSegs.slice();
-          this.confirmSegLabels(segs, onConfirmed);
         });
         return false;
       }
@@ -286,10 +285,12 @@ export struct SchedulingPage {
     }
     e.shifts.push(s);
     this.upsertEntry(e);
-    this.newSegs.splice(i, 1);
-    if (this.newSegs.length === 0) {
-      this.addNewSeg();
-    }
+    // 确定后清空该行，供继续录入下一段
+    seg.start = '';
+    seg.end = '';
+    seg.startPrev = false;
+    seg.endNext = false;
+    this.newSegs = this.newSegs.slice();
   }
 
   resetSegs(): void {
@@ -352,10 +353,10 @@ export struct SchedulingPage {
     return result;
   }
 
-  // 班次时间段文案：结束跨到次日时带「可选次日」前缀，开始属昨日时带「可选昨日」前缀
+  // 班次时间段文案：结束跨到次日时带「次日」前缀，开始属昨日时带「昨日」前缀
   shiftTimeText(s: Shift): string {
-    const prev = this.service.str($r('app.string.shift_prev_day_opt'));
-    const next = this.service.str($r('app.string.shift_next_day_opt'));
+    const prev = this.service.str($r('app.string.shift_prev_day'));
+    const next = this.service.str($r('app.string.shift_next_day'));
     const startText = s.startDayOffset < 0 ? `${prev} ${s.start}` : s.start;
     const endText = shiftCrossesDay(s) ? `${next} ${s.end}` : s.end;
     return `${startText} - ${endText}`;
@@ -822,7 +823,7 @@ export struct SchedulingPage {
         .margin({ top: 6 })
       }
 
-      // 逐段编辑班次
+      // 逐段编辑班次：行尾确定/取消，时间框缩窄
       ForEach(this.newSegs, (seg: SegStartEnd, i: number) => {
         Row() {
           Column() {
@@ -839,26 +840,11 @@ export struct SchedulingPage {
                   this.newSegs.splice(i, 1, seg);
                 }
               })
-            // 开始跨天标注：属于昨日
-            Text($r('app.string.shift_prev_day_opt'))
-              .fontSize(13)
-              .padding({ left: 8, right: 8, top: 2, bottom: 2 })
-              .borderRadius(6)
-              .border({
-                width: seg.startPrev ? 1 : 0.5,
-                color: seg.startPrev ? $r('sys.color.brand') : $r('sys.color.comp_divider')
-              })
-              .fontColor(seg.startPrev ? $r('sys.color.brand') : $r('sys.color.font_tertiary'))
-              .margin({ top: 2 })
-              .onClick(() => {
-                seg.startPrev = !seg.startPrev;
-                this.newSegs.splice(i, 1, seg);
-              })
           }
-          .layoutWeight(1)
+          .width(96)
           .alignItems(HorizontalAlign.Start)
 
-          Text('→').margin({ left: 6, right: 6 })
+          Text('→').margin({ left: 4, right: 4 })
 
           Column() {
             TextInput({ text: seg.end, placeholder: '12:00' })
@@ -874,41 +860,32 @@ export struct SchedulingPage {
                   this.newSegs.splice(i, 1, seg);
                 }
               })
-            // 结束跨天标注：属于次日
-            Text($r('app.string.shift_next_day_opt'))
-              .fontSize(13)
-              .padding({ left: 8, right: 8, top: 2, bottom: 2 })
-              .borderRadius(6)
-              .border({
-                width: seg.endNext ? 1 : 0.5,
-                color: seg.endNext ? $r('sys.color.brand') : $r('sys.color.comp_divider')
-              })
-              .fontColor(seg.endNext ? $r('sys.color.brand') : $r('sys.color.font_tertiary'))
-              .margin({ top: 2 })
-              .onClick(() => {
-                seg.endNext = !seg.endNext;
-                this.newSegs.splice(i, 1, seg);
-              })
           }
-          .layoutWeight(1)
+          .width(96)
           .alignItems(HorizontalAlign.Start)
 
-          Text($r('app.string.delete'))
-            .fontSize(15)
-            .fontColor($r('sys.color.warning'))
-            .margin({ left: 10 })
-            .onClick(() => this.removeNewSeg(i))
-          // 每段单独走跨天标注弹窗流程添加
-          if (this.editShiftIndex < 0) {
-            Text($r('app.string.seg_label_add'))
-              .fontSize(15)
+          // 行尾：确定（保存该段）/ 取消（清空该行）
+          Column({ space: 2 }) {
+            Text($r('app.string.seg_label_confirm'))
+              .fontSize(13)
               .fontColor($r('sys.color.brand'))
-              .margin({ left: 10 })
+              .padding({ left: 6, right: 6, top: 2, bottom: 2 })
+              .borderRadius(6)
+              .border({ width: 0.5, color: $r('sys.color.brand') })
               .onClick(() => this.addSeg(i))
+            Text($r('app.string.cancel'))
+              .fontSize(13)
+              .fontColor($r('sys.color.font_tertiary'))
+              .padding({ left: 6, right: 6, top: 2, bottom: 2 })
+              .borderRadius(6)
+              .border({ width: 0.5, color: $r('sys.color.comp_divider') })
+              .onClick(() => this.clearSeg(i))
           }
+          .alignItems(HorizontalAlign.Center)
+          .margin({ left: 6 })
         }
         .width('100%')
-        .alignItems(VerticalAlign.Top)
+        .alignItems(VerticalAlign.Bottom)
         .margin({ top: 6 })
       }, (seg: SegStartEnd, i: number) => `${i}-${seg.start}-${seg.end}-${seg.startPrev}-${seg.endNext}`)
 
@@ -1095,32 +1072,35 @@ export struct SchedulingPage {
             })
         }
 
-        // 批量：勾选的班次（未勾选则本日全部）
-        Row({ space: 8 }) {
-          if (this.showAlarmFeature) {
-            Button($r('app.string.add_alarm'))
+        // 正在输入班次（段未确定）时，隐藏加闹钟/加日历/完成排班
+        if (!this.isSegEditing()) {
+          // 批量：勾选的班次（未勾选则本日全部）
+          Row({ space: 8 }) {
+            if (this.showAlarmFeature) {
+              Button($r('app.string.add_alarm'))
+                .buttonStyle(ButtonStyleMode.NORMAL)
+                .fontSize(13)
+                .layoutWeight(1)
+                .onClick(() => this.addAlarmForShifts(this.targetShifts()))
+            }
+            Button($r('app.string.add_calendar'))
               .buttonStyle(ButtonStyleMode.NORMAL)
               .fontSize(13)
               .layoutWeight(1)
-              .onClick(() => this.addAlarmForShifts(this.targetShifts()))
+              .onClick(() => this.addCalendarForShifts(this.targetShifts()))
           }
-          Button($r('app.string.add_calendar'))
-            .buttonStyle(ButtonStyleMode.NORMAL)
-            .fontSize(13)
-            .layoutWeight(1)
-            .onClick(() => this.addCalendarForShifts(this.targetShifts()))
-        }
-        .width('100%')
-        .margin({ top: 8 })
-
-        Button($r('app.string.done_schedule'))
           .width('100%')
           .margin({ top: 8 })
-          .onClick(() => {
-            this.editing = false;
-            this.selectedShifts = [];
-            this.showShiftForm = false;
-          })
+
+          Button($r('app.string.done_schedule'))
+            .width('100%')
+            .margin({ top: 8 })
+            .onClick(() => {
+              this.editing = false;
+              this.selectedShifts = [];
+              this.showShiftForm = false;
+            })
+        }
       } else if (this.targetShifts().length > 0 || this.selectedShifts.length > 0) {
         // 有日程：开始排班放在后面
         Button($r('app.string.start_schedule'))
