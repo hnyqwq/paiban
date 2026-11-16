@@ -1,10 +1,18 @@
 // 日程页：月历 + 只读日程 + 备忘录 + 待办（排班编辑在「排班」页）
+import reminderAgentManager from '@ohos.reminderAgentManager';
 import {
   DayEntry, Shift, TodoItem,
-  dateKey, minutesToHoursText, shiftCrossesDay, shiftMinutesOnOffsetDay
+  dateKey, minutesToHoursText, pad2, shiftCrossesDay, shiftMinutesOnOffsetDay
 } from '../model/ScheduleTypes';
 import { ScheduleService } from '../service/ScheduleService';
 import { CalendarView } from '../view/CalendarView';
+
+// 已添加的代理提醒条目
+class ReminderItem {
+  title: string = '';
+  content: string = '';
+  timeText: string = '';
+}
 
 // 当日展示的班次条目：本日班次 + 昨日跨天班次的尾巴
 class DayShiftItem {
@@ -25,6 +33,7 @@ export struct AgendaPage {
   @State memoDraft: string = '';
   @State memoDate: string = ''; // memoDraft 当前所属的日期，避免切换日期时写错天
   @State newTodo: string = '';
+  @State reminderItems: ReminderItem[] = []; // 已添加的代理提醒
   @StorageLink('scheduleDataVersion') @Watch('onDataChanged') scheduleDataVersion: number = 0;
   private service: ScheduleService = ScheduleService.getInstance();
   private memoTimer: number = -1; // 备忘录输入防抖保存定时器
@@ -70,6 +79,28 @@ export struct AgendaPage {
     const entry = this.service.findEntry(this.days, this.selectedDate);
     this.memoDraft = entry !== undefined ? entry.memo : '';
     this.memoDate = this.selectedDate;
+    this.loadReminders();
+  }
+
+  // 读取本应用已添加的有效代理提醒
+  loadReminders(): void {
+    reminderAgentManager.getValidReminders().then((reminders) => {
+      const items: ReminderItem[] = [];
+      for (const r of reminders) {
+        const item = new ReminderItem();
+        item.title = typeof r.title === 'string' ? r.title : '';
+        item.content = typeof r.content === 'string' ? r.content : '';
+        // 日历型提醒才有 dateTime，其他类型跳过时间显示
+        if (r.reminderType === reminderAgentManager.ReminderType.REMINDER_TYPE_CALENDAR) {
+          const dt = (r as reminderAgentManager.ReminderRequestCalendar).dateTime;
+          item.timeText = `${dt.year}-${pad2(dt.month)}-${pad2(dt.day)} ${pad2(dt.hour)}:${pad2(dt.minute)}`;
+        }
+        items.push(item);
+      }
+      this.reminderItems = items;
+    }).catch(() => {
+      // 读取失败保持原样，不影响页面其他功能
+    });
   }
 
   saveDays(): void {
@@ -369,6 +400,59 @@ export struct AgendaPage {
     .border({ width: 0.5, color: $r('sys.color.comp_divider') })
   }
 
+  // 已添加的代理提醒卡片（页面最后面）
+  @Builder
+  reminderCard() {
+    Column() {
+      Text($r('app.string.reminder_section'))
+        .fontSize(16)
+        .fontWeight(FontWeight.Bold)
+        .width('100%')
+        .margin({ bottom: 8 })
+      if (this.reminderItems.length === 0) {
+        Text($r('app.string.reminder_empty'))
+          .fontSize(13)
+          .fontColor($r('sys.color.font_tertiary'))
+          .width('100%')
+      } else {
+        List() {
+          ForEach(this.reminderItems, (item: ReminderItem, i: number) => {
+            ListItem() {
+              Column() {
+                Text(item.title)
+                  .fontSize(14)
+                  .fontWeight(FontWeight.Medium)
+                  .width('100%')
+                Text(item.content)
+                  .fontSize(12)
+                  .fontColor($r('sys.color.font_secondary'))
+                  .width('100%')
+                  .margin({ top: 2 })
+                Text(item.timeText)
+                  .fontSize(11)
+                  .fontColor($r('sys.color.font_tertiary'))
+                  .width('100%')
+                  .margin({ top: 2 })
+              }
+              .alignItems(HorizontalAlign.Start)
+              .width('100%')
+              .padding(10)
+              .borderRadius(8)
+              .backgroundColor($r('sys.color.comp_background_tertiary'))
+              .margin({ top: 6 })
+            }
+          }, (item: ReminderItem, i: number) => `${i}-${item.timeText}-${item.title}`)
+        }
+        .width('100%')
+      }
+    }
+    .padding(12)
+    .borderRadius(12)
+    .backgroundColor($r('sys.color.background_primary'))
+    .border({ width: 0.5, color: $r('sys.color.comp_divider') })
+    .margin({ top: 12 })
+  }
+
   build() {
     Scroll(this.scroller) {
       Column() {
@@ -383,6 +467,7 @@ export struct AgendaPage {
 
             Column() {
               this.dayDetail()
+              this.reminderCard()
             }
             .layoutWeight(1)
             .alignItems(HorizontalAlign.Start)
@@ -392,6 +477,7 @@ export struct AgendaPage {
         } else {
           CalendarView()
           this.dayDetail()
+          this.reminderCard()
         }
         Text('') // 底部留白，避开悬浮 Tab 栏
           .height(100)

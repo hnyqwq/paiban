@@ -67,6 +67,8 @@
     { "name": "rest_marker", "value": "R" },
     { "name": "shift_next_day", "value": "Next day" },
     { "name": "shift_prev_day", "value": "Prev. day" },
+    { "name": "reminder_section", "value": "Added reminders" },
+    { "name": "reminder_empty", "value": "No reminders yet. Add them in Schedule." },
     { "name": "today_label", "value": "Today" },
     { "name": "warn_gap", "value": "Day %1$d: only %2$d min between shifts, need at least %3$d min" },
     { "name": "warn_min_daily", "value": "Day %1$d: scheduled %2$s, below the minimum of %3$d h" },

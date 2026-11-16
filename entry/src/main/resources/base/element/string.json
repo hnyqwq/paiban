@@ -67,6 +67,8 @@
     { "name": "rest_marker", "value": "休" },
     { "name": "shift_next_day", "value": "次日" },
     { "name": "shift_prev_day", "value": "昨日" },
+    { "name": "reminder_section", "value": "已添加的提醒" },
+    { "name": "reminder_empty", "value": "暂无提醒，可在「排班」页批量添加" },
     { "name": "today_label", "value": "今日" },
     { "name": "warn_gap", "value": "%1$d日：两个班次之间只休 %2$d 分钟，要求至少 %3$d 分钟" },
     { "name": "warn_min_daily", "value": "%1$d日：当日仅排 %2$s，少于最少 %3$d 小时" },
