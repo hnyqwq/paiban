@@ -266,7 +266,7 @@ export class FormCardData {
         payload.shifts.push(item);
       }
     }
-    if (payload.shifts.length === 0) {
+    if (payload.shifts.length === 0 && minutes === 0) {
       payload.statusText = isRestEntry(entry)
         ? readText(context, 'form_rest_day')
         : readText(context, 'form_no_shift');
