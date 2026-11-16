@@ -813,7 +813,7 @@ export struct SchedulingPage {
                 Text($r('app.string.edit'))
                   .fontSize(13)
                   .fontColor($r('sys.color.brand'))
-                  .margin({ right: 12 })
+                  .margin({ left: 12, right: 12 })
                   .onClick(() => {
                     // 手动编辑该班次时间（保留名称/颜色/休息）
                     this.editShiftIndex = i;
