@@ -196,8 +196,8 @@ export struct SchedulingPage {
         continue;
       }
       const s = new Shift();
-      s.start = seg.start.trim();
-      s.end = seg.end.trim();
+      s.start = normalizeTime(seg.start.trim());
+      s.end = normalizeTime(seg.end.trim());
       s.startDayOffset = seg.startPrev ? -1 : 0;
       // 显式标注次日，或结束早于开始的跨天兜底
       s.endDayOffset = seg.endNext || Shift.minutesBetween(s.end) <= Shift.minutesBetween(s.start) ? 1 : 0;
@@ -250,8 +250,8 @@ export struct SchedulingPage {
       return;
     }
     const s = new Shift();
-    s.start = seg.start.trim();
-    s.end = seg.end.trim();
+    s.start = normalizeTime(seg.start.trim());
+    s.end = normalizeTime(seg.end.trim());
     s.startDayOffset = seg.startPrev ? -1 : 0;
     // 显式标注次日，或结束早于开始的跨天兜底
     s.endDayOffset = seg.endNext || Shift.minutesBetween(s.end) <= Shift.minutesBetween(s.start) ? 1 : 0;
@@ -825,11 +825,8 @@ export struct SchedulingPage {
                 seg.start = v;
               })
               .onBlur(() => {
-                const n = normalizeTime(seg.start);
-                if (n !== seg.start) {
-                  seg.start = n;
-                  this.newSegs.splice(i, 1, seg);
-                }
+                // 仅更新数据，不触发列表重建（避免吞掉点击事件）
+                seg.start = normalizeTime(seg.start);
               })
           }
           .width(88)
@@ -845,11 +842,8 @@ export struct SchedulingPage {
                 seg.end = v;
               })
               .onBlur(() => {
-                const n = normalizeTime(seg.end);
-                if (n !== seg.end) {
-                  seg.end = n;
-                  this.newSegs.splice(i, 1, seg);
-                }
+                // 仅更新数据，不触发列表重建（避免吞掉点击事件）
+                seg.end = normalizeTime(seg.end);
               })
           }
           .width(88)
