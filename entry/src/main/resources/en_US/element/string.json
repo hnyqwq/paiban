@@ -83,6 +83,7 @@
     { "name": "alarm_title_lead", "value": "Work reminder (%1$d min early)" },
     { "name": "alarm_expired", "value": "Shift time passed" },
     { "name": "alarm_btn_close", "value": "Close" },
+    { "name": "calendar_event_title", "value": "Work" },
     { "name": "alarm_btn_snooze", "value": "Snooze" },
     { "name": "alarm_snooze_content", "value": "Snoozed reminder" },
     { "name": "today_label", "value": "Today" },

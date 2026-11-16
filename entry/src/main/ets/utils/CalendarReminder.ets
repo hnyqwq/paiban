@@ -52,6 +52,13 @@ export async function addShiftToCalendar(context: common.UIAbilityContext, date:
   }
   try {
     const range = shiftTimes(date, shift);
+    // 事件标题资源化（zh「上班」/ en「Work」），去重比对也用同一标题
+    let eventTitle = 'Work';
+    try {
+      eventTitle = context.resourceManager.getStringByNameSync('calendar_event_title');
+    } catch (e) {
+      // 取不到文案就用默认
+    }
     const manager: calendarManager.CalendarManager = calendarManager.getCalendarManager(context);
     const calendars: calendarManager.Calendar[] = await manager.getAllCalendars();
     if (calendars.length === 0) {
@@ -62,7 +69,7 @@ export async function addShiftToCalendar(context: common.UIAbilityContext, date:
     for (const cal of calendars) {
       const existing: calendarManager.Event[] = await cal.queryEventInstances(range.startMs, range.endMs);
       for (const ev of existing) {
-        if (ev.title === '上班' && ev.startTime === range.startMs) {
+        if (ev.title === eventTitle && ev.startTime === range.startMs) {
           return true;
         }
       }
@@ -79,7 +86,7 @@ export async function addShiftToCalendar(context: common.UIAbilityContext, date:
     }
     const event: calendarManager.Event = {
       type: calendarManager.EventType.NORMAL,
-      title: '上班',
+      title: eventTitle,
       description: `${namePrefix}${shift.start} - ${endText}`,
       startTime: range.startMs,
       endTime: range.endMs
