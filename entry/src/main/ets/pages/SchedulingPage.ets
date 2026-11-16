@@ -133,6 +133,66 @@ export struct SchedulingPage {
   }
 
   addShift(): void {
+    // 保存前逐段检查跨天标注，有提醒时按用户选择处理后继续
+    if (!this.confirmSegLabels(this.newSegs)) {
+      return;
+    }
+    this.doAddShift();
+  }
+
+  // 逐段检查跨天标注：结束早于开始提醒加「次日」，反之提醒「昨日」；返回 false 表示已弹出提醒待确认
+  private confirmSegLabels(segs: SegStartEnd[]): boolean {
+    for (let i = 0; i < segs.length; i++) {
+      const seg = segs[i];
+      if (seg.start.trim() === '' || seg.end.trim() === '') {
+        continue;
+      }
+      const sMin = Shift.minutesBetween(seg.start.trim());
+      const eMin = Shift.minutesBetween(seg.end.trim());
+      if (sMin === eMin) {
+        continue;
+      }
+      if (eMin < sMin && !seg.endNext) {
+        // 结束早于开始：班次跨到次日，提醒添加「次日」标注
+        promptAction.showDialog({
+          title: $r('app.string.shift_next_day'),
+          message: $r('app.string.seg_next_day_hint'),
+          buttons: [
+            { text: $r('app.string.seg_label_skip'), color: $r('sys.color.font_secondary') },
+            { text: $r('app.string.seg_label_add'), color: $r('sys.color.brand') }
+          ]
+        }).then((res) => {
+          if (res.index === 1) {
+            seg.endNext = true;
+            this.newSegs.splice(i, 1, seg);
+          }
+          this.addShift();
+        });
+        return false;
+      }
+      if (eMin > sMin && !seg.startPrev) {
+        // 结束不早于开始：班次可能起于昨日，提醒添加「昨日」标注
+        promptAction.showDialog({
+          title: $r('app.string.shift_prev_day'),
+          message: $r('app.string.seg_prev_day_hint'),
+          buttons: [
+            { text: $r('app.string.seg_label_skip'), color: $r('sys.color.font_secondary') },
+            { text: $r('app.string.seg_label_add'), color: $r('sys.color.brand') }
+          ]
+        }).then((res) => {
+          if (res.index === 1) {
+            seg.startPrev = true;
+            this.newSegs.splice(i, 1, seg);
+          }
+          this.addShift();
+        });
+        return false;
+      }
+    }
+    return true;
+  }
+
+  doAddShift(): void {
     // 收集表单里完整的段，一次加齐
     const shifts: Shift[] = [];
     for (const seg of this.newSegs) {
@@ -250,10 +310,10 @@ export struct SchedulingPage {
     return result;
   }
 
-  // 班次时间段文案：结束跨到次日时带「次日」前缀，开始属昨日时带「昨日」前缀
+  // 班次时间段文案：结束跨到次日时带「可选次日」前缀，开始属昨日时带「可选昨日」前缀
   shiftTimeText(s: Shift): string {
-    const prev = this.service.str($r('app.string.shift_prev_day'));
-    const next = this.service.str($r('app.string.shift_next_day'));
+    const prev = this.service.str($r('app.string.shift_prev_day_opt'));
+    const next = this.service.str($r('app.string.shift_next_day_opt'));
     const startText = s.startDayOffset < 0 ? `${prev} ${s.start}` : s.start;
     const endText = shiftCrossesDay(s) ? `${next} ${s.end}` : s.end;
     return `${startText} - ${endText}`;
@@ -738,7 +798,7 @@ export struct SchedulingPage {
                 }
               })
             // 开始跨天标注：属于昨日
-            Text($r('app.string.shift_prev_day'))
+            Text($r('app.string.shift_prev_day_opt'))
               .fontSize(11)
               .padding({ left: 8, right: 8, top: 2, bottom: 2 })
               .borderRadius(6)
@@ -773,7 +833,7 @@ export struct SchedulingPage {
                 }
               })
             // 结束跨天标注：属于次日
-            Text($r('app.string.shift_next_day'))
+            Text($r('app.string.shift_next_day_opt'))
               .fontSize(11)
               .padding({ left: 8, right: 8, top: 2, bottom: 2 })
               .borderRadius(6)
