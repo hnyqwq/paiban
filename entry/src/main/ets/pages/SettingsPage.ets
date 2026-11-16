@@ -5,7 +5,6 @@ import {
   Shift, ShiftRules, PresetShift, PRESET_COLORS, normalizeTime, minutesToHoursText
 } from '../model/ScheduleTypes';
 import { ScheduleService } from '../service/ScheduleService';
-import { AddCardButton } from '../utils/AddCardButton';
 
 function segString(res: Resource): string {
   try {
@@ -819,12 +818,6 @@ export struct SettingsPage {
   build() {
     Scroll(this.scroller) {
       Column() {
-        Row() {
-          Blank()
-          AddCardButton()
-        }
-        .width('100%')
-        .margin({ bottom: 4 })
         if (this.isWideLayout) {
           // 大屏双栏：规则在左，预设排班在右
           Row() {

@@ -13,6 +13,7 @@ import {
   ScrollEffectType,
 } from '@kit.UIDesignKit';
 import { LengthMetrics, SymbolGlyphModifier } from '@kit.ArkUI';
+import { showAddCardDialog } from '../utils/AddCardButton';
 
 @Entry
 @Component
@@ -132,6 +133,16 @@ struct Index {
       content: {
         title: {
           mainTitle: this.getMainTitle()
+        },
+        menu: {
+          value: [{
+            content: {
+              icon: new SymbolGlyphModifier($r('sys.symbol.plus')),
+              action: () => {
+                showAddCardDialog();
+              }
+            }
+          }]
         }
       },
       style: {

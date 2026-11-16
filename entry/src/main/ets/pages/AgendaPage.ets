@@ -6,7 +6,6 @@ import {
 } from '../model/ScheduleTypes';
 import { ScheduleService } from '../service/ScheduleService';
 import { CalendarView } from '../view/CalendarView';
-import { AddCardButton } from '../utils/AddCardButton';
 
 // 已添加的代理提醒条目
 class ReminderItem {
@@ -465,12 +464,6 @@ export struct AgendaPage {
   build() {
     Scroll(this.scroller) {
       Column() {
-        Row() {
-          Blank()
-          AddCardButton()
-        }
-        .width('100%')
-        .margin({ bottom: 4 })
         if (this.isWideLayout) {
           // 大屏双栏：日历在左，当日详情（班次/备忘/待办）在右
           Row() {

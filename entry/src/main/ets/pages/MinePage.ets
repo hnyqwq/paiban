@@ -6,7 +6,6 @@ import { updateManager } from '@kit.AppGalleryKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { AlarmSettings } from '../model/ScheduleTypes';
 import { ScheduleService } from '../service/ScheduleService';
-import { AddCardButton } from '../utils/AddCardButton';
 
 function segString(res: Resource): string {
   try {
@@ -429,12 +428,6 @@ export struct MinePage {
   build() {
     Scroll(this.scroller) {
       Column() {
-        Row() {
-          Blank()
-          AddCardButton()
-        }
-        .width('100%')
-        .margin({ bottom: 4 })
         if (this.isWideLayout) {
           // 大屏双栏：代理提醒在左，数据/外观/关于/隐私在右
           Row({ space: 8 }) {

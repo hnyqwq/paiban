@@ -3,7 +3,6 @@ import {
   MonthStats, ShiftRules, dateKey, minutesToHoursText
 } from '../model/ScheduleTypes';
 import { ScheduleService } from '../service/ScheduleService';
-import { AddCardButton } from '../utils/AddCardButton';
 
 @Component
 export struct SecondPage {  scroller: Scroller = new Scroller();
@@ -217,7 +216,6 @@ export struct SecondPage {  scroller: Scroller = new Scroller();
             .fontSize(24)
             .padding({ left: 16, right: 16 })
             .onClick(() => this.changeMonth(1))
-          AddCardButton()
         }
         .width('100%')
 
