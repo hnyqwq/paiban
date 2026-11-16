@@ -68,8 +68,6 @@ export class AlarmSettings {
   wantAgentEnabled: boolean = true;  // 点击提醒跳转回应用
   tapDismissed: boolean = false;     // 点击通知后移除该提醒
   autoDeleteEnabled: boolean = false; // 到达自动删除时间后移除提醒
-  customRingUri: string = '';        // 自定义铃声文件 URI（空 = 系统默认）
-  customRingName: string = '';       // 铃声文件名（展示用）
 }
 
 // 已添加的代理提醒登记：设置变化时按此重建全部提醒
@@ -79,6 +77,7 @@ export class AlarmSpec {
   start: string = '';      // 开始时间 HH:mm
   end: string = '';        // 结束时间 HH:mm
   leadMinutes: number = 0; // 提前提醒分钟数
+  reminderId: number = -1; // 系统返回的提醒 ID（-1 = 未知）
 }
 
 // 班次相对其所属日期 0 点的绝对分钟区间；

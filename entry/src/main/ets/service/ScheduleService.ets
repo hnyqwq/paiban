@@ -240,8 +240,6 @@ export class ScheduleService {
       settings.wantAgentEnabled = raw.wantAgentEnabled !== false;
       settings.tapDismissed = raw.tapDismissed === true;
       settings.autoDeleteEnabled = raw.autoDeleteEnabled === true;
-      settings.customRingUri = typeof raw.customRingUri === 'string' ? raw.customRingUri : '';
-      settings.customRingName = typeof raw.customRingName === 'string' ? raw.customRingName : '';
     } catch (e) {
       // 解析失败返回默认值
     }
@@ -286,6 +284,12 @@ export class ScheduleService {
     const list = this.getAlarmRegistry().filter((s: AlarmSpec) =>
       !(s.date === spec.date && s.start === spec.start));
     list.push(spec);
+    this.saveAlarmRegistry(list);
+  }
+
+  // 按系统提醒 ID 移除登记项（提醒被叉叉删除时）
+  removeAlarmSpecById(reminderId: number): void {
+    const list = this.getAlarmRegistry().filter((s: AlarmSpec) => s.reminderId !== reminderId);
     this.saveAlarmRegistry(list);
   }
 
