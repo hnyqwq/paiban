@@ -566,11 +566,12 @@ export class ScheduleService {
     return result;
   }
 
+  // 休息天数：当天没有任何排班工时（含未记录天与手动标记的休息日）
   countRestDays(days: DayEntry[], year: number, month: number): number {
     let count = 0;
     const total = daysInMonth(year, month);
     for (let d = 1; d <= total; d++) {
-      if (this.isRestDay(this.findEntry(days, dateKey(year, month, d)))) {
+      if (this.dayMinutesOnDate(days, dateKey(year, month, d)) === 0) {
         count++;
       }
     }
