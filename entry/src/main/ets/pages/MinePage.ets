@@ -639,10 +639,20 @@ export struct MinePage {
             .fontSize(15)
             .fontWeight(FontWeight.Medium)
             .fontColor($r('sys.color.font_primary'))
-          Text(`${preset.start} - ${preset.end}`)
-            .fontSize(12)
-            .fontColor($r('sys.color.font_secondary'))
-            .margin({ top: 1 })
+          Row() {
+            Text(`${preset.start} - ${preset.end}`)
+              .fontSize(12)
+              .fontColor($r('sys.color.font_secondary'))
+            if (preset.autoFill) {
+              Text($r('app.string.preset_autofill'))
+                .fontSize(9)
+                .fontColor($r('sys.color.brand'))
+                .border({ width: 0.5, color: $r('sys.color.brand'), radius: 4 })
+                .padding({ left: 4, right: 4, top: 1, bottom: 1 })
+                .margin({ left: 6 })
+            }
+          }
+          .margin({ top: 1 })
         }
         .alignItems(HorizontalAlign.Start)
         .layoutWeight(1)
