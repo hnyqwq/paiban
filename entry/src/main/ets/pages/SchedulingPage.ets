@@ -849,27 +849,18 @@ export struct SchedulingPage {
           .width(88)
           .alignItems(HorizontalAlign.Start)
 
-          // 行尾：确定（保存该段）/ 取消（清空该行）
-          // 按下即触发（Touch Down）：避开键盘收起导致布局移动、点击判定失效的问题
+          // 行尾：确定（保存该段）/ 取消（清空并收起表单）
           Row({ space: 6 }) {
             Button($r('app.string.seg_label_confirm'))
               .buttonStyle(ButtonStyleMode.EMPHASIZED)
               .fontSize(13)
               .height(32)
-              .onTouch((event: TouchEvent) => {
-                if (event.type === TouchType.Down) {
-                  this.addSeg(i);
-                }
-              })
+              .onClick(() => this.addSeg(i))
             Button($r('app.string.cancel'))
               .buttonStyle(ButtonStyleMode.NORMAL)
               .fontSize(13)
               .height(32)
-              .onTouch((event: TouchEvent) => {
-                if (event.type === TouchType.Down) {
-                  this.clearSeg();
-                }
-              })
+              .onClick(() => this.clearSeg())
           }
           .margin({ left: 6, right: 12 })
         }
