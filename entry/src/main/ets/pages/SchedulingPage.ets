@@ -134,14 +134,20 @@ export struct SchedulingPage {
 
   addShift(): void {
     // 保存前逐段检查跨天标注，有提醒时按用户选择处理后继续
-    if (!this.confirmSegLabels(this.newSegs)) {
-      return;
-    }
-    this.doAddShift();
+    this.confirmSegLabels(this.newSegs, () => this.doAddShift());
   }
 
-  // 逐段检查跨天标注：结束早于开始提醒加「次日」，反之提醒「昨日」；返回 false 表示已弹出提醒待确认
-  private confirmSegLabels(segs: SegStartEnd[]): boolean {
+  // 单独添加某一段：同样走跨天标注弹窗流程，仅保存该段
+  addSeg(i: number): void {
+    const seg = this.newSegs[i];
+    if (seg === undefined) {
+      return;
+    }
+    this.confirmSegLabels([seg], () => this.doAddSeg(i));
+  }
+
+  // 逐段检查跨天标注：结束早于开始提醒加「次日」，反之提醒「昨日」；全部通过后执行 onConfirmed
+  private confirmSegLabels(segs: SegStartEnd[], onConfirmed: () => void): boolean {
     for (let i = 0; i < segs.length; i++) {
       const seg = segs[i];
       if (seg.start.trim() === '' || seg.end.trim() === '') {
@@ -164,13 +170,13 @@ export struct SchedulingPage {
         }).then((res) => {
           if (res.index === 1) {
             seg.endNext = true;
-            this.newSegs.splice(i, 1, seg);
           }
-          this.addShift();
+          this.newSegs = this.newSegs.slice();
+          this.confirmSegLabels(segs, onConfirmed);
         });
         return false;
       }
-      if (eMin > sMin && !seg.startPrev) {
+      if (eMin > sMin && !seg.startPrev && !seg.endNext) {
         // 结束不早于开始：班次可能起于昨日，提醒添加「昨日」标注
         promptAction.showDialog({
           title: $r('app.string.shift_prev_day'),
@@ -182,13 +188,14 @@ export struct SchedulingPage {
         }).then((res) => {
           if (res.index === 1) {
             seg.startPrev = true;
-            this.newSegs.splice(i, 1, seg);
           }
-          this.addShift();
+          this.newSegs = this.newSegs.slice();
+          this.confirmSegLabels(segs, onConfirmed);
         });
         return false;
       }
     }
+    onConfirmed();
     return true;
   }
 
@@ -248,6 +255,41 @@ export struct SchedulingPage {
     this.appliedPresetId = '';
     this.upsertEntry(e);
     this.showShiftForm = false;
+  }
+
+  // 单独保存某一段并从表单移除；全部移除后补一个空段保持表单可用
+  private doAddSeg(i: number): void {
+    const seg = this.newSegs[i];
+    if (seg === undefined || seg.start.trim() === '' || seg.end.trim() === '') {
+      return;
+    }
+    const s = new Shift();
+    s.start = seg.start.trim();
+    s.end = seg.end.trim();
+    s.startDayOffset = seg.startPrev ? -1 : 0;
+    // 显式标注次日，或结束早于开始的跨天兜底
+    s.endDayOffset = seg.endNext || Shift.minutesBetween(s.end) <= Shift.minutesBetween(s.start) ? 1 : 0;
+    if (Shift.minutesBetween(s.start) === Shift.minutesBetween(s.end)) {
+      return; // 起止相同视为无效
+    }
+    const entry = this.service.findEntry(this.days, this.selectedDate);
+    const e = entry !== undefined ? entry : (() => {
+      const ne = new DayEntry();
+      ne.date = this.selectedDate;
+      return ne;
+    })();
+    const preset = this.findAppliedPreset();
+    if (preset !== undefined) {
+      s.name = preset.name;
+      s.color = preset.color;
+      s.breakMinutes = preset.breakMinutes;
+    }
+    e.shifts.push(s);
+    this.upsertEntry(e);
+    this.newSegs.splice(i, 1);
+    if (this.newSegs.length === 0) {
+      this.addNewSeg();
+    }
   }
 
   resetSegs(): void {
@@ -856,17 +898,19 @@ export struct SchedulingPage {
             .fontColor($r('sys.color.warning'))
             .margin({ left: 10 })
             .onClick(() => this.removeNewSeg(i))
+          // 每段单独走跨天标注弹窗流程添加
+          if (this.editShiftIndex < 0) {
+            Text($r('app.string.seg_label_add'))
+              .fontSize(13)
+              .fontColor($r('sys.color.brand'))
+              .margin({ left: 10 })
+              .onClick(() => this.addSeg(i))
+          }
         }
         .width('100%')
         .alignItems(VerticalAlign.Top)
         .margin({ top: 6 })
       }, (seg: SegStartEnd, i: number) => `${i}-${seg.start}-${seg.end}-${seg.startPrev}-${seg.endNext}`)
-      Button($r('app.string.add_segment'))
-        .width('100%')
-        .buttonStyle(ButtonStyleMode.NORMAL)
-        .fontSize(12)
-        .margin({ top: 6 })
-        .onClick(() => this.addNewSeg())
 
       Row() {
         Button($r('app.string.cancel'))
@@ -876,9 +920,12 @@ export struct SchedulingPage {
             this.appliedPresetId = '';
             this.showShiftForm = false;
           })
-        Button(this.editShiftIndex >= 0 ? $r('app.string.save') : $r('app.string.add_shift_btn'))
-          .margin({ left: 12 })
-          .onClick(() => this.addShift())
+        // 新增模式每段单独走「添加」流程，无需统一保存
+        if (this.editShiftIndex >= 0) {
+          Button($r('app.string.save'))
+            .margin({ left: 12 })
+            .onClick(() => this.addShift())
+        }
       }
       .width('100%')
       .justifyContent(FlexAlign.End)
