@@ -137,7 +137,7 @@ struct Index {
         menu: {
           value: [{
             content: {
-              icon: new SymbolGlyphModifier($r('sys.symbol.plus')),
+              icon: new SymbolGlyphModifier($r('sys.symbol.plus_square_on_square')),
               action: () => {
                 showAddCardDialog();
               }
