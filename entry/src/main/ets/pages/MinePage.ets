@@ -556,6 +556,7 @@ export struct MinePage {
         Text(label)
           .fontSize(15)
           .fontWeight(FontWeight.Medium)
+          .fontColor(this.ruleValue(key) > 0 ? $r('sys.color.font_primary') : $r('sys.color.font_tertiary'))
           .layoutWeight(1)
         Toggle({ type: ToggleType.Switch, isOn: this.ruleValue(key) > 0 })
           .onChange((isOn: boolean) => {
