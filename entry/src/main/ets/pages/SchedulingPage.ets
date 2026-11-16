@@ -146,10 +146,10 @@ export struct SchedulingPage {
     this.confirmSegLabels([seg], () => this.doAddSeg(i));
   }
 
-  // 取消该行输入：用全新空段替换，强制清空时间与标注
-  clearSeg(i: number): void {
-    this.newSegs.splice(i, 1, new SegStartEnd());
-    this.newSegs = this.newSegs.slice();
+  // 取消：重置全部段并收起表单（表单关闭后必然重建，保证输入框清空）
+  clearSeg(): void {
+    this.resetSegs();
+    this.showShiftForm = false;
   }
 
   // 点确定时自动检测：结束早于开始（跨天）则弹窗提醒，仅取消/确定两个按钮
@@ -867,7 +867,7 @@ export struct SchedulingPage {
               .height(32)
               .onTouch((event: TouchEvent) => {
                 if (event.type === TouchType.Down) {
-                  this.clearSeg(i);
+                  this.clearSeg();
                 }
               })
           }
