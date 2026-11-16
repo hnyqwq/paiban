@@ -72,6 +72,15 @@ export class AlarmSettings {
   customRingName: string = '';       // 铃声文件名（展示用）
 }
 
+// 已添加的代理提醒登记：设置变化时按此重建全部提醒
+export class AlarmSpec {
+  date: string = '';       // 班次日期 yyyy-MM-dd
+  name: string = '';       // 班次名称
+  start: string = '';      // 开始时间 HH:mm
+  end: string = '';        // 结束时间 HH:mm
+  leadMinutes: number = 0; // 提前提醒分钟数
+}
+
 // 班次相对其所属日期 0 点的绝对分钟区间；
 // end<=start 且未显式标注次日时，按跨天（+24h）兜底，兼容老数据
 export function shiftAbsRange(s: Shift): number[] {

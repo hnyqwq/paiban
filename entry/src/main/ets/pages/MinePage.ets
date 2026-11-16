@@ -8,6 +8,7 @@ import { updateManager } from '@kit.AppGalleryKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { AlarmSettings } from '../model/ScheduleTypes';
 import { ScheduleService } from '../service/ScheduleService';
+import { resyncAlarms } from '../utils/CalendarReminder';
 
 function segString(res: Resource): string {
   try {
@@ -93,10 +94,17 @@ export struct MinePage {
     }
   }
 
-  // 保存代理提醒自定义设置
+  // 保存代理提醒自定义设置，并同步到全部已添加的提醒
   saveAlarmSettings(): void {
     this.service.saveAlarmSettings(this.alarm);
-    promptAction.showToast({ message: $r('app.string.alarm_saved') });
+    const ctx = AppStorage.get<common.UIAbilityContext>('context');
+    if (ctx === undefined) {
+      promptAction.showToast({ message: $r('app.string.alarm_saved') });
+      return;
+    }
+    resyncAlarms(ctx).then(() => {
+      promptAction.showToast({ message: $r('app.string.alarm_saved') });
+    });
   }
 
   // 选择自定义铃声：拷贝到应用沙箱后存 URI

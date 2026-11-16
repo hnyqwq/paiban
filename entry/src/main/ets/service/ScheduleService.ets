@@ -3,7 +3,7 @@ import { preferences } from '@kit.ArkData';
 import { common, ConfigurationConstant } from '@kit.AbilityKit';
 import {
   DayEntry, Shift, ShiftRules, MonthStats, TodoItem, PresetShift, PRESET_COLORS,
-  AlarmSettings, dateKey, daysInMonth, minutesToHoursText, pad2, shiftAbsRange, unionMinutes, unionWorkedMinutes
+  AlarmSettings, AlarmSpec, dateKey, daysInMonth, minutesToHoursText, pad2, shiftAbsRange, unionMinutes, unionWorkedMinutes
 } from '../model/ScheduleTypes';
 import { FormCardData } from '../form/FormCardData';
 
@@ -13,6 +13,7 @@ const KEY_APPEARANCE = 'appearance_mode_v1'; // 0 跟随系统 1 浅色 2 深色
 const KEY_WEEK_START = 'calendar_week_start_v1'; // 0 周日开始 1 周一开始
 const KEY_PRESETS = 'preset_shifts_v1'; // 预设排班（名称/颜色/起止/休息）
 const KEY_ALARM_SETTINGS = 'alarm_settings_v1'; // 代理提醒自定义设置
+const KEY_ALARM_REGISTRY = 'alarm_registry_v1'; // 已添加的代理提醒登记（设置变化时重建）
 const FULL_REST_DAY_MINUTES = 8 * 60;        // 休息日按整天 8h 估算休息时长
 
 export class ScheduleService {
@@ -253,6 +254,39 @@ export class ScheduleService {
     }
     this.prefs.putSync(KEY_ALARM_SETTINGS, JSON.stringify(settings));
     this.prefs.flush();
+  }
+
+  // 已添加代理提醒的登记表：设置变化时按此重建全部提醒
+  getAlarmRegistry(): AlarmSpec[] {
+    if (this.prefs === null) {
+      return [];
+    }
+    try {
+      const json = this.prefs.getSync(KEY_ALARM_REGISTRY, '') as string;
+      if (json === '') {
+        return [];
+      }
+      const raw = JSON.parse(json) as AlarmSpec[];
+      return raw.filter((s: AlarmSpec) => s.date !== '' && s.start !== '' && s.end !== '');
+    } catch (e) {
+      return [];
+    }
+  }
+
+  saveAlarmRegistry(list: AlarmSpec[]): void {
+    if (this.prefs === null) {
+      return;
+    }
+    this.prefs.putSync(KEY_ALARM_REGISTRY, JSON.stringify(list));
+    this.prefs.flush();
+  }
+
+  // 登记一条提醒（按日期+开始时间去重，重复添加不重复登记）
+  addAlarmSpec(spec: AlarmSpec): void {
+    const list = this.getAlarmRegistry().filter((s: AlarmSpec) =>
+      !(s.date === spec.date && s.start === spec.start));
+    list.push(spec);
+    this.saveAlarmRegistry(list);
   }
 
   saveRules(rules: ShiftRules): void {

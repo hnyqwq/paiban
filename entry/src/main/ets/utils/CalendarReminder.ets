@@ -3,7 +3,7 @@ import calendarManager from '@ohos.calendarManager';
 import reminderAgentManager from '@ohos.reminderAgentManager';
 import notificationManager from '@ohos.notificationManager';
 import { abilityAccessCtrl, bundleManager, Permissions, common } from '@kit.AbilityKit';
-import { Shift, shiftCrossesDay } from '../model/ScheduleTypes';
+import { AlarmSpec, Shift, shiftCrossesDay } from '../model/ScheduleTypes';
 import { ScheduleService } from '../service/ScheduleService';
 
 class ShiftTimeRange {
@@ -190,9 +190,45 @@ export async function addShiftAlarm(context: common.UIAbilityContext, date: stri
       reminder.actionButton = [closeButton];
     }
     await reminderAgentManager.publishReminder(reminder);
+    // 登记到注册表：设置变化时可按新设置重建全部提醒
+    const spec = new AlarmSpec();
+    spec.date = date;
+    spec.name = shift.name;
+    spec.start = shift.start;
+    spec.end = shift.end;
+    spec.leadMinutes = leadMinutes;
+    ScheduleService.getInstance().addAlarmSpec(spec);
     return true;
   } catch (e) {
     console.error('publishReminder failed:', JSON.stringify(e));
     return false;
+  }
+}
+
+// 设置变化时同步全部已添加提醒：取消现有的，按登记表用新设置重建
+// 本 SDK 的 ReminderRequest 类型未暴露 id，运行时系统返回的对象带有已发布提醒的 id
+interface ReminWithId extends reminderAgentManager.ReminderRequest {
+  id?: number;
+}
+
+export async function resyncAlarms(context: common.UIAbilityContext): Promise<void> {
+  try {
+    const registry = ScheduleService.getInstance().getAlarmRegistry();
+    const valid = await reminderAgentManager.getValidReminders();
+    for (const r of valid) {
+      const withId = r as ReminWithId;
+      if (withId.id !== undefined) {
+        await reminderAgentManager.cancelReminder(withId.id);
+      }
+    }
+    for (const spec of registry) {
+      const shift = new Shift();
+      shift.name = spec.name;
+      shift.start = spec.start;
+      shift.end = spec.end;
+      await addShiftAlarm(context, spec.date, shift, spec.leadMinutes);
+    }
+  } catch (e) {
+    console.error('resyncAlarms failed:', JSON.stringify(e));
   }
 }
