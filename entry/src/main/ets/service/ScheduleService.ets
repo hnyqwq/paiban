@@ -3,7 +3,7 @@ import { preferences } from '@kit.ArkData';
 import { common, ConfigurationConstant } from '@kit.AbilityKit';
 import {
   DayEntry, Shift, ShiftRules, MonthStats, TodoItem, PresetShift, PRESET_COLORS,
-  AlarmSettings, AlarmSpec, dateKey, daysInMonth, isStatutoryHoliday, minutesToHoursText, pad2, shiftAbsRange, unionMinutes, unionWorkedMinutes
+  AlarmSettings, AlarmSpec, dateKey, daysInMonth, isStatutoryHoliday, isSwapWorkday, minutesToHoursText, pad2, shiftAbsRange, unionMinutes, unionWorkedMinutes
 } from '../model/ScheduleTypes';
 import { FormCardData } from '../form/FormCardData';
 
@@ -795,7 +795,8 @@ export class ScheduleService {
         continue;
       }
       const wd = new Date(year, month - 1, d).getDay();
-      if (rules.restWeekdays.includes(wd)) {
+      // 固定每周休息日跳过；调休补班日虽是周末但官方要求上班，不跳过
+      if (rules.restWeekdays.includes(wd) && !isSwapWorkday(year, month, d)) {
         sinceRest = 0; // 固定每周休息日
         continue;
       }
