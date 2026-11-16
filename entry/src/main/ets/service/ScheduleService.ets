@@ -238,8 +238,6 @@ export class ScheduleService {
       settings.snoozeTimes = typeof raw.snoozeTimes === 'number' && raw.snoozeTimes > 0 ? Math.floor(raw.snoozeTimes) : settings.snoozeTimes;
       settings.timeInterval = typeof raw.timeInterval === 'number' && raw.timeInterval > 0 ? Math.floor(raw.timeInterval) : settings.timeInterval;
       settings.wantAgentEnabled = raw.wantAgentEnabled !== false;
-      settings.tapDismissed = raw.tapDismissed === true;
-      settings.autoDeleteEnabled = raw.autoDeleteEnabled === true;
     } catch (e) {
       // 解析失败返回默认值
     }

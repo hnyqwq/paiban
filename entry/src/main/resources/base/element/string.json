@@ -93,8 +93,6 @@
     { "name": "alarm_btn_snooze", "value": "贪睡" },
     { "name": "alarm_snooze_content", "value": "稍后提醒" },
     { "name": "alarm_want_agent", "value": "点击提醒跳转应用" },
-    { "name": "alarm_tap_dismissed", "value": "点击后移除提醒" },
-    { "name": "alarm_auto_delete", "value": "班次结束后自动删除" },
     { "name": "today_label", "value": "今日" },
     { "name": "warn_gap", "value": "%1$d日：两个班次之间只休 %2$d 分钟，要求至少 %3$d 分钟" },
     { "name": "warn_min_daily", "value": "%1$d日：当日仅排 %2$s，少于最少 %3$d 小时" },

@@ -1,17 +1,21 @@
 // 日程页：月历 + 只读日程 + 备忘录 + 待办（排班编辑在「排班」页）
 import reminderAgentManager from '@ohos.reminderAgentManager';
+import { common } from '@kit.AbilityKit';
+import { promptAction } from '@kit.ArkUI';
 import {
   DayEntry, Shift, TodoItem,
   dateKey, minutesToHoursText, pad2, shiftCrossesDay, shiftMinutesOnOffsetDay
 } from '../model/ScheduleTypes';
 import { ScheduleService } from '../service/ScheduleService';
 import { CalendarView } from '../view/CalendarView';
+import { ReminWithId, removeReminderById, syncAlarmsWithSchedule } from '../utils/CalendarReminder';
 
 // 已添加的代理提醒条目
 class ReminderItem {
   title: string = '';
   content: string = '';
   timeText: string = '';
+  reminderId: number = -1;
 }
 
 // 当日展示的班次条目：本日班次 + 昨日跨天班次的尾巴
@@ -90,24 +94,42 @@ export struct AgendaPage {
     this.loadReminders();
   }
 
-  // 读取本应用已添加的有效代理提醒
+  // 读取本应用已添加的有效代理提醒（先按当前日程同步，再读取列表）
   loadReminders(): void {
-    reminderAgentManager.getValidReminders().then((reminders) => {
-      const items: ReminderItem[] = [];
-      for (const r of reminders) {
-        const item = new ReminderItem();
-        item.title = typeof r.title === 'string' ? r.title : '';
-        item.content = typeof r.content === 'string' ? r.content : '';
-        // 日历型提醒才有 dateTime，其他类型跳过时间显示
-        if (r.reminderType === reminderAgentManager.ReminderType.REMINDER_TYPE_CALENDAR) {
-          const dt = (r as reminderAgentManager.ReminderRequestCalendar).dateTime;
-          item.timeText = `${dt.year}-${pad2(dt.month)}-${pad2(dt.day)} ${pad2(dt.hour)}:${pad2(dt.minute)}`;
+    const ctx = AppStorage.get<common.UIAbilityContext>('context');
+    const doLoad = (): void => {
+      reminderAgentManager.getValidReminders().then((reminders) => {
+        const items: ReminderItem[] = [];
+        for (const r of reminders) {
+          const item = new ReminderItem();
+          item.title = typeof r.title === 'string' ? r.title : '';
+          item.content = typeof r.content === 'string' ? r.content : '';
+          item.reminderId = (r as ReminWithId).id ?? -1;
+          // 日历型提醒才有 dateTime，其他类型跳过时间显示
+          if (r.reminderType === reminderAgentManager.ReminderType.REMINDER_TYPE_CALENDAR) {
+            const dt = (r as reminderAgentManager.ReminderRequestCalendar).dateTime;
+            item.timeText = `${dt.year}-${pad2(dt.month)}-${pad2(dt.day)} ${pad2(dt.hour)}:${pad2(dt.minute)}`;
+          }
+          items.push(item);
         }
-        items.push(item);
-      }
-      this.reminderItems = items;
-    }).catch(() => {
-      // 读取失败保持原样，不影响页面其他功能
+        this.reminderItems = items;
+      }).catch(() => {
+        // 读取失败保持原样，不影响页面其他功能
+      });
+    };
+    if (ctx === undefined) {
+      doLoad();
+      return;
+    }
+    // 日程可能刚被修改：先同步提醒，再读取列表
+    syncAlarmsWithSchedule(ctx).then(() => doLoad()).catch(() => doLoad());
+  }
+
+  // 叉叉删除：取消提醒并从登记表移除，然后刷新列表
+  removeReminder(reminderId: number): void {
+    removeReminderById(reminderId).then(() => {
+      promptAction.showToast({ message: $r('app.string.alarm_removed') });
+      this.loadReminders();
     });
   }
 
@@ -426,30 +448,39 @@ export struct AgendaPage {
         List() {
           ForEach(this.reminderItems, (item: ReminderItem, i: number) => {
             ListItem() {
-              Column() {
-                Text(item.title)
+              Row() {
+                Column() {
+                  Text(item.title)
+                    .fontSize(14)
+                    .fontWeight(FontWeight.Medium)
+                    .width('100%')
+                  Text(item.content)
+                    .fontSize(12)
+                    .fontColor($r('sys.color.font_secondary'))
+                    .width('100%')
+                    .margin({ top: 2 })
+                  Text(item.timeText)
+                    .fontSize(11)
+                    .fontColor($r('sys.color.font_tertiary'))
+                    .width('100%')
+                    .margin({ top: 2 })
+                }
+                .alignItems(HorizontalAlign.Start)
+                .layoutWeight(1)
+                Text('✕')
                   .fontSize(14)
-                  .fontWeight(FontWeight.Medium)
-                  .width('100%')
-                Text(item.content)
-                  .fontSize(12)
-                  .fontColor($r('sys.color.font_secondary'))
-                  .width('100%')
-                  .margin({ top: 2 })
-                Text(item.timeText)
-                  .fontSize(11)
                   .fontColor($r('sys.color.font_tertiary'))
-                  .width('100%')
-                  .margin({ top: 2 })
+                  .padding(8)
+                  .onClick(() => this.removeReminder(item.reminderId))
               }
-              .alignItems(HorizontalAlign.Start)
               .width('100%')
+              .alignItems(VerticalAlign.Center)
               .padding(10)
               .borderRadius(8)
               .backgroundColor($r('sys.color.comp_background_tertiary'))
               .margin({ top: 6 })
             }
-          }, (item: ReminderItem, i: number) => `${i}-${item.timeText}-${item.title}`)
+          }, (item: ReminderItem, i: number) => `${i}-${item.reminderId}-${item.timeText}-${item.title}`)
         }
         .width('100%')
       }

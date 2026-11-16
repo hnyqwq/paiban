@@ -66,8 +66,6 @@ export class AlarmSettings {
   snoozeTimes: number = 2;       // 贪睡次数
   timeInterval: number = 5;      // 贪睡间隔（分钟）
   wantAgentEnabled: boolean = true;  // 点击提醒跳转回应用
-  tapDismissed: boolean = false;     // 点击通知后移除该提醒
-  autoDeleteEnabled: boolean = false; // 到达自动删除时间后移除提醒
 }
 
 // 已添加的代理提醒登记：设置变化时按此重建全部提醒

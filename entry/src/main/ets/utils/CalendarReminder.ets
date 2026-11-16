@@ -159,10 +159,6 @@ async function publishShiftAlarm(context: common.UIAbilityContext, date: string,
         parameters: { page: 'schedule' }
       };
     }
-    // 班次结束时间戳：开启自动删除时，班次结束后提醒自动移除
-    const endMin = Shift.minutesBetween(shift.end);
-    const shiftEndMs = new Date(y, m - 1, d).getTime() +
-      (endMin + (shiftCrossesDay(shift) ? 24 * 60 : 0)) * 60 * 1000;
     const reminder: reminderAgentManager.ReminderRequestCalendar = {
       reminderType: reminderAgentManager.ReminderType.REMINDER_TYPE_CALENDAR,
       dateTime: dateTime,
@@ -177,8 +173,6 @@ async function publishShiftAlarm(context: common.UIAbilityContext, date: string,
       groupId: 'schedule_alarms',
       // 通知 ID 按日期 + 班次起始时间生成，避免同班次重复通知叠加
       notificationId: (y % 100) * 100000000 + m * 1000000 + d * 10000 + Math.floor(Shift.minutesBetween(shift.start) % 10000),
-      tapDismissed: settings.tapDismissed,
-      autoDeletedTime: settings.autoDeleteEnabled ? shiftEndMs : 0,
       snoozeSlotType: notificationManager.SlotType.CONTENT_INFORMATION,
       slotType: notificationManager.SlotType.CONTENT_INFORMATION
     };
