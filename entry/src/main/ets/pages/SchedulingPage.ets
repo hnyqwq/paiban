@@ -159,12 +159,6 @@ export struct SchedulingPage {
     this.newSegs = this.newSegs.slice();
   }
 
-  // 是否有段正在输入（有内容未确定）：是则隐藏加闹钟/加日历/完成排班
-  isSegEditing(): boolean {
-    return this.newSegs.some((seg: SegStartEnd) =>
-      seg.start.trim() !== '' || seg.end.trim() !== '');
-  }
-
   // 点确定时自动检测：结束早于开始（跨天）则弹窗提醒，仅取消/确定两个按钮
   private confirmSegLabels(segs: SegStartEnd[], onConfirmed: () => void): boolean {
     for (let i = 0; i < segs.length; i++) {
@@ -291,6 +285,10 @@ export struct SchedulingPage {
     seg.startPrev = false;
     seg.endNext = false;
     this.newSegs = this.newSegs.slice();
+    // 新增模式：保存后收起表单，让出加闹钟/加日历/完成排班入口
+    if (this.editShiftIndex < 0) {
+      this.showShiftForm = false;
+    }
   }
 
   resetSegs(): void {
@@ -865,40 +863,35 @@ export struct SchedulingPage {
           .alignItems(HorizontalAlign.Start)
 
           // 行尾：确定（保存该段）/ 取消（清空该行）
-          Column({ space: 2 }) {
-            Text($r('app.string.seg_label_confirm'))
+          Row({ space: 6 }) {
+            Button($r('app.string.seg_label_confirm'))
+              .buttonStyle(ButtonStyleMode.NORMAL)
               .fontSize(13)
-              .fontColor($r('sys.color.brand'))
-              .padding({ left: 6, right: 6, top: 2, bottom: 2 })
-              .borderRadius(6)
-              .border({ width: 0.5, color: $r('sys.color.brand') })
+              .height(32)
               .onClick(() => this.addSeg(i))
-            Text($r('app.string.cancel'))
+            Button($r('app.string.cancel'))
+              .buttonStyle(ButtonStyleMode.NORMAL)
               .fontSize(13)
-              .fontColor($r('sys.color.font_tertiary'))
-              .padding({ left: 6, right: 6, top: 2, bottom: 2 })
-              .borderRadius(6)
-              .border({ width: 0.5, color: $r('sys.color.comp_divider') })
+              .height(32)
               .onClick(() => this.clearSeg(i))
           }
-          .alignItems(HorizontalAlign.Center)
           .margin({ left: 6 })
         }
         .width('100%')
-        .alignItems(VerticalAlign.Bottom)
+        .alignItems(VerticalAlign.Center)
         .margin({ top: 6 })
       }, (seg: SegStartEnd, i: number) => `${i}-${seg.start}-${seg.end}-${seg.startPrev}-${seg.endNext}`)
 
+      // 底部按钮仅编辑模式显示：新增模式每段单独走「添加」流程
       Row() {
-        Button($r('app.string.cancel'))
-          .buttonStyle(ButtonStyleMode.NORMAL)
-          .onClick(() => {
-            this.editShiftIndex = -1;
-            this.appliedPresetId = '';
-            this.showShiftForm = false;
-          })
-        // 新增模式每段单独走「添加」流程，无需统一保存
         if (this.editShiftIndex >= 0) {
+          Button($r('app.string.cancel'))
+            .buttonStyle(ButtonStyleMode.NORMAL)
+            .onClick(() => {
+              this.editShiftIndex = -1;
+              this.appliedPresetId = '';
+              this.showShiftForm = false;
+            })
           Button($r('app.string.save'))
             .margin({ left: 12 })
             .onClick(() => this.addShift())
@@ -1072,8 +1065,8 @@ export struct SchedulingPage {
             })
         }
 
-        // 正在输入班次（段未确定）时，隐藏加闹钟/加日历/完成排班
-        if (!this.isSegEditing()) {
+        // 表单打开（添加班次中）时，隐藏加闹钟/加日历/完成排班
+        if (!this.showShiftForm) {
           // 批量：勾选的班次（未勾选则本日全部）
           Row({ space: 8 }) {
             if (this.showAlarmFeature) {
