@@ -822,10 +822,10 @@ export struct MinePage {
               .borderRadius(13)
               .backgroundColor(c)
             if (this.presetColor === c) {
-              Text('✓')
+              SymbolGlyph($r('sys.symbol.checkmark'))
                 .fontSize(13)
                 .fontWeight(FontWeight.Bold)
-                .fontColor(Color.White)
+                .fontColor([Color.White])
             }
           }
           .width(34)
