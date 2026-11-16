@@ -101,6 +101,8 @@
     { "name": "rule_mandatory_rest", "value": "超时后强制休息(分钟)" },
     { "name": "rule_rest_weekdays", "value": "固定每周休息日" },
     { "name": "rule_rest_weekdays_none", "value": "无" },
+    { "name": "rule_skip_holidays", "value": "自动跳过法定节假日" },
+    { "name": "sum_skip_holidays", "value": "跳过节假日" },
     { "name": "warn_rest_weekday", "value": "%1$d日：固定每周休息日当天排了班" },
     { "name": "wd_0", "value": "日" },
     { "name": "wd_1", "value": "一" },

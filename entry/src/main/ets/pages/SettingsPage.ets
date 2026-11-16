@@ -326,6 +326,9 @@ export struct SettingsPage {
     if (wd !== '') {
       parts.push(wd);
     }
+    if (this.rules.skipHolidays) {
+      parts.push(this.resText('sum_skip_holidays'));
+    }
     return parts.join('  ');
   }
 
@@ -509,6 +512,20 @@ export struct SettingsPage {
       }
       .width('100%')
       .margin({ top: 6 })
+
+      // 自动跳过法定节假日：开启后自动排班不会把班次排到节假日
+      Row() {
+        Text($r('app.string.rule_skip_holidays'))
+          .fontSize(15)
+          .fontWeight(FontWeight.Medium)
+          .layoutWeight(1)
+        Toggle({ type: ToggleType.Switch, isOn: this.rules.skipHolidays })
+          .onChange((isOn: boolean) => {
+            this.rules.skipHolidays = isOn;
+          })
+      }
+      .width('100%')
+      .margin({ top: 12 })
 
       this.editorFooter()
     }

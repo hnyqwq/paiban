@@ -3,7 +3,7 @@ import { preferences } from '@kit.ArkData';
 import { common, ConfigurationConstant } from '@kit.AbilityKit';
 import {
   DayEntry, Shift, ShiftRules, MonthStats, TodoItem, PresetShift, PRESET_COLORS,
-  AlarmSettings, AlarmSpec, dateKey, daysInMonth, minutesToHoursText, pad2, shiftAbsRange, unionMinutes, unionWorkedMinutes
+  AlarmSettings, AlarmSpec, dateKey, daysInMonth, isStatutoryHoliday, minutesToHoursText, pad2, shiftAbsRange, unionMinutes, unionWorkedMinutes
 } from '../model/ScheduleTypes';
 import { FormCardData } from '../form/FormCardData';
 
@@ -466,6 +466,8 @@ export class ScheduleService {
       rules.maxContinuousWorkMinutes = raw.maxContinuousWorkMinutes ?? rules.maxContinuousWorkMinutes;
       rules.mandatoryRestMinutes = raw.mandatoryRestMinutes ?? rules.mandatoryRestMinutes;
       rules.restWeekdays = Array.isArray(raw.restWeekdays) ? raw.restWeekdays as number[] : rules.restWeekdays;
+      const rawBool = JSON.parse(json) as Record<string, boolean>;
+      rules.skipHolidays = rawBool.skipHolidays === true;
       return rules;
     } catch (e) {
       return rules;
@@ -795,6 +797,10 @@ export class ScheduleService {
       const wd = new Date(year, month - 1, d).getDay();
       if (rules.restWeekdays.includes(wd)) {
         sinceRest = 0; // 固定每周休息日
+        continue;
+      }
+      if (rules.skipHolidays && isStatutoryHoliday(year, month, d)) {
+        sinceRest = 0; // 法定节假日自动跳过，视为休息
         continue;
       }
       if (entry !== undefined) {

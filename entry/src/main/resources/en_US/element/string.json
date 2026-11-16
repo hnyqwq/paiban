@@ -101,6 +101,8 @@
     { "name": "rule_mandatory_rest", "value": "Mandatory rest after limit (min)" },
     { "name": "rule_rest_weekdays", "value": "Fixed weekly rest days" },
     { "name": "rule_rest_weekdays_none", "value": "None" },
+    { "name": "rule_skip_holidays", "value": "Skip statutory holidays" },
+    { "name": "sum_skip_holidays", "value": "Holidays skipped" },
     { "name": "warn_rest_weekday", "value": "Day %1$d: scheduled on a fixed weekly rest day" },
     { "name": "wd_0", "value": "Sun" },
     { "name": "wd_1", "value": "Mon" },
