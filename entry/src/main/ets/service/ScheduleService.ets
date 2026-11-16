@@ -236,6 +236,11 @@ export class ScheduleService {
       settings.snoozeEnabled = raw.snoozeEnabled === true;
       settings.snoozeTimes = typeof raw.snoozeTimes === 'number' && raw.snoozeTimes > 0 ? Math.floor(raw.snoozeTimes) : settings.snoozeTimes;
       settings.timeInterval = typeof raw.timeInterval === 'number' && raw.timeInterval > 0 ? Math.floor(raw.timeInterval) : settings.timeInterval;
+      settings.wantAgentEnabled = raw.wantAgentEnabled !== false;
+      settings.tapDismissed = raw.tapDismissed === true;
+      settings.autoDeleteEnabled = raw.autoDeleteEnabled === true;
+      settings.customRingUri = typeof raw.customRingUri === 'string' ? raw.customRingUri : '';
+      settings.customRingName = typeof raw.customRingName === 'string' ? raw.customRingName : '';
     } catch (e) {
       // 解析失败返回默认值
     }

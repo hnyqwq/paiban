@@ -2,7 +2,7 @@
 import calendarManager from '@ohos.calendarManager';
 import reminderAgentManager from '@ohos.reminderAgentManager';
 import notificationManager from '@ohos.notificationManager';
-import { abilityAccessCtrl, Permissions, common } from '@kit.AbilityKit';
+import { abilityAccessCtrl, bundleManager, Permissions, common } from '@kit.AbilityKit';
 import { Shift, shiftCrossesDay } from '../model/ScheduleTypes';
 import { ScheduleService } from '../service/ScheduleService';
 
@@ -150,6 +150,20 @@ export async function addShiftAlarm(context: common.UIAbilityContext, date: stri
       type: reminderAgentManager.ActionButtonType.ACTION_BUTTON_TYPE_SNOOZE
     };
     const title = leadMinutes > 0 ? text('alarm_title_lead', leadMinutes) : text('alarm_title');
+    // 点击提醒跳转回应用（参数 page=schedule）
+    let wantAgent: reminderAgentManager.WantAgent | undefined = undefined;
+    if (settings.wantAgentEnabled) {
+      const info = bundleManager.getBundleInfoForSelfSync(bundleManager.BundleFlag.GET_BUNDLE_INFO_DEFAULT);
+      wantAgent = {
+        pkgName: info.name,
+        abilityName: 'EntryAbility',
+        parameters: { page: 'schedule' }
+      };
+    }
+    // 班次结束时间戳：开启自动删除时，班次结束后提醒自动移除
+    const endMin = Shift.minutesBetween(shift.end);
+    const shiftEndMs = new Date(y, m - 1, d).getTime() +
+      (endMin + (shiftCrossesDay(shift) ? 24 * 60 : 0)) * 60 * 1000;
     const reminder: reminderAgentManager.ReminderRequestCalendar = {
       reminderType: reminderAgentManager.ReminderType.REMINDER_TYPE_CALENDAR,
       dateTime: dateTime,
@@ -160,6 +174,14 @@ export async function addShiftAlarm(context: common.UIAbilityContext, date: stri
       ringDuration: settings.ringDuration,
       snoozeTimes: settings.snoozeEnabled ? settings.snoozeTimes : 0,
       timeInterval: settings.timeInterval * 60, // 分钟 → 秒
+      wantAgent: wantAgent,
+      groupId: 'schedule_alarms',
+      // 通知 ID 按日期 + 班次起始时间生成，避免同班次重复通知叠加
+      notificationId: (y % 100) * 100000000 + m * 1000000 + d * 10000 + Math.floor(Shift.minutesBetween(shift.start) % 10000),
+      tapDismissed: settings.tapDismissed,
+      autoDeletedTime: settings.autoDeleteEnabled ? shiftEndMs : 0,
+      customRingUri: settings.customRingUri !== '' ? settings.customRingUri : undefined,
+      snoozeSlotType: notificationManager.SlotType.CONTENT_INFORMATION,
       slotType: notificationManager.SlotType.CONTENT_INFORMATION
     };
     if (settings.snoozeEnabled) {

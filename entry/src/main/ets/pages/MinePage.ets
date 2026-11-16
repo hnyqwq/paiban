@@ -2,6 +2,8 @@
 import { pasteboard, BusinessError } from '@kit.BasicServicesKit';
 import { promptAction, SegmentButtonV2Items, CapsuleSegmentButtonV2 } from '@kit.ArkUI';
 import { common, bundleManager } from '@kit.AbilityKit';
+import fs from '@ohos.file.fs';
+import picker from '@ohos.file.picker';
 import { updateManager } from '@kit.AppGalleryKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { AlarmSettings } from '../model/ScheduleTypes';
@@ -95,6 +97,44 @@ export struct MinePage {
   saveAlarmSettings(): void {
     this.service.saveAlarmSettings(this.alarm);
     promptAction.showToast({ message: $r('app.string.alarm_saved') });
+  }
+
+  // 选择自定义铃声：拷贝到应用沙箱后存 URI
+  pickCustomRing(): void {
+    const ctx = AppStorage.get<common.UIAbilityContext>('context');
+    if (ctx === undefined) {
+      return;
+    }
+    const audioPicker = new picker.AudioViewPicker();
+    const opt = new picker.AudioSelectOptions();
+    opt.maxSelectNumber = 1;
+    audioPicker.select(opt).then((uris: Array<string>) => {
+      if (uris.length === 0) {
+        return;
+      }
+      const srcUri = uris[0];
+      const src = fs.openSync(srcUri, fs.OpenMode.READ_ONLY);
+      const suffix = srcUri.substring(srcUri.lastIndexOf('.')).length < 8 ? srcUri.substring(srcUri.lastIndexOf('.')) : '';
+      const destPath = `${ctx.filesDir}/custom_ring_${Date.now()}${suffix}`;
+      fs.copyFile(src.fd, destPath).then(() => {
+        fs.closeSync(src.fd);
+        this.alarm.customRingUri = `file://${destPath}`;
+        this.alarm.customRingName = decodeURIComponent(srcUri.substring(srcUri.lastIndexOf('/') + 1));
+        this.saveAlarmSettings();
+      }).catch((err: BusinessError) => {
+        fs.closeSync(src.fd);
+        promptAction.showToast({ message: `${$r('app.string.card_add_failed')} (${err.code})` });
+      });
+    }).catch((_err: BusinessError) => {
+      // 用户取消选择，不处理
+    });
+  }
+
+  // 清除自定义铃声，恢复系统默认
+  clearCustomRing(): void {
+    this.alarm.customRingUri = '';
+    this.alarm.customRingName = '';
+    this.saveAlarmSettings();
   }
 
   // 打开隐私协议（系统浏览器）
@@ -217,6 +257,72 @@ export struct MinePage {
             this.alarm.timeInterval = Number.isNaN(n) || n <= 0 ? 5 : Math.floor(n);
           })
       }
+
+      Row() {
+        Text($r('app.string.alarm_want_agent'))
+          .fontSize(15)
+          .fontWeight(FontWeight.Medium)
+          .layoutWeight(1)
+        Toggle({ type: ToggleType.Switch, isOn: this.alarm.wantAgentEnabled })
+          .onChange((isOn: boolean) => {
+            this.alarm.wantAgentEnabled = isOn;
+          })
+      }
+      .width('100%')
+      .margin({ top: 12 })
+
+      Row() {
+        Text($r('app.string.alarm_tap_dismissed'))
+          .fontSize(15)
+          .fontWeight(FontWeight.Medium)
+          .layoutWeight(1)
+        Toggle({ type: ToggleType.Switch, isOn: this.alarm.tapDismissed })
+          .onChange((isOn: boolean) => {
+            this.alarm.tapDismissed = isOn;
+          })
+      }
+      .width('100%')
+      .margin({ top: 12 })
+
+      Row() {
+        Text($r('app.string.alarm_auto_delete'))
+          .fontSize(15)
+          .fontWeight(FontWeight.Medium)
+          .layoutWeight(1)
+        Toggle({ type: ToggleType.Switch, isOn: this.alarm.autoDeleteEnabled })
+          .onChange((isOn: boolean) => {
+            this.alarm.autoDeleteEnabled = isOn;
+          })
+      }
+      .width('100%')
+      .margin({ top: 12 })
+
+      Row() {
+        Text($r('app.string.alarm_custom_ring'))
+          .fontSize(15)
+          .fontWeight(FontWeight.Medium)
+          .layoutWeight(1)
+        if (this.alarm.customRingUri !== '') {
+          Text(this.alarm.customRingName)
+            .fontSize(12)
+            .fontColor($r('sys.color.font_secondary'))
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+            .constraintSize({ maxWidth: '40%' })
+          Button($r('app.string.alarm_ring_clear'))
+            .buttonStyle(ButtonStyleMode.NORMAL)
+            .fontSize(12)
+            .margin({ left: 8 })
+            .onClick(() => this.clearCustomRing())
+        } else {
+          Button($r('app.string.alarm_ring_pick'))
+            .buttonStyle(ButtonStyleMode.NORMAL)
+            .fontSize(12)
+            .onClick(() => this.pickCustomRing())
+        }
+      }
+      .width('100%')
+      .margin({ top: 12 })
 
       Button($r('app.string.save_rules'))
         .width('100%')

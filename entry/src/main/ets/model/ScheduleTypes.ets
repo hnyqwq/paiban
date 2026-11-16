@@ -65,6 +65,11 @@ export class AlarmSettings {
   snoozeEnabled: boolean = true; // 是否支持贪睡（提醒带贪睡按钮）
   snoozeTimes: number = 2;       // 贪睡次数
   timeInterval: number = 5;      // 贪睡间隔（分钟）
+  wantAgentEnabled: boolean = true;  // 点击提醒跳转回应用
+  tapDismissed: boolean = false;     // 点击通知后移除该提醒
+  autoDeleteEnabled: boolean = false; // 到达自动删除时间后移除提醒
+  customRingUri: string = '';        // 自定义铃声文件 URI（空 = 系统默认）
+  customRingName: string = '';       // 铃声文件名（展示用）
 }
 
 // 班次相对其所属日期 0 点的绝对分钟区间；
