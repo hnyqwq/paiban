@@ -33,6 +33,7 @@ export struct SchedulingPage {
   // 新增班次表单与编辑态
   @State showShiftForm: boolean = false;
   @State newSegs: SegStartEnd[] = []; // 表单里逐段编辑的班次
+  @State autoFillPresetId: string = ''; // 自动排班选中的模板预设，空 = 全部勾选预设
   @State editShiftIndex: number = -1; // >=0 表示正在编辑该下标的班次
   // 代理提醒权限审核期间暂时屏蔽加闹钟入口；通过后改回 true 即可恢复全部闹钟 UI
   private readonly showAlarmFeature: boolean = true; // 代理提醒权限已通过
@@ -480,7 +481,7 @@ export struct SchedulingPage {
           action: () => {
             const now = new Date();
             const days = this.service.getDays();
-            const n = this.service.autoFillMonth(days, now.getFullYear(), now.getMonth() + 1, this.rules);
+            const n = this.service.autoFillMonth(days, now.getFullYear(), now.getMonth() + 1, this.rules, this.autoFillPresetId);
             this.saveDays(days);
             promptAction.showToast({ message: $r('app.string.auto_filled', n) });
           }
@@ -493,7 +494,7 @@ export struct SchedulingPage {
     this.showIntro($r('app.string.range_auto'), $r('app.string.range_auto_desc'), () => {
       this.pickRange((start: string, end: string) => {
         const days = this.service.getDays();
-        const n = this.service.autoFillRange(days, start, end, this.rules);
+        const n = this.service.autoFillRange(days, start, end, this.rules, this.autoFillPresetId);
         this.saveDays(days);
         promptAction.showToast({ message: $r('app.string.range_filled', n) });
       });
@@ -1010,10 +1011,52 @@ export struct SchedulingPage {
     .backgroundColor($r('sys.color.background_primary'))
     .border({ width: 0.5, color: $r('sys.color.comp_divider') })
 
-    this.sectionTitle($r('app.string.tools_section_schedule'))
+    // 自动排班：选择模板预设后一键填充
+    this.sectionTitle($r('app.string.section_autofill'))
     Column() {
+      Text($r('app.string.autofill_desc'))
+        .fontSize(11)
+        .fontColor($r('sys.color.font_tertiary'))
+        .width('100%')
+        .padding({ left: 12, right: 12, top: 10 })
+      Flex({ wrap: FlexWrap.Wrap }) {
+        Text($r('app.string.autofill_all'))
+          .fontSize(12)
+          .padding({ left: 10, right: 10, top: 5, bottom: 5 })
+          .borderRadius(8)
+          .backgroundColor(this.autoFillPresetId === '' ? $r('sys.color.brand') : $r('sys.color.comp_background_tertiary'))
+          .fontColor(this.autoFillPresetId === '' ? '#FFFFFF' : $r('sys.color.font_primary'))
+          .margin({ right: 6, bottom: 6 })
+          .onClick(() => {
+            this.autoFillPresetId = '';
+          })
+        ForEach(this.presets.filter((p: PresetShift) => p.autoFill), (preset: PresetShift) => {
+          Text(preset.name)
+            .fontSize(12)
+            .padding({ left: 10, right: 10, top: 5, bottom: 5 })
+            .borderRadius(8)
+            .backgroundColor(this.autoFillPresetId === preset.id ? $r('sys.color.brand') : $r('sys.color.comp_background_tertiary'))
+            .fontColor(this.autoFillPresetId === preset.id ? '#FFFFFF' : $r('sys.color.font_primary'))
+            .margin({ right: 6, bottom: 6 })
+            .onClick(() => {
+              this.autoFillPresetId = preset.id;
+            })
+        }, (preset: PresetShift) => `${preset.id}-${this.autoFillPresetId}`)
+      }
+      .width('100%')
+      .padding({ left: 12, right: 12, top: 6, bottom: 6 })
+
       this.toolButton($r('app.string.auto_fill'), (): void => this.autoFillMonth())
       this.toolButton($r('app.string.range_auto'), (): void => this.rangeAuto())
+    }
+    .width('100%')
+    .padding(12)
+    .borderRadius(12)
+    .backgroundColor($r('sys.color.background_primary'))
+    .border({ width: 0.5, color: $r('sys.color.comp_divider') })
+
+    this.sectionTitle($r('app.string.tools_section_schedule'))
+    Column() {
       this.toolButton($r('app.string.sync_to_month'), (): void => this.syncMonth())
       this.toolButton($r('app.string.copy_day'), (): void => this.copyDay())
       this.toolButton($r('app.string.range_copy'), (): void => this.rangeCopy())

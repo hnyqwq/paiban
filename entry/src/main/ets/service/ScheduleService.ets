@@ -704,7 +704,7 @@ export class ScheduleService {
   }
 
   // 按规则自动排满本月未排的日期，直到目标工时；返回自动排的天数
-  autoFillMonth(days: DayEntry[], year: number, month: number, rules: ShiftRules): number {
+  autoFillMonth(days: DayEntry[], year: number, month: number, rules: ShiftRules, presetId: string = ''): number {
     const total = daysInMonth(year, month);
     const dailyMin = (rules.minWorkHoursPerDay > 0 ? rules.minWorkHoursPerDay : 8) * 60;
     const target = rules.monthlyTargetHours * 60;
@@ -766,7 +766,7 @@ export class ScheduleService {
         days.push(created);
         return created;
       })();
-      this.fillShiftsForDay(ne, perDay, rules);
+      this.fillShiftsForDay(ne, perDay, rules, presetId);
       worked += perDay;
       filled++;
     }
@@ -774,10 +774,10 @@ export class ScheduleService {
   }
 
   // 给某天填充班次：勾选了「用于自动排班」的预设则按预设排（可多选，按开始时间排序全部排上，
-  // 名称/颜色/休息时长随预设带到班次上）；无选中预设时按时长填充，
-  // 总时长超过单段上限时自动拆成多段，段间留强制休息间隔
-  private fillShiftsForDay(ne: DayEntry, duration: number, rules: ShiftRules): void {
-    const presets = this.getPresets().filter((p: PresetShift) => p.autoFill);
+  // 名称/颜色/休息时长随预设带到班次上）；指定 presetId 时只用该预设；
+  // 无可用预设时按时长填充，总时长超过单段上限时自动拆成多段，段间留强制休息间隔
+  private fillShiftsForDay(ne: DayEntry, duration: number, rules: ShiftRules, presetId: string = ''): void {
+    const presets = this.getPresets().filter((p: PresetShift) => p.autoFill && (presetId === '' || p.id === presetId));
     if (presets.length > 0) {
       presets.sort((a: PresetShift, b: PresetShift) =>
         Shift.minutesBetween(a.start) - Shift.minutesBetween(b.start));
@@ -899,7 +899,7 @@ export class ScheduleService {
 
   // 按日期区间（如 7 天）自动排班：跳过已有班次/手动休息/固定休息日，遵守连续上限；
   // 剩余目标工时按区间内可排天数均摊，天数不够排时单日自动往上加；返回排的天数
-  autoFillRange(days: DayEntry[], start: string, end: string, rules: ShiftRules): number {
+  autoFillRange(days: DayEntry[], start: string, end: string, rules: ShiftRules, presetId: string = ''): number {
     const dailyMin = (rules.minWorkHoursPerDay > 0 ? rules.minWorkHoursPerDay : 8) * 60;
     const target = rules.monthlyTargetHours * 60;
     // 区间内已有班次工时
@@ -962,7 +962,7 @@ export class ScheduleService {
         days.push(created);
         return created;
       })();
-      this.fillShiftsForDay(ne, perDay, rules);
+      this.fillShiftsForDay(ne, perDay, rules, presetId);
       worked += perDay;
       filled++;
     }
