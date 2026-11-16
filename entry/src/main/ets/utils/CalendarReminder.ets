@@ -1,6 +1,7 @@
 // 将班次写入系统日历 / 发布系统闹钟提醒
 import calendarManager from '@ohos.calendarManager';
 import reminderAgentManager from '@ohos.reminderAgentManager';
+import notificationManager from '@ohos.notificationManager';
 import { abilityAccessCtrl, Permissions, common } from '@kit.AbilityKit';
 import { Shift, shiftCrossesDay } from '../model/ScheduleTypes';
 
@@ -94,6 +95,11 @@ export async function addShiftToCalendar(context: common.UIAbilityContext, date:
 export async function addShiftAlarm(context: common.UIAbilityContext, date: string, shift: Shift,
   leadMinutes: number): Promise<boolean> {
   try {
+    // 文档要求：publishReminder 前必须先获得通知授权（未启用时返回 1700001）
+    const enabled = await notificationManager.isNotificationEnabled();
+    if (!enabled) {
+      await notificationManager.requestEnableNotification(context);
+    }
     const parts = date.split('-');
     const y = Number(parts[0]);
     const m = Number(parts[1]);
@@ -119,7 +125,8 @@ export async function addShiftAlarm(context: common.UIAbilityContext, date: stri
       dateTime: dateTime,
       title: leadMinutes > 0 ? `上班提醒（提前${leadMinutes}分钟）` : '上班提醒',
       content: `${shift.start} - ${shift.end}`,
-      expiredContent: '已过上班时间'
+      expiredContent: '已过上班时间',
+      slotType: notificationManager.SlotType.CONTENT_INFORMATION
     };
     await reminderAgentManager.publishReminder(reminder);
     return true;
