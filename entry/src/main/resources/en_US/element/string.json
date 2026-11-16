@@ -48,6 +48,7 @@
     { "name": "cancel", "value": "Cancel" },
     { "name": "save", "value": "Save" },
     { "name": "privacy_policy", "value": "Privacy Policy" },
+    { "name": "join_test", "value": "Join beta test" },
     { "name": "edit", "value": "Edit" },
     { "name": "delete", "value": "Delete" },
     { "name": "mark_rest", "value": "Mark rest" },

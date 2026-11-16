@@ -841,7 +841,7 @@ export struct SchedulingPage {
               })
             // 开始跨天标注：属于昨日
             Text($r('app.string.shift_prev_day_opt'))
-              .fontSize(11)
+              .fontSize(13)
               .padding({ left: 8, right: 8, top: 2, bottom: 2 })
               .borderRadius(6)
               .border({
@@ -876,7 +876,7 @@ export struct SchedulingPage {
               })
             // 结束跨天标注：属于次日
             Text($r('app.string.shift_next_day_opt'))
-              .fontSize(11)
+              .fontSize(13)
               .padding({ left: 8, right: 8, top: 2, bottom: 2 })
               .borderRadius(6)
               .border({
@@ -894,14 +894,14 @@ export struct SchedulingPage {
           .alignItems(HorizontalAlign.Start)
 
           Text($r('app.string.delete'))
-            .fontSize(13)
+            .fontSize(15)
             .fontColor($r('sys.color.warning'))
             .margin({ left: 10 })
             .onClick(() => this.removeNewSeg(i))
           // 每段单独走跨天标注弹窗流程添加
           if (this.editShiftIndex < 0) {
             Text($r('app.string.seg_label_add'))
-              .fontSize(13)
+              .fontSize(15)
               .fontColor($r('sys.color.brand'))
               .margin({ left: 10 })
               .onClick(() => this.addSeg(i))
