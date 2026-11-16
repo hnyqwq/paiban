@@ -29,6 +29,7 @@ class DayShiftItem {
 export struct AgendaPage {
   scroller: Scroller = new Scroller();
   @StorageProp('isWideLayout') isWideLayout: boolean = false; // 大屏（≥lg 断点）双栏布局
+  @StorageProp('currentTab') @Watch('onTabChanged') currentTab: number = 0; // 切回首页时刷新提醒列表
   @StorageLink('calendarSelectedDate') @Watch('onSelectedDateChange') selectedDate: string = '';
   @State days: DayEntry[] = [];
   @State memoDraft: string = '';
@@ -42,6 +43,13 @@ export struct AgendaPage {
 
   onDataChanged(): void {
     if (!this.leaving) {
+      this.refresh();
+    }
+  }
+
+  // 切回首页时重读提醒列表（排班页可能新加了闹钟）
+  onTabChanged(): void {
+    if (this.currentTab === 0 && !this.leaving) {
       this.refresh();
     }
   }

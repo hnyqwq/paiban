@@ -124,6 +124,8 @@ struct Index {
       })
       .onChange((index: number) => {
         this.currentTab = index;
+        // 广播当前 Tab：供各页在切回时刷新（如日程页重读提醒列表）
+        AppStorage.setOrCreate('currentTab', index);
       })
     }
     .titleBar({
