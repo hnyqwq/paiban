@@ -58,36 +58,36 @@ struct TodayCard {
           Text(this.getData().badge)
             .fontSize(10)
             .fontWeight(FontWeight.Medium)
-            .fontColor('#6E9BFF')
+            .fontColor($r('app.color.card_accent'))
           Blank()
           Text(this.getData().weekday)
             .fontSize(10)
-            .fontColor('#A7B0BC')
+            .fontColor($r('app.color.card_text_secondary'))
         }
         .width('100%')
 
         Text(this.getData().title !== '' ? this.getData().title : $r('app.string.EntryAbility_label'))
           .fontSize(14)
           .fontWeight(FontWeight.Medium)
-          .fontColor('#F2F5F8')
+          .fontColor($r('app.color.card_text_primary'))
           .margin({ top: 2 })
 
         if (this.getData().totalText !== '') {
           Text(this.getData().totalText)
             .fontSize(28)
             .fontWeight(FontWeight.Bold)
-            .fontColor('#F2F5F8')
+            .fontColor($r('app.color.card_text_primary'))
         }
 
         if (this.payload === '') {
           Text($r('app.string.form_fallback_hint'))
             .fontSize(10)
-            .fontColor('#A7B0BC')
+            .fontColor($r('app.color.card_text_secondary'))
             .margin({ top: 4 })
         } else if (this.getData().statusText !== '') {
           Text(this.getData().statusText)
             .fontSize(12)
-            .fontColor('#A7B0BC')
+            .fontColor($r('app.color.card_text_secondary'))
             .margin({ top: 4 })
         } else {
           ForEach(this.visibleShifts(), (shift: CardShiftData, index: number) => {
@@ -101,17 +101,17 @@ struct TodayCard {
               Text(shift.name)
                 .fontSize(11)
                 .fontWeight(FontWeight.Medium)
-                .fontColor('#F2F5F8')
+                .fontColor($r('app.color.card_text_primary'))
                 .maxLines(1)
                 .textOverflow({ overflow: TextOverflow.Ellipsis })
                 .layoutWeight(1)
               Text(shift.time)
                 .fontSize(9)
-                .fontColor('#A7B0BC')
+                .fontColor($r('app.color.card_text_secondary'))
                 .margin({ left: 4 })
               Text(shift.hours)
                 .fontSize(10)
-                .fontColor('#6E9BFF')
+                .fontColor($r('app.color.card_accent'))
                 .margin({ left: 4 })
             }
             .width('100%')
@@ -121,7 +121,7 @@ struct TodayCard {
           if (this.getData().extraCount > 0) {
             Text(`+${this.getData().extraCount}`)
               .fontSize(9)
-              .fontColor('#79828F')
+              .fontColor($r('app.color.card_muted'))
               .margin({ top: 2 })
           }
         }
@@ -131,7 +131,7 @@ struct TodayCard {
       .padding(12)
       .justifyContent(FlexAlign.Center)
       .alignItems(HorizontalAlign.Start)
-      .backgroundColor('#0E1420')
+      .backgroundColor($r('app.color.card_bg'))
       .borderRadius(16)
     }
     .width('100%')

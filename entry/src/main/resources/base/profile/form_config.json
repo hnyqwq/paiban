@@ -10,7 +10,6 @@
         "designWidth": 720,
         "autoDesignWidth": true
       },
-      "colorMode": "dark",
       "isDynamic": false,
       "isDefault": true,
       "updateEnabled": true,
@@ -30,7 +29,6 @@
         "designWidth": 720,
         "autoDesignWidth": true
       },
-      "colorMode": "dark",
       "isDynamic": false,
       "isDefault": false,
       "updateEnabled": true,
@@ -50,7 +48,6 @@
         "designWidth": 720,
         "autoDesignWidth": true
       },
-      "colorMode": "dark",
       "isDynamic": false,
       "isDefault": false,
       "updateEnabled": true,

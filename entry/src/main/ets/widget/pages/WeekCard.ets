@@ -52,15 +52,15 @@ struct WeekCard {
           Text(this.getData().title !== '' ? this.getData().title : $r('app.string.EntryAbility_label'))
             .fontSize(13)
             .fontWeight(FontWeight.Bold)
-            .fontColor('#F2F5F8')
+            .fontColor($r('app.color.card_text_primary'))
           Text(this.getData().rangeText)
             .fontSize(9)
-            .fontColor('#A7B0BC')
+            .fontColor($r('app.color.card_text_secondary'))
             .margin({ left: 6 })
           Blank()
           Text(this.getData().totalText)
             .fontSize(11)
-            .fontColor('#6E9BFF')
+            .fontColor($r('app.color.card_accent'))
         }
         .width('100%')
 
@@ -69,17 +69,17 @@ struct WeekCard {
             Column() {
               Text(day.label)
                 .fontSize(9)
-                .fontColor('#79828F')
+                .fontColor($r('app.color.card_muted'))
               Text(day.dateText)
                 .fontSize(9)
-                .fontColor('#A7B0BC')
+                .fontColor($r('app.color.card_text_secondary'))
                 .margin({ top: 1 })
               if (day.nameText !== '') {
                 Text(day.nameText)
                   .fontSize(9)
                   .fontWeight(FontWeight.Medium)
-                  .fontColor(day.isRest ? '#FF8A7A'
-                    : (day.isToday ? '#6E9BFF' : '#F2F5F8'))
+                  .fontColor(day.isRest ? $r('app.color.card_overlap')
+                    : (day.isToday ? $r('app.color.card_accent') : $r('app.color.card_text_primary')))
                   .maxLines(1)
                   .textOverflow({ overflow: TextOverflow.Ellipsis })
                   .margin({ top: 4 })
@@ -92,7 +92,7 @@ struct WeekCard {
                 Text(day.hoursText)
                   .fontSize(10)
                   .fontWeight(FontWeight.Medium)
-                  .fontColor(day.isToday ? '#6E9BFF' : '#F2F5F8')
+                  .fontColor(day.isToday ? $r('app.color.card_accent') : $r('app.color.card_text_primary'))
                   .margin({ top: 1 })
               } else {
                 Text(' ')
@@ -102,7 +102,7 @@ struct WeekCard {
             .layoutWeight(1)
             .height(92)
             .justifyContent(FlexAlign.Center)
-            .backgroundColor(day.isToday ? '#1B2838' : Color.Transparent)
+            .backgroundColor(day.isToday ? $r('app.color.card_item_bg') : Color.Transparent)
             .borderRadius(8)
           }, (day: WeekDayData, index: number) => `${this.getData().rev}-${index}-${day.dateText}`)
         }
@@ -112,7 +112,7 @@ struct WeekCard {
         if (this.payload === '') {
           Text($r('app.string.form_fallback_hint'))
             .fontSize(10)
-            .fontColor('#A7B0BC')
+            .fontColor($r('app.color.card_text_secondary'))
             .margin({ top: 6 })
         }
       }
@@ -121,7 +121,7 @@ struct WeekCard {
       .padding(12)
       .justifyContent(FlexAlign.Center)
       .alignItems(HorizontalAlign.Start)
-      .backgroundColor('#0E1420')
+      .backgroundColor($r('app.color.card_bg'))
       .borderRadius(16)
     }
     .width('100%')

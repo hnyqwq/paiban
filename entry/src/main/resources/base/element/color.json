@@ -3,6 +3,34 @@
     {
       "name": "start_window_background",
       "value": "#FFFFFF"
+    },
+    {
+      "name": "card_bg",
+      "value": "#F1F3F5"
+    },
+    {
+      "name": "card_item_bg",
+      "value": "#E4E9F0"
+    },
+    {
+      "name": "card_text_primary",
+      "value": "#1A1D26"
+    },
+    {
+      "name": "card_text_secondary",
+      "value": "#444B5A"
+    },
+    {
+      "name": "card_accent",
+      "value": "#0A59F7"
+    },
+    {
+      "name": "card_muted",
+      "value": "#8A94A6"
+    },
+    {
+      "name": "card_overlap",
+      "value": "#E84026"
     }
   ]
 }
