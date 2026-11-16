@@ -420,10 +420,17 @@ export struct MinePage {
           delay: 1500     // 停留 1.5s 后再滚动
         })
         .constraintSize({ maxWidth: '70%' })
-      Text(this.expandedGroup === group ? '▾' : '›')
-        .fontSize(14)
-        .fontColor($r('sys.color.font_tertiary'))
-        .margin({ left: 8 })
+      if (this.expandedGroup === group) {
+        SymbolGlyph($r('sys.symbol.chevron_down'))
+          .fontSize(14)
+          .fontColor([$r('sys.color.font_tertiary')])
+          .margin({ left: 8 })
+      } else {
+        SymbolGlyph($r('sys.symbol.chevron_right'))
+          .fontSize(14)
+          .fontColor([$r('sys.color.font_tertiary')])
+          .margin({ left: 8 })
+      }
     }
     .width('100%')
     .padding(12)
