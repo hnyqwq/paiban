@@ -57,6 +57,36 @@ export const PRESET_COLORS: string[] = [
   '#6B4EFF', '#00A6A6', '#D94B8A', '#6B7280'
 ];
 
+// 一天班次的净工时（分钟）：各班次工时段（跨度扣除休息，休息按班次末尾计）
+// 先合并去重（重叠/相邻时段只计一次）再求和，避免重叠班次被重复计时
+export function unionWorkedMinutes(shifts: Shift[]): number {
+  const spans: number[][] = [];
+  for (const s of shifts) {
+    const start = Shift.minutesBetween(s.start);
+    let end = Shift.minutesBetween(s.end);
+    if (end <= start) {
+      end += 24 * 60; // 跨天
+    }
+    const workedEnd = Math.max(start, end - Math.max(0, s.breakMinutes));
+    spans.push([start, workedEnd]);
+  }
+  spans.sort((a: number[], b: number[]) => a[0] - b[0]);
+  let total = 0;
+  let curStart = 0;
+  let curEnd = 0;
+  for (const span of spans) {
+    if (span[0] > curEnd) {
+      total += curEnd - curStart;
+      curStart = span[0];
+      curEnd = span[1];
+    } else if (span[1] > curEnd) {
+      curEnd = span[1];
+    }
+  }
+  total += curEnd - curStart;
+  return total;
+}
+
 export class TodoItem {
   text: string = '';
   done: boolean = false;

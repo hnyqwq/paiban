@@ -3,7 +3,7 @@ import { preferences } from '@kit.ArkData';
 import { common, ConfigurationConstant } from '@kit.AbilityKit';
 import {
   DayEntry, Shift, ShiftRules, MonthStats, TodoItem, PresetShift, PRESET_COLORS,
-  dateKey, daysInMonth, minutesToHoursText, pad2
+  dateKey, daysInMonth, minutesToHoursText, pad2, unionWorkedMinutes
 } from '../model/ScheduleTypes';
 import { FormCardData } from '../form/FormCardData';
 
@@ -413,11 +413,8 @@ export class ScheduleService {
     if (entry === undefined) {
       return 0;
     }
-    let total = 0;
-    for (const s of entry.shifts) {
-      total += s.durationMinutes();
-    }
-    return total;
+    // 重叠班次按并集计，避免重复计时
+    return unionWorkedMinutes(entry.shifts);
   }
 
   isRestDay(entry: DayEntry | undefined): boolean {

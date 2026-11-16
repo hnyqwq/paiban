@@ -4,7 +4,7 @@ import { preferences } from '@kit.ArkData';
 import { common } from '@kit.AbilityKit';
 import { formBindingData, formProvider, formInfo } from '@kit.FormKit';
 import { BusinessError } from '@kit.BasicServicesKit';
-import { DayEntry, Shift, dateKey, daysInMonth, minutesToHoursText } from '../model/ScheduleTypes';
+import { DayEntry, Shift, dateKey, daysInMonth, minutesToHoursText, unionWorkedMinutes } from '../model/ScheduleTypes';
 
 const STORE_NAME = 'schedule_store';
 const KEY_DAYS = 'schedule_days_v1';
@@ -145,11 +145,8 @@ function entryMinutes(entry: DayEntry | undefined): number {
   if (entry === undefined || entry.shifts === undefined) {
     return 0;
   }
-  let total = 0;
-  for (const shift of entry.shifts) {
-    total += shiftMinutes(shift);
-  }
-  return total;
+  // 重叠班次按并集计，避免重复计时
+  return unionWorkedMinutes(entry.shifts);
 }
 
 function isRestEntry(entry: DayEntry | undefined): boolean {
