@@ -146,16 +146,9 @@ export struct SchedulingPage {
     this.confirmSegLabels([seg], () => this.doAddSeg(i));
   }
 
-  // 取消该行输入：清空时间与标注
+  // 取消该行输入：用全新空段替换，强制清空时间与标注
   clearSeg(i: number): void {
-    const seg = this.newSegs[i];
-    if (seg === undefined) {
-      return;
-    }
-    seg.start = '';
-    seg.end = '';
-    seg.startPrev = false;
-    seg.endNext = false;
+    this.newSegs.splice(i, 1, new SegStartEnd());
     this.newSegs = this.newSegs.slice();
   }
 
@@ -766,14 +759,14 @@ export struct SchedulingPage {
   presetChip(preset: PresetShift) {
     Column() {
       Text(preset.name)
-        .fontSize(12)
+        .fontSize(14)
         .fontWeight(FontWeight.Medium)
         .fontColor(preset.color)
         .maxLines(1)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
         .width('100%')
       Text(`${preset.start}-${preset.end} · ${minutesToHoursText(preset.netMinutes())}`)
-        .fontSize(10)
+        .fontSize(12)
         .fontColor($r('sys.color.font_secondary'))
         .margin({ top: 2 })
     }
