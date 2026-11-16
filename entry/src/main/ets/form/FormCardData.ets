@@ -4,7 +4,7 @@ import { preferences } from '@kit.ArkData';
 import { common } from '@kit.AbilityKit';
 import { formBindingData, formProvider, formInfo } from '@kit.FormKit';
 import { BusinessError } from '@kit.BasicServicesKit';
-import { DayEntry, Shift, dateKey, daysInMonth, minutesToHoursText, shiftCrossesDay, unionWorkedMinutes } from '../model/ScheduleTypes';
+import { DayEntry, Shift, dateKey, daysInMonth, minutesToHoursText, shiftAbsRange, shiftCrossesDay, unionMinutes } from '../model/ScheduleTypes';
 
 const STORE_NAME = 'schedule_store';
 const KEY_DAYS = 'schedule_days_v1';
@@ -141,12 +141,39 @@ function shiftMinutes(shift: Shift): number {
   return Math.max(0, span - Math.max(0, rest));
 }
 
-function entryMinutes(entry: DayEntry | undefined): number {
-  if (entry === undefined || entry.shifts === undefined) {
-    return 0;
+// 昨天的日期键
+function prevDateKey(date: string): string {
+  const parts = date.split('-');
+  const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]) - 1);
+  return dateKey(d.getFullYear(), d.getMonth() + 1, d.getDate());
+}
+
+// 某一天的实际在岗时长：当日班次该日部分 + 昨日跨天班次的尾巴，并集去重
+function dayMinutesOnDate(days: DayEntry[], date: string): number {
+  const intervals: number[][] = [];
+  const own = findEntry(days, date);
+  if (own !== undefined) {
+    for (const s of own.shifts) {
+      const range = shiftAbsRange(s);
+      const from = Math.max(range[0], 0);
+      const to = Math.min(range[1], 1440);
+      if (to > from) {
+        intervals.push([from, to]);
+      }
+    }
   }
-  // 重叠班次按并集计，避免重复计时
-  return unionWorkedMinutes(entry.shifts);
+  const prev = findEntry(days, prevDateKey(date));
+  if (prev !== undefined) {
+    for (const s of prev.shifts) {
+      const range = shiftAbsRange(s);
+      const from = Math.max(range[0] - 1440, 0);
+      const to = Math.min(range[1] - 1440, 1440);
+      if (to > from) {
+        intervals.push([from, to]);
+      }
+    }
+  }
+  return unionMinutes(intervals);
 }
 
 function isRestEntry(entry: DayEntry | undefined): boolean {
@@ -225,7 +252,7 @@ export class FormCardData {
     payload.badge = readText(context, 'today_label');
     payload.title = readText2(context, 'form_month_day', now.getMonth() + 1, now.getDate());
     payload.weekday = readText(context, `form_weekday_${now.getDay()}`);
-    const minutes = entryMinutes(entry);
+    const minutes = dayMinutesOnDate(days, todayKey);
     payload.totalText = minutesToHoursText(minutes);
     payload.rev = Date.now();
     if (entry !== undefined && entry.shifts !== undefined) {
@@ -264,7 +291,7 @@ export class FormCardData {
       const date = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + i);
       const key = dateKey(date.getFullYear(), date.getMonth() + 1, date.getDate());
       const entry = findEntry(days, key);
-      const minutes = entryMinutes(entry);
+      const minutes = dayMinutesOnDate(days, key);
       totalMinutes += minutes;
       const day = new WeekDayPayload();
       day.label = readText(context, `wd_${(weekStart + i) % 7}`);
@@ -316,7 +343,7 @@ export class FormCardData {
     for (let d = 1; d <= totalDays; d++) {
       const key = dateKey(year, month, d);
       const entry = findEntry(days, key);
-      const minutes = entryMinutes(entry);
+      const minutes = dayMinutesOnDate(days, key);
       const cell = new MonthCellPayload();
       cell.dayText = `${d}`;
       cell.isToday = key === todayKey;
