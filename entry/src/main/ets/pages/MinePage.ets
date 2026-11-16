@@ -463,8 +463,15 @@ export struct MinePage {
         .fontSize(12)
         .fontColor($r('sys.color.font_secondary'))
         .maxLines(1)
-        .textOverflow({ overflow: TextOverflow.Ellipsis })
-        .constraintSize({ maxWidth: '55%' })
+        .textOverflow({ overflow: TextOverflow.MARQUEE })
+        .marqueeOptions({
+          start: true,
+          step: 2,        // 慢速滚动
+          loop: -1,
+          fromStart: true,
+          delay: 1500     // 停留 1.5s 后再滚动
+        })
+        .constraintSize({ maxWidth: '70%' })
       Text(this.expandedGroup === group ? '▾' : '›')
         .fontSize(14)
         .fontColor($r('sys.color.font_tertiary'))
