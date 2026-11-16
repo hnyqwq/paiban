@@ -156,6 +156,23 @@ export class ScheduleService {
     list.push(preset);
   }
 
+  // 内置预设的本地化名称（按当前语言返回，未内置返回空串）
+  private defaultNameById(id: string): string {
+    if (id === 'default_early') {
+      return this.str($r('app.string.preset_default_early'));
+    }
+    if (id === 'default_day') {
+      return this.str($r('app.string.preset_default_day'));
+    }
+    if (id === 'default_evening') {
+      return this.str($r('app.string.preset_default_evening'));
+    }
+    if (id === 'default_night') {
+      return this.str($r('app.string.preset_default_night'));
+    }
+    return '';
+  }
+
   getPresets(): PresetShift[] {
     if (this.prefs === null) {
       return this.defaultPresets();
@@ -168,6 +185,13 @@ export class ScheduleService {
     // 用户把预设全部删光时保留空列表（json 为 "[]"），不要自动恢复默认值
     if (list.length === 0 && json.trim() !== '[]') {
       return this.defaultPresets();
+    }
+    // 内置预设（早/白/晚/夜班）名称跟随系统语言，用户自定义的预设不受影响
+    for (const p of list) {
+      const localized = this.defaultNameById(p.id);
+      if (localized !== '') {
+        p.name = localized;
+      }
     }
     return list;
   }
