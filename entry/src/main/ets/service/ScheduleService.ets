@@ -37,6 +37,8 @@ export class ScheduleService {
       this.applyAppearance(appearance);
       // 启动时同步刷新桌面卡片，避免上次异常退出留下旧数据
       this.notifyCards();
+      // 一次性迁移：老的固定班次模板 → 「用于自动排班」的预设
+      this.migrateTemplateToPreset();
     } catch (e) {
       console.error('ScheduleService init failed:', JSON.stringify(e));
     }
@@ -197,6 +199,7 @@ export class ScheduleService {
         preset.end = typeof r.end === 'string' && r.end !== '' ? r.end : '17:00';
         preset.breakMinutes = typeof r.breakMinutes === 'number' && r.breakMinutes > 0
           ? Math.floor(r.breakMinutes) : 0;
+        preset.autoFill = r.autoFill === true;
         result.push(preset);
       }
       return result;
@@ -389,7 +392,6 @@ export class ScheduleService {
       rules.maxContinuousWorkMinutes = raw.maxContinuousWorkMinutes ?? rules.maxContinuousWorkMinutes;
       rules.mandatoryRestMinutes = raw.mandatoryRestMinutes ?? rules.mandatoryRestMinutes;
       rules.restWeekdays = Array.isArray(raw.restWeekdays) ? raw.restWeekdays as number[] : rules.restWeekdays;
-      rules.shiftTemplate = typeof raw.shiftTemplate === 'string' ? raw.shiftTemplate : rules.shiftTemplate;
       return rules;
     } catch (e) {
       return rules;
@@ -735,26 +737,24 @@ export class ScheduleService {
     return filled;
   }
 
-  // 给某天填充班次：配置了固定班次模板则按模板排（可多段），
-  // 否则总时长超过单段上限时自动拆成多段，段间留强制休息间隔
+  // 给某天填充班次：勾选了「用于自动排班」的预设则按预设排（可多选，按开始时间排序全部排上，
+  // 名称/颜色/休息时长随预设带到班次上）；无选中预设时按时长填充，
+  // 总时长超过单段上限时自动拆成多段，段间留强制休息间隔
   private fillShiftsForDay(ne: DayEntry, duration: number, rules: ShiftRules): void {
-    const template = this.parseShiftTemplate(rules.shiftTemplate);
-    if (template.length > 0) {
-      // 模板总时长达到当日应排时长才使用模板；
-      // 否则模板会顶掉均摊结果，导致月总时长凑不够
-      let templateTotal = 0;
-      for (const seg of template) {
-        templateTotal += Shift.minutesBetween(seg[1]) - Shift.minutesBetween(seg[0]);
+    const presets = this.getPresets().filter((p: PresetShift) => p.autoFill);
+    if (presets.length > 0) {
+      presets.sort((a: PresetShift, b: PresetShift) =>
+        Shift.minutesBetween(a.start) - Shift.minutesBetween(b.start));
+      for (const p of presets) {
+        const s = new Shift();
+        s.start = p.start;
+        s.end = p.end;
+        s.name = p.name;
+        s.color = p.color;
+        s.breakMinutes = p.breakMinutes;
+        ne.shifts.push(s);
       }
-      if (templateTotal >= duration) {
-        for (const seg of template) {
-          const s = new Shift();
-          s.start = seg[0];
-          s.end = seg[1];
-          ne.shifts.push(s);
-        }
-        return;
-      }
+      return;
     }
     const cap = rules.maxContinuousWorkMinutes > 0
       ? Math.min(duration, rules.maxContinuousWorkMinutes)
@@ -813,6 +813,52 @@ export class ScheduleService {
       result.push([start, end]);
     }
     return result;
+  }
+
+  // 老数据一次性迁移：把固定班次模板转换成一个「用于自动排班」的预设
+  // 多段模板取首段开始/末段结束，中间空档折算为休息时长，工时语义不变
+  private migrateTemplateToPreset(): void {
+    if (this.prefs === null) {
+      return;
+    }
+    const migrated = this.prefs.getSync('template_migrated_v1', false) as boolean;
+    if (migrated) {
+      return;
+    }
+    const rulesJson = this.prefs.getSync(KEY_RULES, '') as string;
+    let template = '';
+    if (rulesJson !== '') {
+      try {
+        const raw = JSON.parse(rulesJson) as Record<string, string>;
+        template = typeof raw['shiftTemplate'] === 'string' ? raw['shiftTemplate'] : '';
+      } catch (e) {
+        template = '';
+      }
+    }
+    const segs = this.parseShiftTemplate(template);
+    if (segs.length > 0) {
+      const first = segs[0];
+      const last = segs[segs.length - 1];
+      let breakMinutes = 0;
+      if (segs.length > 1) {
+        breakMinutes = Math.max(0, Shift.minutesBetween(last[0]) - Shift.minutesBetween(first[1]));
+      }
+      const preset = new PresetShift();
+      preset.id = `p_template_${Date.now()}`;
+      preset.name = this.str($r('app.string.preset_migrated'));
+      preset.color = PRESET_COLORS[6];
+      preset.start = first[0];
+      preset.end = last[1];
+      preset.breakMinutes = breakMinutes;
+      preset.autoFill = true;
+      const presets = this.getPresets();
+      presets.push(preset);
+      this.prefs.putSync(KEY_PRESETS, JSON.stringify(presets));
+      // 重写规则存储，去掉已废弃的 shiftTemplate 字段
+      this.saveRules(this.getRules());
+    }
+    this.prefs.putSync('template_migrated_v1', true);
+    this.prefs.flush();
   }
 
   // 按日期区间（如 7 天）自动排班：跳过已有班次/手动休息/固定休息日，遵守连续上限；

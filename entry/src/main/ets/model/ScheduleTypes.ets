@@ -42,6 +42,7 @@ export class PresetShift {
   start: string = '09:00';
   end: string = '17:00';
   breakMinutes: number = 0; // 休息时长（分钟）
+  autoFill: boolean = false; // 用于自动排班：自动填充时按此预设排班
 
   // 计入工时的分钟数 = 起止跨度 - 休息时长
   netMinutes(): number {
@@ -76,7 +77,6 @@ export class ShiftRules {
   restHoursPerMonth: number = 40;       // 每月最少休息时长（非工作日按整天 8h 计）
   maxConsecutiveWorkDays: number = 6;   // 最长连续上班天数
   restWeekdays: number[] = [];          // 固定每周休息日（0=周日…6=周六）
-  shiftTemplate: string = '';           // 固定班次模板，如 "08:00-12:00,14:00-18:00"，空 = 不用模板
   maxContinuousWorkMinutes: number = 360; // 一天内单段最长连续工作时长，0 = 不限制（默认 6 小时）
   mandatoryRestMinutes: number = 60;    // 超过单段上限后需强制休息的时长
 }

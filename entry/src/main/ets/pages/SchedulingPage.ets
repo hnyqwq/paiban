@@ -206,26 +206,6 @@ export struct SchedulingPage {
     this.appliedPresetId = '';
   }
 
-  // 自定义模板填入逐段编辑，可再调整后添加
-  applyCustomTemplate(): void {
-    const segs: SegStartEnd[] = [];
-    const parts = this.rules.shiftTemplate.split(',');
-    for (const p of parts) {
-      const s = p.split('-');
-      if (s.length !== 2) {
-        continue;
-      }
-      const seg = new SegStartEnd();
-      seg.start = s[0].trim();
-      seg.end = s[1].trim();
-      segs.push(seg);
-    }
-    if (segs.length > 0) {
-      this.newSegs = segs;
-      this.appliedPresetId = '';
-    }
-  }
-
   // 预设按钮两列网格的高度（chip 高 56 + rowsGap 6，末行无 gap）
   presetGridHeight(): number {
     if (this.presets.length === 0) {
@@ -685,23 +665,6 @@ export struct SchedulingPage {
         .height(this.presetGridHeight())
         .width('100%')
         .margin({ top: 6 })
-      }
-
-      // 自定义预设规则：把规则里保存的模板填入分段编辑
-      Button($r('app.string.tpl_custom'))
-        .buttonStyle(ButtonStyleMode.NORMAL)
-        .fontSize(11)
-        .width('100%')
-        .margin({ top: 6 })
-        .onClick(() => this.applyCustomTemplate())
-      if (this.rules.shiftTemplate.trim() !== '') {
-        Text(this.rules.shiftTemplate)
-          .fontSize(11)
-          .fontColor($r('sys.color.font_tertiary'))
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-          .width('100%')
-          .margin({ top: 4 })
       }
 
       // 逐段编辑班次

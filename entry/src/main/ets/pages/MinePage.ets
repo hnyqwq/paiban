@@ -19,12 +19,6 @@ function segString(res: Resource): string {
   }
 }
 
-// 固定班次模板的一段（开始-结束）
-class TemplateSeg {
-  start: string = '';
-  end: string = '';
-}
-
 // 外观选择：胶囊型分段按钮（@ComponentV2）
 @ComponentV2
 struct AppearanceSegment {
@@ -58,7 +52,6 @@ export struct MinePage {
   @State weekStart: number = 0; // 0 周日开始 1 周一开始
   @State rules: ShiftRules = new ShiftRules();
   @State expandedGroup: string = ''; // 当前展开的规则组：''=收起 'target'=目标 'work'=工时底线 'rest'=休息保障
-  @State templateSegs: TemplateSeg[] = []; // 模板逐段编辑状态
   // 预设排班
   @State presets: PresetShift[] = [];
   @State showPresetEditor: boolean = false;
@@ -68,6 +61,7 @@ export struct MinePage {
   @State presetStart: string = '09:00';
   @State presetEnd: string = '17:00';
   @State presetBreak: number = 0;
+  @State presetAutoFill: boolean = false; // 用于自动排班
   private presetColors: string[] = PRESET_COLORS;
   @State bundleName: string = '';
   @State versionName: string = '';
@@ -110,49 +104,16 @@ export struct MinePage {
     }
   }
 
-  // 打开/收起某个规则组：展开「休息保障」时把模板字符串解析成一段一段
+  // 打开/收起某个规则组
   openGroupEditor(group: string): void {
     if (this.expandedGroup === group) {
       this.expandedGroup = '';
       return;
     }
-    if (group === 'rest') {
-      const segs: TemplateSeg[] = [];
-      const parts = this.rules.shiftTemplate.split(',');
-      for (const p of parts) {
-        const s = p.split('-');
-        if (s.length === 2) {
-          const seg = new TemplateSeg();
-          seg.start = s[0].trim();
-          seg.end = s[1].trim();
-          segs.push(seg);
-        }
-      }
-      this.templateSegs = segs;
-    }
     this.expandedGroup = group;
   }
 
   // 逐段编辑结果自动拼回模板字符串（完整的段才计入）
-  syncTemplate(): void {
-    const parts: string[] = [];
-    for (const seg of this.templateSegs) {
-      if (seg.start.trim() !== '' && seg.end.trim() !== '') {
-        parts.push(`${seg.start.trim()}-${seg.end.trim()}`);
-      }
-    }
-    this.rules.shiftTemplate = parts.join(',');
-  }
-
-  addSegment(): void {
-    this.templateSegs.push(new TemplateSeg());
-  }
-
-  removeSegment(index: number): void {
-    this.templateSegs.splice(index, 1);
-    this.syncTemplate();
-  }
-
   saveRules(): void {
     this.service.saveRules(this.rules);
     // 保存后收起编辑器，回到展示态并刷新数值
@@ -242,6 +203,7 @@ export struct MinePage {
       this.presetStart = preset.start;
       this.presetEnd = preset.end;
       this.presetBreak = preset.breakMinutes;
+      this.presetAutoFill = preset.autoFill;
     } else {
       this.editingPresetIndex = -1;
       this.presetName = '';
@@ -249,6 +211,7 @@ export struct MinePage {
       this.presetStart = '09:00';
       this.presetEnd = '17:00';
       this.presetBreak = 0;
+      this.presetAutoFill = false;
     }
     this.showPresetEditor = true;
   }
@@ -290,6 +253,7 @@ export struct MinePage {
     preset.start = start;
     preset.end = end;
     preset.breakMinutes = breakMinutes;
+    preset.autoFill = this.presetAutoFill;
     if (this.editingPresetIndex >= 0 && this.editingPresetIndex < next.length) {
       next[this.editingPresetIndex] = preset;
     } else {
@@ -373,22 +337,6 @@ export struct MinePage {
     }
     arr.sort((a: number, b: number) => a - b);
     this.rules.restWeekdays = arr;
-  }
-
-  // 展示固定班次模板，未设置显示「无」
-  shiftTemplateText(): string {
-    if (this.rules.shiftTemplate.trim() === '') {
-      try {
-        const context = AppStorage.get<common.UIAbilityContext>('context');
-        if (context !== undefined) {
-          return context.resourceManager.getStringByNameSync('rule_shift_template_none');
-        }
-      } catch (e) {
-        // 取不到就用默认
-      }
-      return '';
-    }
-    return this.rules.shiftTemplate;
   }
 
   // 打开隐私协议（系统浏览器）
@@ -532,10 +480,6 @@ export struct MinePage {
     if (wd !== '') {
       parts.push(wd);
     }
-    const tpl = this.shiftTemplateText();
-    if (tpl !== '') {
-      parts.push(tpl);
-    }
     return parts.join('  ');
   }
 
@@ -672,60 +616,6 @@ export struct MinePage {
       }
       .width('100%')
       .margin({ top: 6 })
-
-      Text($r('app.string.rule_shift_template'))
-        .fontSize(15)
-        .fontWeight(FontWeight.Medium)
-        .width('100%')
-        .margin({ top: 12 })
-      ForEach(this.templateSegs, (seg: TemplateSeg, i: number) => {
-        Row() {
-          TextInput({ text: seg.start, placeholder: '08:00' })
-            .type(InputType.Normal)
-            .layoutWeight(1)
-            .onChange((v: string) => {
-              seg.start = v;
-              this.syncTemplate();
-            })
-            .onBlur(() => {
-              const n = normalizeTime(seg.start);
-              if (n !== seg.start) {
-                seg.start = n;
-                this.templateSegs.splice(i, 1, seg);
-                this.syncTemplate();
-              }
-            })
-          Text('→').margin({ left: 6, right: 6 })
-          TextInput({ text: seg.end, placeholder: '12:00' })
-            .type(InputType.Normal)
-            .layoutWeight(1)
-            .onChange((v: string) => {
-              seg.end = v;
-              this.syncTemplate();
-            })
-            .onBlur(() => {
-              const n = normalizeTime(seg.end);
-              if (n !== seg.end) {
-                seg.end = n;
-                this.templateSegs.splice(i, 1, seg);
-                this.syncTemplate();
-              }
-            })
-          Text($r('app.string.delete'))
-            .fontSize(13)
-            .fontColor($r('sys.color.warning'))
-            .margin({ left: 10 })
-            .onClick(() => this.removeSegment(i))
-        }
-        .width('100%')
-        .margin({ top: 6 })
-      }, (seg: TemplateSeg, i: number) => `${i}-${seg.start}-${seg.end}`)
-      Button($r('app.string.add_segment'))
-        .width('100%')
-        .buttonStyle(ButtonStyleMode.NORMAL)
-        .fontSize(12)
-        .margin({ top: 6 })
-        .onClick(() => this.addSegment())
 
       this.editorFooter()
     }
@@ -891,6 +781,20 @@ export struct MinePage {
           this.presetBreak = Number.isNaN(n) || n < 0 ? 0 : n;
         })
 
+      // 用于自动排班开关：开启后自动填充按此预设排班
+      Row() {
+        Text($r('app.string.preset_autofill'))
+          .fontSize(15)
+          .fontWeight(FontWeight.Medium)
+          .layoutWeight(1)
+        Toggle({ type: ToggleType.Switch, isOn: this.presetAutoFill })
+          .onChange((isOn: boolean) => {
+            this.presetAutoFill = isOn;
+          })
+      }
+      .width('100%')
+      .margin({ top: 10 })
+
       // 时间段 + 净工时预览：设置了休息则按扣除后的工时展示
       Column() {
         Row() {
@@ -987,7 +891,7 @@ export struct MinePage {
           ForEach(this.presets, (preset: PresetShift, index: number) => {
             this.presetRow(preset, index)
           }, (preset: PresetShift) =>
-            `${preset.id}-${preset.name}-${preset.color}-${preset.start}-${preset.end}-${preset.breakMinutes}`)
+            `${preset.id}-${preset.name}-${preset.color}-${preset.start}-${preset.end}-${preset.breakMinutes}-${preset.autoFill}`)
         }
         if (this.showPresetEditor) {
           this.presetEditor()
