@@ -91,15 +91,15 @@ struct MonthCard {
               Column() {
                 if (cell.dayText !== '') {
                   Text(cell.dayText)
-                    .fontSize(9)
+                    .fontSize(10)
                     .fontWeight(cell.isToday ? FontWeight.Bold : FontWeight.Normal)
                     .fontColor(cell.isToday ? $r('app.color.card_accent') : $r('app.color.card_text_primary'))
                   Text(cell.hoursText)
-                    .fontSize(7)
+                    .fontSize(8)
                     .fontColor($r('app.color.card_accent'))
                     .maxLines(1)
                   Text(cell.nameText)
-                    .fontSize(7)
+                    .fontSize(8)
                     .fontColor(cell.isRest ? $r('app.color.card_overlap') : $r('app.color.card_text_secondary'))
                     .maxLines(1)
                     .textOverflow({ overflow: TextOverflow.Ellipsis })
@@ -108,14 +108,14 @@ struct MonthCard {
                 }
               }
               .layoutWeight(1)
-              .height(34)
+              .height('100%')
               .justifyContent(FlexAlign.Center)
               .backgroundColor(cell.isToday ? $r('app.color.card_item_bg') : Color.Transparent)
               .borderRadius(4)
             }, (cell: MonthCellData, cellIndex: number) => `${this.getData().rev}-${rowIndex}-${cellIndex}`)
           }
           .width('100%')
-          .height(34)
+          .layoutWeight(1)
         }, (row: MonthCellData[], rowIndex: number) => `${this.getData().rev}-${rowIndex}`)
       }
       .width('100%')
