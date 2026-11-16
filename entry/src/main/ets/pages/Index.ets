@@ -2,6 +2,7 @@
 import { AgendaPage } from './AgendaPage';
 import { SchedulingPage } from './SchedulingPage';
 import { SecondPage } from './SecondPage';
+import { SettingsPage } from './SettingsPage';
 import { MinePage } from './MinePage';
 import {
   HdsNavigation,
@@ -23,11 +24,13 @@ struct Index {
   @State symbolStats: SymbolGlyphModifier = new SymbolGlyphModifier($r('sys.symbol.hourglass'));
   @State symbolTools: SymbolGlyphModifier = new SymbolGlyphModifier($r('sys.symbol.square_grid_2x2'));
   @State symbolMine: SymbolGlyphModifier = new SymbolGlyphModifier($r('sys.symbol.person'));
+  @State symbolSettings: SymbolGlyphModifier = new SymbolGlyphModifier($r('sys.symbol.gearshape'));
   private tabsController: HdsTabsController = new HdsTabsController();
   // 各页滚动器，绑定顶栏滚动磨砂效果（照搬 hny）
   private scrollerHome: Scroller = new Scroller();
   private scrollerTools: Scroller = new Scroller();
   private scrollerStats: Scroller = new Scroller();
+  private scrollerSettings: Scroller = new Scroller();
   private scrollerMine: Scroller = new Scroller();
 
   private getCurScroll(): Scroller {
@@ -38,9 +41,9 @@ struct Index {
       return this.scrollerStats;
     }
     if (this.currentTab === 3) {
-      return this.scrollerMine;
+      return this.scrollerSettings;
     }
-    return this.scrollerHome;
+    return this.scrollerMine;
   }
 
   private getMainTitle(): Resource {
@@ -52,6 +55,9 @@ struct Index {
     }
     if (this.currentTab === 2) {
       return $r('app.string.tab_discover');
+    }
+    if (this.currentTab === 3) {
+      return $r('app.string.tab_settings');
     }
     return $r('app.string.tab_mine');
   }
@@ -94,6 +100,11 @@ struct Index {
           SecondPage({ scroller: this.scrollerStats })
         }
         .tabBar(new BottomTabBarStyle({ normal: this.symbolStats }, $r('app.string.tab_discover')))
+
+        TabContent() {
+          SettingsPage({ scroller: this.scrollerSettings })
+        }
+        .tabBar(new BottomTabBarStyle({ normal: this.symbolSettings }, $r('app.string.tab_settings')))
 
         TabContent() {
           MinePage({ scroller: this.scrollerMine })

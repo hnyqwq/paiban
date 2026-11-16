@@ -3,7 +3,7 @@ import { preferences } from '@kit.ArkData';
 import { common, ConfigurationConstant } from '@kit.AbilityKit';
 import {
   DayEntry, Shift, ShiftRules, MonthStats, TodoItem, PresetShift, PRESET_COLORS,
-  dateKey, daysInMonth, minutesToHoursText, pad2, shiftAbsRange, unionMinutes, unionWorkedMinutes
+  AlarmSettings, dateKey, daysInMonth, minutesToHoursText, pad2, shiftAbsRange, unionMinutes, unionWorkedMinutes
 } from '../model/ScheduleTypes';
 import { FormCardData } from '../form/FormCardData';
 
@@ -12,6 +12,7 @@ const KEY_RULES = 'shift_rules_v1';
 const KEY_APPEARANCE = 'appearance_mode_v1'; // 0 跟随系统 1 浅色 2 深色
 const KEY_WEEK_START = 'calendar_week_start_v1'; // 0 周日开始 1 周一开始
 const KEY_PRESETS = 'preset_shifts_v1'; // 预设排班（名称/颜色/起止/休息）
+const KEY_ALARM_SETTINGS = 'alarm_settings_v1'; // 代理提醒自定义设置
 const FULL_REST_DAY_MINUTES = 8 * 60;        // 休息日按整天 8h 估算休息时长
 
 export class ScheduleService {
@@ -217,6 +218,36 @@ export class ScheduleService {
       return new ShiftRules();
     }
     return this.parseRules(json);
+  }
+
+  // 代理提醒自定义设置
+  getAlarmSettings(): AlarmSettings {
+    const settings = new AlarmSettings();
+    if (this.prefs === null) {
+      return settings;
+    }
+    try {
+      const json = this.prefs.getSync(KEY_ALARM_SETTINGS, '') as string;
+      if (json === '') {
+        return settings;
+      }
+      const raw = JSON.parse(json) as AlarmSettings;
+      settings.ringDuration = typeof raw.ringDuration === 'number' && raw.ringDuration > 0 ? Math.floor(raw.ringDuration) : settings.ringDuration;
+      settings.snoozeEnabled = raw.snoozeEnabled === true;
+      settings.snoozeTimes = typeof raw.snoozeTimes === 'number' && raw.snoozeTimes > 0 ? Math.floor(raw.snoozeTimes) : settings.snoozeTimes;
+      settings.timeInterval = typeof raw.timeInterval === 'number' && raw.timeInterval > 0 ? Math.floor(raw.timeInterval) : settings.timeInterval;
+    } catch (e) {
+      // 解析失败返回默认值
+    }
+    return settings;
+  }
+
+  saveAlarmSettings(settings: AlarmSettings): void {
+    if (this.prefs === null) {
+      return;
+    }
+    this.prefs.putSync(KEY_ALARM_SETTINGS, JSON.stringify(settings));
+    this.prefs.flush();
   }
 
   saveRules(rules: ShiftRules): void {

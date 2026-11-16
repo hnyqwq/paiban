@@ -59,6 +59,14 @@ export const PRESET_COLORS: string[] = [
   '#6B4EFF', '#00A6A6', '#D94B8A', '#6B7280'
 ];
 
+// 代理提醒的自定义设置
+export class AlarmSettings {
+  ringDuration: number = 5;      // 响铃时长（秒）
+  snoozeEnabled: boolean = true; // 是否支持贪睡（提醒带贪睡按钮）
+  snoozeTimes: number = 2;       // 贪睡次数
+  timeInterval: number = 5;      // 贪睡间隔（分钟）
+}
+
 // 班次相对其所属日期 0 点的绝对分钟区间；
 // end<=start 且未显式标注次日时，按跨天（+24h）兜底，兼容老数据
 export function shiftAbsRange(s: Shift): number[] {

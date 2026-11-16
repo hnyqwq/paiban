@@ -4,6 +4,7 @@ import reminderAgentManager from '@ohos.reminderAgentManager';
 import notificationManager from '@ohos.notificationManager';
 import { abilityAccessCtrl, Permissions, common } from '@kit.AbilityKit';
 import { Shift, shiftCrossesDay } from '../model/ScheduleTypes';
+import { ScheduleService } from '../service/ScheduleService';
 
 class ShiftTimeRange {
   startMs: number = 0;
@@ -120,14 +121,45 @@ export async function addShiftAlarm(context: common.UIAbilityContext, date: stri
       hour: Math.floor(minutes / 60),
       minute: minutes % 60
     };
+    // 文案按应用当前语言取（标题/过期/贪睡）
+    const text = (name: string, a?: number): string => {
+      try {
+        if (a === undefined) {
+          return context.resourceManager.getStringByNameSync(name);
+        }
+        return context.resourceManager.getStringByNameSync(name, a);
+      } catch (e) {
+        return '';
+      }
+    };
+    const settings = ScheduleService.getInstance().getAlarmSettings();
+    // 提醒按钮：关闭必带，开启贪睡时追加贪睡按钮（actionButton 为固定三元组，最多 3 个）
+    const closeButton: reminderAgentManager.ActionButton = {
+      title: text('alarm_btn_close'),
+      type: reminderAgentManager.ActionButtonType.ACTION_BUTTON_TYPE_CLOSE
+    };
+    const snoozeButton: reminderAgentManager.ActionButton = {
+      title: text('alarm_btn_snooze'),
+      type: reminderAgentManager.ActionButtonType.ACTION_BUTTON_TYPE_SNOOZE
+    };
+    const title = leadMinutes > 0 ? text('alarm_title_lead', leadMinutes) : text('alarm_title');
     const reminder: reminderAgentManager.ReminderRequestCalendar = {
       reminderType: reminderAgentManager.ReminderType.REMINDER_TYPE_CALENDAR,
       dateTime: dateTime,
-      title: leadMinutes > 0 ? `上班提醒（提前${leadMinutes}分钟）` : '上班提醒',
+      title: title,
       content: `${shift.start} - ${shift.end}`,
-      expiredContent: '已过上班时间',
+      expiredContent: text('alarm_expired'),
+      snoozeContent: text('alarm_snooze_content'),
+      ringDuration: settings.ringDuration,
+      snoozeTimes: settings.snoozeEnabled ? settings.snoozeTimes : 0,
+      timeInterval: settings.timeInterval * 60, // 分钟 → 秒
       slotType: notificationManager.SlotType.CONTENT_INFORMATION
     };
+    if (settings.snoozeEnabled) {
+      reminder.actionButton = [closeButton, snoozeButton];
+    } else {
+      reminder.actionButton = [closeButton];
+    }
     await reminderAgentManager.publishReminder(reminder);
     return true;
   } catch (e) {
