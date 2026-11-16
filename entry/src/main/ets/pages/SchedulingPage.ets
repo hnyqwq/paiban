@@ -134,7 +134,7 @@ export struct SchedulingPage {
 
   addShift(): void {
     // 保存前逐段检查跨天标注，有提醒时按用户选择处理后继续
-    this.confirmSegLabels(this.newSegs, () => this.doAddShift());
+    this.confirmSegLabels(this.newSegs, () => this.doAddShift(), 0);
   }
 
   // 单独添加某一段：同样走跨天标注弹窗流程，仅保存该段
@@ -153,8 +153,9 @@ export struct SchedulingPage {
   }
 
   // 点确定时自动检测：结束早于开始（跨天）则弹窗提醒，仅取消/确定两个按钮
-  private confirmSegLabels(segs: SegStartEnd[], onConfirmed: () => void): boolean {
-    for (let i = 0; i < segs.length; i++) {
+  // 确认一段后从下一段继续检查，避免重复弹同一段
+  private confirmSegLabels(segs: SegStartEnd[], onConfirmed: () => void, startIndex: number = 0): boolean {
+    for (let i = startIndex; i < segs.length; i++) {
       const seg = segs[i];
       if (seg.start.trim() === '' || seg.end.trim() === '') {
         continue;
@@ -175,7 +176,7 @@ export struct SchedulingPage {
           ]
         }).then((res) => {
           if (res.index === 1) {
-            this.confirmSegLabels(segs, onConfirmed);
+            this.confirmSegLabels(segs, onConfirmed, i + 1);
           }
         });
         return false;
