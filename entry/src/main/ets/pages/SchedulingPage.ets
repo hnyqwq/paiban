@@ -23,6 +23,7 @@ class SegStartEnd {
 @Component
 export struct SchedulingPage {
   scroller: Scroller = new Scroller();
+  @StorageProp('isWideLayout') isWideLayout: boolean = false; // 大屏（≥lg 断点）双栏布局
   @StorageLink('calendarSelectedDate') @Watch('onSelectedDateChange') selectedDate: string = '';
   @State days: DayEntry[] = [];
   @State rules: ShiftRules = new ShiftRules();
@@ -955,83 +956,108 @@ export struct SchedulingPage {
       .margin({ top: 16, bottom: 6 })
   }
 
+  // 排班编辑与工具区（大屏双栏时放右侧，竖屏时在日历下方）
+  @Builder
+  scheduleTools() {
+    this.scheduleEdit()
+
+    this.sectionTitle($r('app.string.tools_section_overview'))
+    Column() {
+      Row() {
+        Text($r('app.string.progress_done', minutesToHoursText(this.stats.workedMinutes), this.rules.monthlyTargetHours))
+          .fontSize(13)
+        Blank()
+        Text($r('app.string.progress_need', minutesToHoursText(this.stats.remainingMinutes)))
+          .fontSize(13)
+          .fontColor($r('sys.color.brand'))
+          .fontWeight(FontWeight.Medium)
+      }
+      .width('100%')
+
+      Progress({ value: this.stats.workedMinutes, total: Math.max(this.stats.targetMinutes, 1), type: ProgressType.Linear })
+        .width('100%')
+        .margin({ top: 8 })
+
+      if (this.stats.violations.length > 0) {
+        Text($r('app.string.rule_reminders'))
+          .fontSize(12)
+          .fontColor($r('sys.color.warning'))
+          .margin({ top: 10 })
+        ForEach(this.stats.violations, (v: string) => {
+          Text(v)
+            .fontSize(12)
+            .fontColor($r('sys.color.font_secondary'))
+            .margin({ top: 2 })
+        }, (v: string) => `${this.renderTick}-${v}`)
+      }
+    }
+    .width('100%')
+    .padding(12)
+    .borderRadius(12)
+    .backgroundColor($r('sys.color.background_primary'))
+    .border({ width: 0.5, color: $r('sys.color.comp_divider') })
+
+    this.sectionTitle($r('app.string.tools_section_schedule'))
+    Column() {
+      this.toolButton($r('app.string.auto_fill'), (): void => this.autoFillMonth())
+      this.toolButton($r('app.string.range_auto'), (): void => this.rangeAuto())
+      this.toolButton($r('app.string.sync_to_month'), (): void => this.syncMonth())
+      this.toolButton($r('app.string.copy_day'), (): void => this.copyDay())
+      this.toolButton($r('app.string.range_copy'), (): void => this.rangeCopy())
+    }
+    .width('100%')
+    .padding(12)
+    .borderRadius(12)
+    .backgroundColor($r('sys.color.background_primary'))
+    .border({ width: 0.5, color: $r('sys.color.comp_divider') })
+
+    this.sectionTitle($r('app.string.tools_section_remind'))
+    Column() {
+      // 代理提醒权限审核期间暂时屏蔽批量加闹钟，通过后把 showAlarmFeature 改回 true
+      if (this.showAlarmFeature) {
+        this.toolButton($r('app.string.batch_alarm'), (): void => {
+          this.showIntro($r('app.string.batch_alarm'), $r('app.string.batch_alarm_desc'), (): void => {
+            this.pickRange((start: string, end: string) => this.batchAlarm(start, end));
+          });
+        })
+      }
+      this.toolButton($r('app.string.batch_calendar'), (): void => {
+        this.showIntro($r('app.string.batch_calendar'), $r('app.string.batch_calendar_desc'), (): void => {
+          this.pickRange((start: string, end: string) => this.batchCalendar(start, end));
+        });
+      })
+    }
+    .width('100%')
+    .padding(12)
+    .borderRadius(12)
+    .backgroundColor($r('sys.color.background_primary'))
+    .border({ width: 0.5, color: $r('sys.color.comp_divider') })
+  }
+
   build() {
     Scroll(this.scroller) {
       Column() {
-        CalendarView()
-        this.scheduleEdit()
-
-        this.sectionTitle($r('app.string.tools_section_overview'))
-        Column() {
+        if (this.isWideLayout) {
+          // 大屏双栏：日历在左，排班编辑与工具在右
           Row() {
-            Text($r('app.string.progress_done', minutesToHoursText(this.stats.workedMinutes), this.rules.monthlyTargetHours))
-              .fontSize(13)
-            Blank()
-            Text($r('app.string.progress_need', minutesToHoursText(this.stats.remainingMinutes)))
-              .fontSize(13)
-              .fontColor($r('sys.color.brand'))
-              .fontWeight(FontWeight.Medium)
+            Column() {
+              CalendarView()
+            }
+            .layoutWeight(1)
+            .alignItems(HorizontalAlign.Start)
+
+            Column() {
+              this.scheduleTools()
+            }
+            .layoutWeight(1)
+            .alignItems(HorizontalAlign.Start)
           }
           .width('100%')
-
-          Progress({ value: this.stats.workedMinutes, total: Math.max(this.stats.targetMinutes, 1), type: ProgressType.Linear })
-            .width('100%')
-            .margin({ top: 8 })
-
-          if (this.stats.violations.length > 0) {
-            Text($r('app.string.rule_reminders'))
-              .fontSize(12)
-              .fontColor($r('sys.color.warning'))
-              .margin({ top: 10 })
-            ForEach(this.stats.violations, (v: string) => {
-              Text(v)
-                .fontSize(12)
-                .fontColor($r('sys.color.font_secondary'))
-                .margin({ top: 2 })
-            }, (v: string) => `${this.renderTick}-${v}`)
-          }
+          .alignItems(VerticalAlign.Top)
+        } else {
+          CalendarView()
+          this.scheduleTools()
         }
-        .width('100%')
-        .padding(12)
-        .borderRadius(12)
-        .backgroundColor($r('sys.color.background_primary'))
-        .border({ width: 0.5, color: $r('sys.color.comp_divider') })
-
-        this.sectionTitle($r('app.string.tools_section_schedule'))
-        Column() {
-          this.toolButton($r('app.string.auto_fill'), (): void => this.autoFillMonth())
-          this.toolButton($r('app.string.range_auto'), (): void => this.rangeAuto())
-          this.toolButton($r('app.string.sync_to_month'), (): void => this.syncMonth())
-          this.toolButton($r('app.string.copy_day'), (): void => this.copyDay())
-          this.toolButton($r('app.string.range_copy'), (): void => this.rangeCopy())
-        }
-        .width('100%')
-        .padding(12)
-        .borderRadius(12)
-        .backgroundColor($r('sys.color.background_primary'))
-        .border({ width: 0.5, color: $r('sys.color.comp_divider') })
-
-        this.sectionTitle($r('app.string.tools_section_remind'))
-        Column() {
-          // 代理提醒权限审核期间暂时屏蔽批量加闹钟，通过后把 showAlarmFeature 改回 true
-          if (this.showAlarmFeature) {
-            this.toolButton($r('app.string.batch_alarm'), (): void => {
-              this.showIntro($r('app.string.batch_alarm'), $r('app.string.batch_alarm_desc'), (): void => {
-                this.pickRange((start: string, end: string) => this.batchAlarm(start, end));
-              });
-            })
-          }
-          this.toolButton($r('app.string.batch_calendar'), (): void => {
-            this.showIntro($r('app.string.batch_calendar'), $r('app.string.batch_calendar_desc'), (): void => {
-              this.pickRange((start: string, end: string) => this.batchCalendar(start, end));
-            });
-          })
-        }
-        .width('100%')
-        .padding(12)
-        .borderRadius(12)
-        .backgroundColor($r('sys.color.background_primary'))
-        .border({ width: 0.5, color: $r('sys.color.comp_divider') })
 
         Text('')
           .height(100)

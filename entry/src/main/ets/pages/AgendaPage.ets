@@ -9,6 +9,7 @@ import { CalendarView } from '../view/CalendarView';
 @Component
 export struct AgendaPage {
   scroller: Scroller = new Scroller();
+  @StorageProp('isWideLayout') isWideLayout: boolean = false; // 大屏（≥lg 断点）双栏布局
   @StorageLink('calendarSelectedDate') @Watch('onSelectedDateChange') selectedDate: string = '';
   @State days: DayEntry[] = [];
   @State memoDraft: string = '';
@@ -312,8 +313,27 @@ export struct AgendaPage {
   build() {
     Scroll(this.scroller) {
       Column() {
-        CalendarView()
-        this.dayDetail()
+        if (this.isWideLayout) {
+          // 大屏双栏：日历在左，当日详情（班次/备忘/待办）在右
+          Row() {
+            Column() {
+              CalendarView()
+            }
+            .layoutWeight(1)
+            .alignItems(HorizontalAlign.Start)
+
+            Column() {
+              this.dayDetail()
+            }
+            .layoutWeight(1)
+            .alignItems(HorizontalAlign.Start)
+          }
+          .width('100%')
+          .alignItems(VerticalAlign.Top)
+        } else {
+          CalendarView()
+          this.dayDetail()
+        }
         Text('') // 底部留白，避开悬浮 Tab 栏
           .height(100)
       }

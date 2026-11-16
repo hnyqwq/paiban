@@ -13,6 +13,7 @@ export struct SecondPage {  scroller: Scroller = new Scroller();
   @StorageLink('scheduleDataVersion') @Watch('onDataChanged') scheduleDataVersion: number = 0;
   @StorageLink('rulesChanged') @Watch('onRulesChanged') rulesChanged: number = 0;
   @State renderTick: number = 0; // 数据/规则变化时自增，强制图表与列表重建
+  @StorageProp('isWideLayout') isWideLayout: boolean = false; // 大屏（≥lg 断点）双栏布局
 
   onDataChanged(): void {
     this.refresh();
@@ -219,27 +220,64 @@ export struct SecondPage {  scroller: Scroller = new Scroller();
         }
         .width('100%')
 
-        this.ringCard()
+        if (this.isWideLayout) {
+          // 大屏双栏：环形卡与统计卡在左，每日工时分布与规则提醒在右
+          Row() {
+            Column() {
+              this.ringCard()
+              Row({ space: 8 }) {
+                this.statCard($r('app.string.stat_scheduled'), minutesToHoursText(this.stats.workedMinutes),
+                  $r('app.string.progress_need', minutesToHoursText(this.stats.remainingMinutes)))
+                this.statCard($r('app.string.stat_rest_days'), $r('app.string.stat_rest_days_val', this.stats.restDays),
+                  $r('app.string.stat_rest_days_sub', this.stats.restDaysTarget))
+              }
+              .width('100%')
+              .margin({ top: 8 })
 
-        Row({ space: 8 }) {
-          this.statCard($r('app.string.stat_scheduled'), minutesToHoursText(this.stats.workedMinutes),
-            $r('app.string.progress_need', minutesToHoursText(this.stats.remainingMinutes)))
-          this.statCard($r('app.string.stat_rest_days'), $r('app.string.stat_rest_days_val', this.stats.restDays),
-            $r('app.string.stat_rest_days_sub', this.stats.restDaysTarget))
-        }
-        .width('100%')
-        .margin({ top: 8 })
+              Row({ space: 8 }) {
+                this.statCard($r('app.string.stat_rest_hours'), minutesToHoursText(this.stats.restMinutes),
+                  $r('app.string.stat_rest_hours_sub', this.rules.restHoursPerMonth))
+                this.statCard($r('app.string.stat_streak'), $r('app.string.stat_streak_val', this.stats.currentConsecutive),
+                  $r('app.string.stat_streak_sub', this.stats.maxConsecutive, this.rules.maxConsecutiveWorkDays))
+              }
+              .width('100%')
+              .margin({ top: 8 })
+            }
+            .layoutWeight(1)
+            .alignItems(HorizontalAlign.Start)
 
-        Row({ space: 8 }) {
-          this.statCard($r('app.string.stat_rest_hours'), minutesToHoursText(this.stats.restMinutes),
-            $r('app.string.stat_rest_hours_sub', this.rules.restHoursPerMonth))
-          this.statCard($r('app.string.stat_streak'), $r('app.string.stat_streak_val', this.stats.currentConsecutive),
-            $r('app.string.stat_streak_sub', this.stats.maxConsecutive, this.rules.maxConsecutiveWorkDays))
+            Column() {
+              this.barChart()
+              this.violationList()
+            }
+            .layoutWeight(1)
+            .alignItems(HorizontalAlign.Start)
+          }
+          .width('100%')
+          .alignItems(VerticalAlign.Top)
+        } else {
+          this.ringCard()
+
+          Row({ space: 8 }) {
+            this.statCard($r('app.string.stat_scheduled'), minutesToHoursText(this.stats.workedMinutes),
+              $r('app.string.progress_need', minutesToHoursText(this.stats.remainingMinutes)))
+            this.statCard($r('app.string.stat_rest_days'), $r('app.string.stat_rest_days_val', this.stats.restDays),
+              $r('app.string.stat_rest_days_sub', this.stats.restDaysTarget))
+          }
+          .width('100%')
+          .margin({ top: 8 })
+
+          Row({ space: 8 }) {
+            this.statCard($r('app.string.stat_rest_hours'), minutesToHoursText(this.stats.restMinutes),
+              $r('app.string.stat_rest_hours_sub', this.rules.restHoursPerMonth))
+            this.statCard($r('app.string.stat_streak'), $r('app.string.stat_streak_val', this.stats.currentConsecutive),
+              $r('app.string.stat_streak_sub', this.stats.maxConsecutive, this.rules.maxConsecutiveWorkDays))
+          }
+          .width('100%')
+          .margin({ top: 8 })
+          this.barChart()
+          this.violationList()
         }
-        .width('100%')
-        .margin({ top: 8 })
-        this.barChart()
-        this.violationList()
         Text('')
           .height(100)
       }

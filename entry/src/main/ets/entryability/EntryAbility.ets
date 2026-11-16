@@ -1,6 +1,6 @@
 import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
-import { window } from '@kit.ArkUI';
+import { display, window } from '@kit.ArkUI';
 import { ScheduleService } from '../service/ScheduleService';
 
 const DOMAIN = 0x0000;
@@ -51,6 +51,17 @@ export default class EntryAbility extends UIAbility {
       updateTopAvoid();
       mainWindow.on('avoidAreaChange', () => {
         updateTopAvoid();
+      });
+
+      // 断点实时监听：窗口宽度（vp）≥ 840（lg 断点）时启用大屏双栏布局
+      const updateBreakpoint = (): void => {
+        const densityPixels: number = display.getDefaultDisplaySync().densityPixels;
+        const widthVp: number = mainWindow.getWindowProperties().windowRect.width / densityPixels;
+        AppStorage.setOrCreate('isWideLayout', widthVp >= 840);
+      };
+      updateBreakpoint();
+      mainWindow.on('windowSizeChange', () => {
+        updateBreakpoint();
       });
     } catch (err) {
       hilog.error(DOMAIN, 'testTag', 'Failed to get avoid area. Cause: %{public}s', JSON.stringify(err));

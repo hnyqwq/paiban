@@ -54,6 +54,7 @@ struct AppearanceSegment {
 export struct MinePage {
   scroller: Scroller = new Scroller();
   @State appearanceMode: number = 0; // 0 跟随系统 1 浅色 2 深色
+  @StorageProp('isWideLayout') isWideLayout: boolean = false; // 大屏（≥lg 断点）双栏布局
   @State weekStart: number = 0; // 0 周日开始 1 周一开始
   @State rules: ShiftRules = new ShiftRules();
   @State expandedGroup: string = ''; // 当前展开的规则组：''=收起 'target'=目标 'work'=工时底线 'rest'=休息保障
@@ -932,248 +933,278 @@ export struct MinePage {
     .margin({ top: 8 })
   }
 
+  // 规则区（大屏双栏时放左侧，竖屏在页面顶部）
+  @Builder
+  rulesSection() {
+    this.sectionTitle($r('app.string.section_rules'))
+    Column() {
+      this.groupHeader($r('app.string.rule_group_target'), this.targetSummary(), 'target')
+      if (this.expandedGroup === 'target') {
+        this.editorTarget()
+      }
+      Divider().strokeWidth(0.5)
+      this.groupHeader($r('app.string.rule_group_work'), this.workSummary(), 'work')
+      if (this.expandedGroup === 'work') {
+        this.editorWork()
+      }
+      Divider().strokeWidth(0.5)
+      this.groupHeader($r('app.string.rule_group_rest'), this.restSummary(), 'rest')
+      if (this.expandedGroup === 'rest') {
+        this.editorRest()
+      }
+    }
+    .width('100%')
+    .borderRadius(12)
+    .backgroundColor($r('sys.color.background_primary'))
+    .border({ width: 0.5, color: $r('sys.color.comp_divider') })
+  }
+
+  // 预设排班 / 数据 / 外观 / 关于区（大屏双栏时放右侧）
+  @Builder
+  otherSections() {
+    this.sectionTitle($r('app.string.section_presets'))
+    Column() {
+      Text($r('app.string.presets_desc'))
+        .fontSize(11)
+        .fontColor($r('sys.color.font_tertiary'))
+        .width('100%')
+        .padding({ left: 12, right: 12, top: 10 })
+      Column() {
+        if (this.presets.length === 0) {
+          Text($r('app.string.preset_empty'))
+            .fontSize(13)
+            .fontColor($r('sys.color.font_tertiary'))
+            .width('100%')
+            .padding({ top: 10, bottom: 4 })
+        } else {
+          ForEach(this.presets, (preset: PresetShift, index: number) => {
+            this.presetRow(preset, index)
+          }, (preset: PresetShift) =>
+            `${preset.id}-${preset.name}-${preset.color}-${preset.start}-${preset.end}-${preset.breakMinutes}`)
+        }
+        if (this.showPresetEditor) {
+          this.presetEditor()
+        } else {
+          Button($r('app.string.preset_add'))
+            .width('100%')
+            .buttonStyle(ButtonStyleMode.NORMAL)
+            .margin({ top: 10 })
+            .onClick(() => this.openPresetEditor(-1))
+        }
+      }
+      .width('100%')
+      .padding({ left: 12, right: 12, top: 2, bottom: 12 })
+    }
+    .width('100%')
+    .borderRadius(12)
+    .backgroundColor($r('sys.color.background_primary'))
+    .border({ width: 0.5, color: $r('sys.color.comp_divider') })
+
+    this.sectionTitle($r('app.string.section_data'))
+    Column() {
+      Row({ space: 8 }) {
+        Button($r('app.string.export_data'))
+          .buttonStyle(ButtonStyleMode.NORMAL)
+          .fontSize(13)
+          .layoutWeight(1)
+          .margin({ top: 12, bottom: 4, left: 12 })
+          .onClick(() => this.exportData())
+        Button($r('app.string.import_data'))
+          .buttonStyle(ButtonStyleMode.NORMAL)
+          .fontSize(13)
+          .layoutWeight(1)
+          .margin({ top: 12, bottom: 4, right: 12 })
+          .onClick(() => {
+            this.importText = '';
+            this.showImportEditor = true;
+          })
+      }
+      .width('100%')
+      if (this.showImportEditor) {
+        // 导入在主窗口内联执行：安全控件 PasteButton 在子窗口（CustomDialog）中拿不到临时授权
+        Column() {
+          Row() {
+            PasteButton()
+              .fontSize(13)
+              .onClick((event: ClickEvent, result: PasteButtonOnClickResult) => {
+                if (result !== PasteButtonOnClickResult.SUCCESS) {
+                  return;
+                }
+                try {
+                  const text = pasteboard.getSystemPasteboard().getDataSync().getPrimaryText();
+                  if (text !== '') {
+                    this.importText = text;
+                  } else {
+                    promptAction.showToast({ message: $r('app.string.clipboard_empty') });
+                  }
+                } catch (e) {
+                  promptAction.showToast({ message: $r('app.string.clipboard_empty') });
+                }
+              })
+          }
+          .width('100%')
+          .justifyContent(FlexAlign.Start)
+
+          TextArea({ text: this.importText, placeholder: $r('app.string.import_hint') })
+            .width('100%')
+            .height(140)
+            .margin({ top: 8 })
+            .onChange((v: string) => {
+              this.importText = v;
+            })
+          Row() {
+            Button($r('app.string.cancel'))
+              .buttonStyle(ButtonStyleMode.NORMAL)
+              .layoutWeight(1)
+              .onClick(() => {
+                this.showImportEditor = false;
+                this.importText = '';
+              })
+            Button($r('app.string.import_data'))
+              .layoutWeight(1)
+              .margin({ left: 12 })
+              .onClick(() => this.confirmImport())
+          }
+          .width('100%')
+          .margin({ top: 12 })
+        }
+        .width('calc(100% - 24vp)')
+        .margin({ left: 12, right: 12, top: 8 })
+      }
+      Button($r('app.string.clear_data'))
+        .width('calc(100% - 24vp)')
+        .buttonStyle(ButtonStyleMode.NORMAL)
+        .fontColor($r('sys.color.warning'))
+        .margin({ top: 8, bottom: 12, left: 12, right: 12 })
+        .onClick(() => this.clearData())
+    }
+    .width('100%')
+    .borderRadius(12)
+    .backgroundColor($r('sys.color.background_primary'))
+    .border({ width: 0.5, color: $r('sys.color.comp_divider') })
+
+    this.sectionTitle($r('app.string.section_appearance'))
+    Column() {
+      AppearanceSegment({
+        selected: this.appearanceMode,
+        onSelect: (index: number) => {
+          this.appearanceMode = index;
+          this.service.setAppearanceMode(index);
+        }
+      })
+        .width('calc(100% - 24vp)')
+        .margin({ left: 12, right: 12, top: 12, bottom: 12 })
+
+      Row() {
+        Text($r('app.string.week_start_title'))
+          .fontSize(14)
+          .layoutWeight(1)
+        Button($r('app.string.week_start_sun'))
+          .buttonStyle(this.weekStart === 0 ? ButtonStyleMode.EMPHASIZED : ButtonStyleMode.NORMAL)
+          .fontSize(12)
+          .onClick(() => {
+            this.weekStart = 0;
+            this.service.setWeekStart(0);
+          })
+        Button($r('app.string.week_start_mon'))
+          .buttonStyle(this.weekStart === 1 ? ButtonStyleMode.EMPHASIZED : ButtonStyleMode.NORMAL)
+          .fontSize(12)
+          .margin({ left: 8 })
+          .onClick(() => {
+            this.weekStart = 1;
+            this.service.setWeekStart(1);
+          })
+      }
+      .width('calc(100% - 24vp)')
+      .margin({ left: 12, right: 12, bottom: 12 })
+    }
+    .width('100%')
+    .borderRadius(12)
+    .backgroundColor($r('sys.color.background_primary'))
+    .border({ width: 0.5, color: $r('sys.color.comp_divider') })
+
+    this.sectionTitle($r('app.string.section_about'))
+    Column() {
+      Row() {
+        Text($r('app.string.EntryAbility_label'))
+          .fontSize(15)
+        Blank()
+        Text(this.bundleName)
+          .fontSize(15)
+          .fontColor($r('sys.color.font_secondary'))
+      }
+      .width('100%')
+      .padding({ left: 12, right: 12, top: 12, bottom: 4 })
+      Row() {
+        Text($r('app.string.version_label'))
+          .fontSize(15)
+        Blank()
+        Text(this.versionName)
+          .fontSize(15)
+          .fontColor($r('sys.color.font_secondary'))
+      }
+      .width('100%')
+      .padding({ left: 12, right: 12, top: 4, bottom: 4 })
+      Row() {
+        Text($r('app.string.check_update'))
+          .fontSize(15)
+        Blank()
+        Text('›')
+          .fontSize(16)
+          .fontColor($r('sys.color.font_tertiary'))
+      }
+      .width('100%')
+      .padding({ left: 12, right: 12, top: 4, bottom: 12 })
+      .onClick(() => this.checkUpdate())
+    }
+    .width('100%')
+    .borderRadius(12)
+    .backgroundColor($r('sys.color.background_primary'))
+    .border({ width: 0.5, color: $r('sys.color.comp_divider') })
+
+    // 隐私协议
+    Row() {
+      Text($r('app.string.privacy_policy'))
+        .fontSize(15)
+        .fontColor($r('sys.color.brand'))
+      Blank()
+      Text('›')
+        .fontSize(16)
+        .fontColor($r('sys.color.font_tertiary'))
+    }
+    .width('100%')
+    .padding(12)
+    .borderRadius(12)
+    .backgroundColor($r('sys.color.background_primary'))
+    .border({ width: 0.5, color: $r('sys.color.comp_divider') })
+    .margin({ top: 12 })
+    .onClick(() => this.openPrivacy())
+  }
+
   build() {
     Scroll(this.scroller) {
       Column() {
-        this.sectionTitle($r('app.string.section_rules'))
-        Column() {
-          this.groupHeader($r('app.string.rule_group_target'), this.targetSummary(), 'target')
-          if (this.expandedGroup === 'target') {
-            this.editorTarget()
-          }
-          Divider().strokeWidth(0.5)
-          this.groupHeader($r('app.string.rule_group_work'), this.workSummary(), 'work')
-          if (this.expandedGroup === 'work') {
-            this.editorWork()
-          }
-          Divider().strokeWidth(0.5)
-          this.groupHeader($r('app.string.rule_group_rest'), this.restSummary(), 'rest')
-          if (this.expandedGroup === 'rest') {
-            this.editorRest()
-          }
-        }
-        .width('100%')
-        .borderRadius(12)
-        .backgroundColor($r('sys.color.background_primary'))
-        .border({ width: 0.5, color: $r('sys.color.comp_divider') })
-
-        this.sectionTitle($r('app.string.section_presets'))
-        Column() {
-          Text($r('app.string.presets_desc'))
-            .fontSize(11)
-            .fontColor($r('sys.color.font_tertiary'))
-            .width('100%')
-            .padding({ left: 12, right: 12, top: 10 })
-          Column() {
-            if (this.presets.length === 0) {
-              Text($r('app.string.preset_empty'))
-                .fontSize(13)
-                .fontColor($r('sys.color.font_tertiary'))
-                .width('100%')
-                .padding({ top: 10, bottom: 4 })
-            } else {
-              ForEach(this.presets, (preset: PresetShift, index: number) => {
-                this.presetRow(preset, index)
-              }, (preset: PresetShift) =>
-                `${preset.id}-${preset.name}-${preset.color}-${preset.start}-${preset.end}-${preset.breakMinutes}`)
-            }
-            if (this.showPresetEditor) {
-              this.presetEditor()
-            } else {
-              Button($r('app.string.preset_add'))
-                .width('100%')
-                .buttonStyle(ButtonStyleMode.NORMAL)
-                .margin({ top: 10 })
-                .onClick(() => this.openPresetEditor(-1))
-            }
-          }
-          .width('100%')
-          .padding({ left: 12, right: 12, top: 2, bottom: 12 })
-        }
-        .width('100%')
-        .borderRadius(12)
-        .backgroundColor($r('sys.color.background_primary'))
-        .border({ width: 0.5, color: $r('sys.color.comp_divider') })
-
-        this.sectionTitle($r('app.string.section_data'))
-        Column() {
-          Row({ space: 8 }) {
-            Button($r('app.string.export_data'))
-              .buttonStyle(ButtonStyleMode.NORMAL)
-              .fontSize(13)
-              .layoutWeight(1)
-              .margin({ top: 12, bottom: 4, left: 12 })
-              .onClick(() => this.exportData())
-            Button($r('app.string.import_data'))
-              .buttonStyle(ButtonStyleMode.NORMAL)
-              .fontSize(13)
-              .layoutWeight(1)
-              .margin({ top: 12, bottom: 4, right: 12 })
-              .onClick(() => {
-                this.importText = '';
-                this.showImportEditor = true;
-              })
-          }
-          .width('100%')
-          if (this.showImportEditor) {
-            // 导入在主窗口内联执行：安全控件 PasteButton 在子窗口（CustomDialog）中拿不到临时授权
+        if (this.isWideLayout) {
+          // 大屏双栏：规则在左，预设排班/数据/外观/关于在右
+          Row() {
             Column() {
-              Row() {
-                PasteButton()
-                  .fontSize(13)
-                  .onClick((event: ClickEvent, result: PasteButtonOnClickResult) => {
-                    if (result !== PasteButtonOnClickResult.SUCCESS) {
-                      return;
-                    }
-                    try {
-                      const text = pasteboard.getSystemPasteboard().getDataSync().getPrimaryText();
-                      if (text !== '') {
-                        this.importText = text;
-                      } else {
-                        promptAction.showToast({ message: $r('app.string.clipboard_empty') });
-                      }
-                    } catch (e) {
-                      promptAction.showToast({ message: $r('app.string.clipboard_empty') });
-                    }
-                  })
-              }
-              .width('100%')
-              .justifyContent(FlexAlign.Start)
-
-              TextArea({ text: this.importText, placeholder: $r('app.string.import_hint') })
-                .width('100%')
-                .height(140)
-                .margin({ top: 8 })
-                .onChange((v: string) => {
-                  this.importText = v;
-                })
-              Row() {
-                Button($r('app.string.cancel'))
-                  .buttonStyle(ButtonStyleMode.NORMAL)
-                  .layoutWeight(1)
-                  .onClick(() => {
-                    this.showImportEditor = false;
-                    this.importText = '';
-                  })
-                Button($r('app.string.import_data'))
-                  .layoutWeight(1)
-                  .margin({ left: 12 })
-                  .onClick(() => this.confirmImport())
-              }
-              .width('100%')
-              .margin({ top: 12 })
+              this.rulesSection()
             }
-            .width('calc(100% - 24vp)')
-            .margin({ left: 12, right: 12, top: 8 })
-          }
-          Button($r('app.string.clear_data'))
-            .width('calc(100% - 24vp)')
-            .buttonStyle(ButtonStyleMode.NORMAL)
-            .fontColor($r('sys.color.warning'))
-            .margin({ top: 8, bottom: 12, left: 12, right: 12 })
-            .onClick(() => this.clearData())
-        }
-        .width('100%')
-        .borderRadius(12)
-        .backgroundColor($r('sys.color.background_primary'))
-        .border({ width: 0.5, color: $r('sys.color.comp_divider') })
+            .layoutWeight(1)
+            .alignItems(HorizontalAlign.Start)
 
-        this.sectionTitle($r('app.string.section_appearance'))
-        Column() {
-          AppearanceSegment({
-            selected: this.appearanceMode,
-            onSelect: (index: number) => {
-              this.appearanceMode = index;
-              this.service.setAppearanceMode(index);
+            Column() {
+              this.otherSections()
             }
-          })
-            .width('calc(100% - 24vp)')
-            .margin({ left: 12, right: 12, top: 12, bottom: 12 })
-
-          Row() {
-            Text($r('app.string.week_start_title'))
-              .fontSize(14)
-              .layoutWeight(1)
-            Button($r('app.string.week_start_sun'))
-              .buttonStyle(this.weekStart === 0 ? ButtonStyleMode.EMPHASIZED : ButtonStyleMode.NORMAL)
-              .fontSize(12)
-              .onClick(() => {
-                this.weekStart = 0;
-                this.service.setWeekStart(0);
-              })
-            Button($r('app.string.week_start_mon'))
-              .buttonStyle(this.weekStart === 1 ? ButtonStyleMode.EMPHASIZED : ButtonStyleMode.NORMAL)
-              .fontSize(12)
-              .margin({ left: 8 })
-              .onClick(() => {
-                this.weekStart = 1;
-                this.service.setWeekStart(1);
-              })
-          }
-          .width('calc(100% - 24vp)')
-          .margin({ left: 12, right: 12, bottom: 12 })
-        }
-        .width('100%')
-        .borderRadius(12)
-        .backgroundColor($r('sys.color.background_primary'))
-        .border({ width: 0.5, color: $r('sys.color.comp_divider') })
-
-        this.sectionTitle($r('app.string.section_about'))
-        Column() {
-          Row() {
-            Text($r('app.string.EntryAbility_label'))
-              .fontSize(15)
-            Blank()
-            Text(this.bundleName)
-              .fontSize(15)
-              .fontColor($r('sys.color.font_secondary'))
+            .layoutWeight(1)
+            .alignItems(HorizontalAlign.Start)
           }
           .width('100%')
-          .padding({ left: 12, right: 12, top: 12, bottom: 4 })
-          Row() {
-            Text($r('app.string.version_label'))
-              .fontSize(15)
-            Blank()
-            Text(this.versionName)
-              .fontSize(15)
-              .fontColor($r('sys.color.font_secondary'))
-          }
-          .width('100%')
-          .padding({ left: 12, right: 12, top: 4, bottom: 4 })
-          Row() {
-            Text($r('app.string.check_update'))
-              .fontSize(15)
-            Blank()
-            Text('›')
-              .fontSize(16)
-              .fontColor($r('sys.color.font_tertiary'))
-          }
-          .width('100%')
-          .padding({ left: 12, right: 12, top: 4, bottom: 12 })
-          .onClick(() => this.checkUpdate())
+          .alignItems(VerticalAlign.Top)
+        } else {
+          this.rulesSection()
+          this.otherSections()
         }
-        .width('100%')
-        .borderRadius(12)
-        .backgroundColor($r('sys.color.background_primary'))
-        .border({ width: 0.5, color: $r('sys.color.comp_divider') })
-
-        // 隐私协议
-        Row() {
-          Text($r('app.string.privacy_policy'))
-            .fontSize(15)
-            .fontColor($r('sys.color.brand'))
-          Blank()
-          Text('›')
-            .fontSize(16)
-            .fontColor($r('sys.color.font_tertiary'))
-        }
-        .width('100%')
-        .padding(12)
-        .borderRadius(12)
-        .backgroundColor($r('sys.color.background_primary'))
-        .border({ width: 0.5, color: $r('sys.color.comp_divider') })
-        .margin({ top: 12 })
-        .onClick(() => this.openPrivacy())
 
         Text('')
           .height(100)
