@@ -155,6 +155,8 @@
     { "name": "sum_rest_days", "value": "≥%1$d d" },
     { "name": "sum_rest_hours", "value": "≥%1$d h" },
     { "name": "sum_streak", "value": "streak ≤%1$d d" },
+    { "name": "rule_enabled", "value": "On" },
+    { "name": "rule_disabled", "value": "Off" },
     { "name": "sync_to_month", "value": "Copy a month" },
     { "name": "sync_desc", "value": "Copies all shifts of one month to another month; existing shifts in the target month are overwritten. Three steps: pick source month → target month → confirm." },
     { "name": "pick_source_month", "value": "Select source month" },

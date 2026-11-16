@@ -558,6 +558,11 @@ export struct MinePage {
           .fontWeight(FontWeight.Medium)
           .fontColor(this.ruleValue(key) > 0 ? $r('sys.color.font_primary') : $r('sys.color.font_tertiary'))
           .layoutWeight(1)
+        Text(this.ruleValue(key) > 0
+          ? $r('app.string.rule_enabled') : $r('app.string.rule_disabled'))
+          .fontSize(12)
+          .fontColor($r('sys.color.font_tertiary'))
+          .margin({ right: 8 })
         Toggle({ type: ToggleType.Switch, isOn: this.ruleValue(key) > 0 })
           .onChange((isOn: boolean) => {
             this.toggleRule(key, isOn);
