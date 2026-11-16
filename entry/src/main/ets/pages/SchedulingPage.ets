@@ -839,7 +839,7 @@ export struct SchedulingPage {
                 }
               })
           }
-          .width(96)
+          .width(88)
           .alignItems(HorizontalAlign.Start)
 
           Text('→').margin({ left: 4, right: 4 })
@@ -859,13 +859,13 @@ export struct SchedulingPage {
                 }
               })
           }
-          .width(96)
+          .width(88)
           .alignItems(HorizontalAlign.Start)
 
           // 行尾：确定（保存该段）/ 取消（清空该行）
           Row({ space: 6 }) {
             Button($r('app.string.seg_label_confirm'))
-              .buttonStyle(ButtonStyleMode.NORMAL)
+              .buttonStyle(ButtonStyleMode.EMPHASIZED)
               .fontSize(13)
               .height(32)
               .onClick(() => this.addSeg(i))
@@ -875,7 +875,7 @@ export struct SchedulingPage {
               .height(32)
               .onClick(() => this.clearSeg(i))
           }
-          .margin({ left: 6 })
+          .margin({ left: 6, right: 12 })
         }
         .width('100%')
         .alignItems(VerticalAlign.Center)
