@@ -466,7 +466,7 @@ export struct AgendaPage {
       Column() {
         if (this.isWideLayout) {
           // 大屏双栏：日历在左，当日详情（班次/备忘/待办）在右
-          Row() {
+          Row({ space: 8 }) {
             Column() {
               CalendarView()
             }

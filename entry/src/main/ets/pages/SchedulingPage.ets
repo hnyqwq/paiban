@@ -1174,7 +1174,7 @@ export struct SchedulingPage {
       Column() {
         if (this.isWideLayout) {
           // 大屏双栏：日历在左，排班编辑与工具在右
-          Row() {
+          Row({ space: 8 }) {
             Column() {
               CalendarView()
             }
