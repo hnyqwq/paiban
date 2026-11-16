@@ -43,6 +43,7 @@
     { "name": "done_schedule", "value": "Done" },
     { "name": "preset_autofill", "value": "Use for auto-fill" },
     { "name": "add_card_title", "value": "Add widget" },
+    { "name": "add_card_msg", "value": "Choose the widget to add to your home screen" },
     { "name": "card_add_done", "value": "Added to home screen" },
     { "name": "card_add_failed", "value": "Failed to add" },
     { "name": "preset_migrated", "value": "My template" },

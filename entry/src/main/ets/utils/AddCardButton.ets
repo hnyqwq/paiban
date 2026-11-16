@@ -21,6 +21,7 @@ const cardDims: number[] = [
 export function showAddCardDialog(): void {
   promptAction.showDialog({
     title: $r('app.string.add_card_title'),
+    message: $r('app.string.add_card_msg'),
     buttons: [
       { text: cardNames[0], color: $r('sys.color.font_primary') },
       { text: cardNames[1], color: $r('sys.color.font_primary') },
