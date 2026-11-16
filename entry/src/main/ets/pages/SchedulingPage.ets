@@ -899,7 +899,7 @@ export struct SchedulingPage {
               }
               .alignItems(HorizontalAlign.Start)
               .layoutWeight(1)
-              Text(minutesToHoursText(s.durationMinutes()))
+              Text(minutesToHoursText(shiftMinutesOnOffsetDay(s, 0)))
                 .fontSize(13)
                 .fontColor('#0A59F7')
                 .margin({ left: 8 })

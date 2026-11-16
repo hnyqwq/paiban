@@ -120,7 +120,7 @@ export struct CalendarView {
     if (entry === undefined) {
       return `${day}-x`;
     }
-    return `${day}-${entry.shifts.length}-${this.service.dayMinutes(entry)}`;
+    return `${day}-${entry.shifts.length}-${this.service.dayMinutesOnDate(this.viewDays, dateKey(this.viewYear, this.viewMonth, day))}`;
   }
 
   // 选中日期实心蓝底，今天不加背景（用「今日」文字标记）
@@ -146,7 +146,7 @@ export struct CalendarView {
     if (entry === undefined) {
       return '';
     }
-    const dm = this.service.dayMinutes(entry);
+    const dm = this.service.dayMinutesOnDate(this.viewDays, dateKey(this.viewYear, this.viewMonth, day));
     if (dm > 0) {
       return minutesToHoursText(dm);
     }
@@ -186,7 +186,7 @@ export struct CalendarView {
 
   // 今天的工时文本（无班次返回空串）
   todayHoursText(day: number): string {
-    const dm = this.service.dayMinutes(this.service.findEntry(this.viewDays, dateKey(this.viewYear, this.viewMonth, day)));
+    const dm = this.service.dayMinutesOnDate(this.viewDays, dateKey(this.viewYear, this.viewMonth, day));
     return dm > 0 ? minutesToHoursText(dm) : '';
   }
 
