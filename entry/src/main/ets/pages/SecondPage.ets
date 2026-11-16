@@ -166,7 +166,6 @@ export struct SecondPage {  scroller: Scroller = new Scroller();
     .borderRadius(12)
     .backgroundColor($r('sys.color.background_primary'))
     .border({ width: 0.5, color: $r('sys.color.comp_divider') })
-    .margin({ top: 8 })
   }
 
   @Builder
@@ -221,8 +220,8 @@ export struct SecondPage {  scroller: Scroller = new Scroller();
         .width('100%')
 
         if (this.isWideLayout) {
-          // 大屏双栏：环形卡与统计卡在左，每日工时分布与规则提醒在右
-          Row() {
+          // 大屏双栏：环形卡与统计卡在左，每日工时分布与规则提醒在右（两栏间距 8vp）
+          Row({ space: 8 }) {
             Column() {
               this.ringCard()
               Row({ space: 8 }) {
@@ -275,7 +274,10 @@ export struct SecondPage {  scroller: Scroller = new Scroller();
           }
           .width('100%')
           .margin({ top: 8 })
-          this.barChart()
+          Column() {
+            this.barChart()
+          }
+          .margin({ top: 8 })
           this.violationList()
         }
         Text('')
