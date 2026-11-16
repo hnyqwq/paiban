@@ -33,7 +33,7 @@ export struct SchedulingPage {
   @State newSegs: SegStartEnd[] = []; // 表单里逐段编辑的班次
   @State editShiftIndex: number = -1; // >=0 表示正在编辑该下标的班次
   // 代理提醒权限审核期间暂时屏蔽加闹钟入口；通过后改回 true 即可恢复全部闹钟 UI
-  private readonly showAlarmFeature: boolean = false;
+  private readonly showAlarmFeature: boolean = true; // 代理提醒权限已通过
   @State selectedShifts: number[] = []; // 本日勾选的班次下标
   @State editing: boolean = false;      // 开始排班后才显示编辑按钮
   @State presets: PresetShift[] = [];    // 「我的」里自定义的预设排班
@@ -858,7 +858,6 @@ export struct SchedulingPage {
 
         // 批量：勾选的班次（未勾选则本日全部）
         Row({ space: 8 }) {
-          // 代理提醒权限审核期间暂时屏蔽加闹钟入口，通过后把 showAlarmFeature 改回 true
           if (this.showAlarmFeature) {
             Button($r('app.string.add_alarm'))
               .buttonStyle(ButtonStyleMode.NORMAL)
@@ -976,7 +975,6 @@ export struct SchedulingPage {
 
     this.sectionTitle($r('app.string.tools_section_remind'))
     Column() {
-      // 代理提醒权限审核期间暂时屏蔽批量加闹钟，通过后把 showAlarmFeature 改回 true
       if (this.showAlarmFeature) {
         this.toolButton($r('app.string.batch_alarm'), (): void => {
           this.showIntro($r('app.string.batch_alarm'), $r('app.string.batch_alarm_desc'), (): void => {
