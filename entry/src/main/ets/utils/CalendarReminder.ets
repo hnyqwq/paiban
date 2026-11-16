@@ -207,41 +207,41 @@ export async function addShiftAlarm(context: common.UIAbilityContext, date: stri
   return true;
 }
 
-// 设置变化时同步全部已添加提醒：取消现有的，按登记表用新设置重建
-// 本 SDK 的 ReminderRequest 类型未暴露 id，运行时系统返回的对象带有已发布提醒的 id
-export interface ReminWithId extends reminderAgentManager.ReminderRequest {
-  id?: number;
+// 取消本应用全部有效提醒（官方 API，无需逐条 id）
+async function cancelAllReminders(): Promise<void> {
+  await reminderAgentManager.cancelAllReminders();
 }
 
-// 取消本应用全部有效提醒
-async function cancelAllReminders(): Promise<void> {
-  const valid = await reminderAgentManager.getValidReminders();
-  for (const r of valid) {
-    const withId = r as ReminWithId;
-    if (withId.id !== undefined) {
-      await reminderAgentManager.cancelReminder(withId.id);
+// 按登记表重建全部提醒（登记表须已按需过滤）
+async function rebuildFromRegistry(context: common.UIAbilityContext): Promise<void> {
+  const service = ScheduleService.getInstance();
+  const specs = service.getAlarmRegistry();
+  const next: AlarmSpec[] = [];
+  for (const spec of specs) {
+    const shift = new Shift();
+    shift.name = spec.name;
+    shift.start = spec.start;
+    shift.end = spec.end;
+    const id = await publishShiftAlarm(context, spec.date, shift, spec.leadMinutes);
+    if (id >= 0) {
+      spec.reminderId = id;
     }
+    next.push(spec);
   }
+  service.saveAlarmRegistry(next);
 }
 
 // 设置变化时同步全部已添加提醒：取消现有的，按登记表用新设置重建
 export async function resyncAlarms(context: common.UIAbilityContext): Promise<void> {
   try {
-    const registry = ScheduleService.getInstance().getAlarmRegistry();
     await cancelAllReminders();
-    for (const spec of registry) {
-      const shift = new Shift();
-      shift.name = spec.name;
-      shift.start = spec.start;
-      shift.end = spec.end;
-      await addShiftAlarm(context, spec.date, shift, spec.leadMinutes);
-    }
+    await rebuildFromRegistry(context);
   } catch (e) {
     console.error('resyncAlarms failed:', JSON.stringify(e));
   }
 }
 
-// 日程变化后同步：登记的日期已无班次/时间改变时，取消旧提醒并按当前日程重建
+// 日程变化后同步：登记中日程已无对应班次的提醒被移除，其余按当前日程重建
 export async function syncAlarmsWithSchedule(context: common.UIAbilityContext): Promise<void> {
   try {
     const service = ScheduleService.getInstance();
@@ -250,62 +250,32 @@ export async function syncAlarmsWithSchedule(context: common.UIAbilityContext): 
       return;
     }
     const days = service.getDays();
-    // 检查登记的提醒是否与当前日程一致（日期仍有该时间的班次）
-    let changed = false;
-    for (const spec of specs) {
+    // 只保留日程中仍有该班次（同日期同起止）的登记
+    const kept = specs.filter((spec: AlarmSpec) => {
       const entry = days.find((d: DayEntry) => d.date === spec.date);
-      const stillThere = entry !== undefined && entry.shifts.length > 0 &&
+      return entry !== undefined && entry.shifts.length > 0 &&
         entry.shifts.some((s: Shift) => s.start === spec.start && s.end === spec.end);
-      if (!stillThere) {
-        changed = true;
-        break;
-      }
+    });
+    if (kept.length === specs.length) {
+      return; // 无变化
     }
-    if (!changed) {
-      return;
-    }
-    // 全量重建：按日期沿用首次登记的提前量，只为仍有班次的日期重建
-    const leadByDate = new Map<string, number>();
-    for (const spec of specs) {
-      if (!leadByDate.has(spec.date)) {
-        leadByDate.set(spec.date, spec.leadMinutes);
-      }
-    }
+    service.saveAlarmRegistry(kept);
     await cancelAllReminders();
-    const next: AlarmSpec[] = [];
-    for (const date of leadByDate.keys()) {
-      const lead = leadByDate.get(date) as number;
-      const entry = days.find((d: DayEntry) => d.date === date);
-      if (entry === undefined || entry.shifts.length === 0) {
-        continue; // 班次已删除，不再重建
-      }
-      for (const s of entry.shifts) {
-        const id = await publishShiftAlarm(context, date, s, lead);
-        if (id >= 0) {
-          const spec = new AlarmSpec();
-          spec.date = date;
-          spec.name = s.name;
-          spec.start = s.start;
-          spec.end = s.end;
-          spec.leadMinutes = lead;
-          spec.reminderId = id;
-          next.push(spec);
-        }
-      }
-    }
-    service.saveAlarmRegistry(next);
+    await rebuildFromRegistry(context);
   } catch (e) {
     console.error('syncAlarmsWithSchedule failed:', JSON.stringify(e));
   }
 }
 
-// 叉叉删除：取消提醒并从登记表移除
-export async function removeReminderById(reminderId: number): Promise<void> {
+// 叉叉删除：取消该提醒并从登记表移除，随后按剩余登记重建，保证系统与登记一致
+export async function removeReminderById(context: common.UIAbilityContext, reminderId: number): Promise<void> {
   try {
     if (reminderId >= 0) {
       await reminderAgentManager.cancelReminder(reminderId);
     }
-    ScheduleService.getInstance().removeAlarmSpecById(reminderId);
+    const service = ScheduleService.getInstance();
+    service.saveAlarmRegistry(service.getAlarmRegistry().filter((s: AlarmSpec) => s.reminderId !== reminderId));
+    await rebuildFromRegistry(context);
   } catch (e) {
     console.error('removeReminderById failed:', JSON.stringify(e));
   }

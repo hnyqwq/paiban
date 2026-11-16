@@ -1,14 +1,13 @@
 // 日程页：月历 + 只读日程 + 备忘录 + 待办（排班编辑在「排班」页）
-import reminderAgentManager from '@ohos.reminderAgentManager';
 import { common } from '@kit.AbilityKit';
 import { promptAction } from '@kit.ArkUI';
 import {
-  DayEntry, Shift, TodoItem,
+  AlarmSpec, DayEntry, Shift, TodoItem,
   dateKey, minutesToHoursText, pad2, shiftCrossesDay, shiftMinutesOnOffsetDay
 } from '../model/ScheduleTypes';
 import { ScheduleService } from '../service/ScheduleService';
 import { CalendarView } from '../view/CalendarView';
-import { ReminWithId, removeReminderById, syncAlarmsWithSchedule } from '../utils/CalendarReminder';
+import { removeReminderById, syncAlarmsWithSchedule } from '../utils/CalendarReminder';
 
 // 已添加的代理提醒条目
 class ReminderItem {
@@ -94,28 +93,25 @@ export struct AgendaPage {
     this.loadReminders();
   }
 
-  // 读取本应用已添加的有效代理提醒（先按当前日程同步，再读取列表）
+  // 读取提醒列表（以登记表为数据源；先按当前日程同步，再读取列表）
   loadReminders(): void {
     const ctx = AppStorage.get<common.UIAbilityContext>('context');
     const doLoad = (): void => {
-      reminderAgentManager.getValidReminders().then((reminders) => {
-        const items: ReminderItem[] = [];
-        for (const r of reminders) {
-          const item = new ReminderItem();
-          item.title = typeof r.title === 'string' ? r.title : '';
-          item.content = typeof r.content === 'string' ? r.content : '';
-          item.reminderId = (r as ReminWithId).id ?? -1;
-          // 日历型提醒才有 dateTime，其他类型跳过时间显示
-          if (r.reminderType === reminderAgentManager.ReminderType.REMINDER_TYPE_CALENDAR) {
-            const dt = (r as reminderAgentManager.ReminderRequestCalendar).dateTime;
-            item.timeText = `${dt.year}-${pad2(dt.month)}-${pad2(dt.day)} ${pad2(dt.hour)}:${pad2(dt.minute)}`;
-          }
-          items.push(item);
-        }
-        this.reminderItems = items;
-      }).catch(() => {
-        // 读取失败保持原样，不影响页面其他功能
-      });
+      // 以登记表为数据源渲染（时间 = 班次开始 - 提前量）
+      const items: ReminderItem[] = [];
+      for (const spec of this.service.getAlarmRegistry()) {
+        const item = new ReminderItem();
+        item.title = spec.name !== '' ? spec.name : this.service.str($r('app.string.alarm_title'));
+        item.content = `${spec.start} - ${spec.end}`;
+        // 触发时间 = 班次开始时间 - 提前量（提前量可能把触发推到前一天）
+        const fireAbs = Shift.minutesBetween(spec.start) - spec.leadMinutes;
+        const parts = spec.date.split('-');
+        const dt = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), 0, fireAbs);
+        item.timeText = `${dt.getFullYear()}-${pad2(dt.getMonth() + 1)}-${pad2(dt.getDate())} ${pad2(dt.getHours())}:${pad2(dt.getMinutes())}`;
+        item.reminderId = spec.reminderId;
+        items.push(item);
+      }
+      this.reminderItems = items;
     };
     if (ctx === undefined) {
       doLoad();
@@ -125,9 +121,13 @@ export struct AgendaPage {
     syncAlarmsWithSchedule(ctx).then(() => doLoad()).catch(() => doLoad());
   }
 
-  // 叉叉删除：取消提醒并从登记表移除，然后刷新列表
+  // 叉叉删除：取消提醒并从登记表移除，然后按剩余重建并刷新列表
   removeReminder(reminderId: number): void {
-    removeReminderById(reminderId).then(() => {
+    const ctx = AppStorage.get<common.UIAbilityContext>('context');
+    if (ctx === undefined) {
+      return;
+    }
+    removeReminderById(ctx, reminderId).then(() => {
       promptAction.showToast({ message: $r('app.string.alarm_removed') });
       this.loadReminders();
     });
