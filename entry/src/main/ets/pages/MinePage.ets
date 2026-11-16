@@ -6,6 +6,7 @@ import { updateManager } from '@kit.AppGalleryKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { ShiftRules, Shift, PresetShift, PRESET_COLORS, normalizeTime, minutesToHoursText } from '../model/ScheduleTypes';
 import { ScheduleService } from '../service/ScheduleService';
+import { AddCardButton } from '../utils/AddCardButton';
 
 function segString(res: Resource): string {
   try {
@@ -1112,6 +1113,12 @@ export struct MinePage {
   build() {
     Scroll(this.scroller) {
       Column() {
+        Row() {
+          Blank()
+          AddCardButton()
+        }
+        .width('100%')
+        .margin({ bottom: 4 })
         if (this.isWideLayout) {
           // 大屏双栏：规则在左，预设排班/数据/外观/关于在右
           Row() {

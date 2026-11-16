@@ -6,6 +6,7 @@ import {
   dateKey, daysInMonth, minutesToHoursText, normalizeTime, shiftCrossesDay, shiftMinutesOnOffsetDay
 } from '../model/ScheduleTypes';
 import { ScheduleService } from '../service/ScheduleService';
+import { AddCardButton } from '../utils/AddCardButton';
 import { addShiftToCalendar, addShiftAlarm } from '../utils/CalendarReminder';
 import { CalendarView } from '../view/CalendarView';
 
@@ -1172,6 +1173,12 @@ export struct SchedulingPage {
   build() {
     Scroll(this.scroller) {
       Column() {
+        Row() {
+          Blank()
+          AddCardButton()
+        }
+        .width('100%')
+        .margin({ bottom: 4 })
         if (this.isWideLayout) {
           // 大屏双栏：日历在左，排班编辑与工具在右
           Row() {
