@@ -519,6 +519,10 @@ export struct SettingsPage {
           .fontSize(15)
           .fontWeight(FontWeight.Medium)
           .layoutWeight(1)
+        Text(this.rules.skipHolidays ? $r('app.string.rule_enabled') : $r('app.string.rule_disabled'))
+          .fontSize(12)
+          .fontColor($r('sys.color.font_tertiary'))
+          .margin({ right: 8 })
         Toggle({ type: ToggleType.Switch, isOn: this.rules.skipHolidays })
           .onChange((isOn: boolean) => {
             this.rules.skipHolidays = isOn;

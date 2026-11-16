@@ -271,6 +271,10 @@ export struct MinePage {
           .fontSize(15)
           .fontWeight(FontWeight.Medium)
           .layoutWeight(1)
+        Text(this.alarm.wantAgentEnabled ? $r('app.string.rule_enabled') : $r('app.string.rule_disabled'))
+          .fontSize(12)
+          .fontColor($r('sys.color.font_tertiary'))
+          .margin({ right: 8 })
         Toggle({ type: ToggleType.Switch, isOn: this.alarm.wantAgentEnabled })
           .onChange((isOn: boolean) => {
             this.alarm.wantAgentEnabled = isOn;
@@ -284,6 +288,10 @@ export struct MinePage {
           .fontSize(15)
           .fontWeight(FontWeight.Medium)
           .layoutWeight(1)
+        Text(this.alarm.tapDismissed ? $r('app.string.rule_enabled') : $r('app.string.rule_disabled'))
+          .fontSize(12)
+          .fontColor($r('sys.color.font_tertiary'))
+          .margin({ right: 8 })
         Toggle({ type: ToggleType.Switch, isOn: this.alarm.tapDismissed })
           .onChange((isOn: boolean) => {
             this.alarm.tapDismissed = isOn;
@@ -297,6 +305,10 @@ export struct MinePage {
           .fontSize(15)
           .fontWeight(FontWeight.Medium)
           .layoutWeight(1)
+        Text(this.alarm.autoDeleteEnabled ? $r('app.string.rule_enabled') : $r('app.string.rule_disabled'))
+          .fontSize(12)
+          .fontColor($r('sys.color.font_tertiary'))
+          .margin({ right: 8 })
         Toggle({ type: ToggleType.Switch, isOn: this.alarm.autoDeleteEnabled })
           .onChange((isOn: boolean) => {
             this.alarm.autoDeleteEnabled = isOn;
