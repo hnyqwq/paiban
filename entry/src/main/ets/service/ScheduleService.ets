@@ -512,9 +512,9 @@ export class ScheduleService {
       }
     }
 
-    // 连续上班天数（包含当天，向后不查，向前数）
+    // 连续上班天数（包含当天，向后不查，向前数）；0 = 不限制
     const streak = this.consecutiveWorkDaysEnding(days, date);
-    if (entry.shifts.length > 0 && streak > rules.maxConsecutiveWorkDays) {
+    if (rules.maxConsecutiveWorkDays > 0 && entry.shifts.length > 0 && streak > rules.maxConsecutiveWorkDays) {
       result.push(this.str($r('app.string.warn_streak'), day, streak, rules.maxConsecutiveWorkDays));
     }
 
@@ -854,7 +854,7 @@ export class ScheduleService {
         cur = this.addDays(cur, 1);
         continue;
       }
-      if (sinceRest >= rules.maxConsecutiveWorkDays) {
+      if (rules.maxConsecutiveWorkDays > 0 && sinceRest >= rules.maxConsecutiveWorkDays) {
         sinceRest = 0; // 达到连续上限，当天强制休息
         cur = this.addDays(cur, 1);
         continue;
