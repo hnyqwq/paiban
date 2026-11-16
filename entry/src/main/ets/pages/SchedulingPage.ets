@@ -3,7 +3,7 @@ import { promptAction } from '@kit.ArkUI';
 import { common } from '@kit.AbilityKit';
 import {
   DayEntry, Shift, ShiftRules, MonthStats, TodoItem, PresetShift,
-  dateKey, daysInMonth, minutesToHoursText, normalizeTime, shiftCrossesDay
+  dateKey, daysInMonth, minutesToHoursText, normalizeTime, shiftCrossesDay, shiftMinutesOnOffsetDay
 } from '../model/ScheduleTypes';
 import { ScheduleService } from '../service/ScheduleService';
 import { addShiftToCalendar, addShiftAlarm } from '../utils/CalendarReminder';
@@ -20,6 +20,14 @@ class SegStartEnd {
   end: string = '';
   startPrev: boolean = false; // 开始时间属于昨日
   endNext: boolean = false;   // 结束时间属于次日
+}
+
+// 昨日跨天班次落到当日的尾巴（只读展示）
+class BorrowedTail {
+  name: string = '';
+  color: string = '';
+  timeText: string = '';
+  hoursText: string = '';
 }
 
 @Component
@@ -210,6 +218,36 @@ export struct SchedulingPage {
     }
     this.newSegs.splice(index, 1);
     this.appliedPresetId = '';
+  }
+
+  // 昨天的日期键
+  prevDateKey(): string {
+    const parts = this.selectedDate.split('-');
+    const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]) - 1);
+    return dateKey(d.getFullYear(), d.getMonth() + 1, d.getDate());
+  }
+
+  // 昨日跨天班次落到当日的尾巴（只读展示，时长计入当日）
+  borrowedTails(): BorrowedTail[] {
+    const prev = this.service.findEntry(this.days, this.prevDateKey());
+    if (prev === undefined) {
+      return [];
+    }
+    const prevDay = this.service.str($r('app.string.shift_prev_day'));
+    const result: BorrowedTail[] = [];
+    for (const s of prev.shifts) {
+      const tail = shiftMinutesOnOffsetDay(s, 1);
+      if (tail <= 0) {
+        continue;
+      }
+      const item = new BorrowedTail();
+      item.name = s.name;
+      item.color = s.color;
+      item.timeText = `${prevDay} ${s.start} - ${s.end}`;
+      item.hoursText = minutesToHoursText(tail);
+      result.push(item);
+    }
+    return result;
   }
 
   // 班次时间段文案：结束跨到次日时带「次日」前缀，开始属昨日时带「昨日」前缀
@@ -684,11 +722,11 @@ export struct SchedulingPage {
 
       // 逐段编辑班次
       ForEach(this.newSegs, (seg: SegStartEnd, i: number) => {
-        Column() {
-          Row() {
+        Row() {
+          Column() {
             TextInput({ text: seg.start, placeholder: '08:00' })
               .type(InputType.Normal)
-              .layoutWeight(1)
+              .width('100%')
               .onChange((v: string) => {
                 seg.start = v;
               })
@@ -699,10 +737,31 @@ export struct SchedulingPage {
                   this.newSegs.splice(i, 1, seg);
                 }
               })
-            Text('→').margin({ left: 6, right: 6 })
+            // 开始跨天标注：属于昨日
+            Text($r('app.string.shift_prev_day'))
+              .fontSize(11)
+              .padding({ left: 8, right: 8, top: 2, bottom: 2 })
+              .borderRadius(6)
+              .border({
+                width: seg.startPrev ? 1 : 0.5,
+                color: seg.startPrev ? $r('sys.color.brand') : $r('sys.color.comp_divider')
+              })
+              .fontColor(seg.startPrev ? $r('sys.color.brand') : $r('sys.color.font_tertiary'))
+              .margin({ top: 2 })
+              .onClick(() => {
+                seg.startPrev = !seg.startPrev;
+                this.newSegs.splice(i, 1, seg);
+              })
+          }
+          .layoutWeight(1)
+          .alignItems(HorizontalAlign.Start)
+
+          Text('→').margin({ left: 6, right: 6 })
+
+          Column() {
             TextInput({ text: seg.end, placeholder: '12:00' })
               .type(InputType.Normal)
-              .layoutWeight(1)
+              .width('100%')
               .onChange((v: string) => {
                 seg.end = v;
               })
@@ -713,29 +772,7 @@ export struct SchedulingPage {
                   this.newSegs.splice(i, 1, seg);
                 }
               })
-            Text($r('app.string.delete'))
-              .fontSize(13)
-              .fontColor($r('sys.color.warning'))
-              .margin({ left: 10 })
-              .onClick(() => this.removeNewSeg(i))
-          }
-          .width('100%')
-
-          // 跨天标注：开始可标「昨日」，结束可标「次日」
-          Row({ space: 6 }) {
-            Text($r('app.string.shift_prev_day'))
-              .fontSize(11)
-              .padding({ left: 8, right: 8, top: 2, bottom: 2 })
-              .borderRadius(6)
-              .border({
-                width: seg.startPrev ? 1 : 0.5,
-                color: seg.startPrev ? $r('sys.color.brand') : $r('sys.color.comp_divider')
-              })
-              .fontColor(seg.startPrev ? $r('sys.color.brand') : $r('sys.color.font_tertiary'))
-              .onClick(() => {
-                seg.startPrev = !seg.startPrev;
-                this.newSegs.splice(i, 1, seg);
-              })
+            // 结束跨天标注：属于次日
             Text($r('app.string.shift_next_day'))
               .fontSize(11)
               .padding({ left: 8, right: 8, top: 2, bottom: 2 })
@@ -745,15 +782,23 @@ export struct SchedulingPage {
                 color: seg.endNext ? $r('sys.color.brand') : $r('sys.color.comp_divider')
               })
               .fontColor(seg.endNext ? $r('sys.color.brand') : $r('sys.color.font_tertiary'))
+              .margin({ top: 2 })
               .onClick(() => {
                 seg.endNext = !seg.endNext;
                 this.newSegs.splice(i, 1, seg);
               })
           }
-          .width('100%')
-          .margin({ top: 4 })
+          .layoutWeight(1)
+          .alignItems(HorizontalAlign.Start)
+
+          Text($r('app.string.delete'))
+            .fontSize(13)
+            .fontColor($r('sys.color.warning'))
+            .margin({ left: 10 })
+            .onClick(() => this.removeNewSeg(i))
         }
         .width('100%')
+        .alignItems(VerticalAlign.Top)
         .margin({ top: 6 })
       }, (seg: SegStartEnd, i: number) => `${i}-${seg.start}-${seg.end}-${seg.startPrev}-${seg.endNext}`)
       Button($r('app.string.add_segment'))
@@ -892,6 +937,41 @@ export struct SchedulingPage {
           `${i}-${s.start}-${s.end}-${s.name}-${s.color}-${s.breakMinutes}`)
       }
       .width('100%')
+
+      // 昨日跨天班次落到今天的尾巴（只读，时长计入当日）
+      ForEach(this.borrowedTails(), (item: BorrowedTail) => {
+        Row() {
+          Text('')
+            .width(4)
+            .height(34)
+            .borderRadius(2)
+            .backgroundColor(item.color !== '' ? item.color : '#0A59F7')
+            .margin({ left: this.editing ? 10 : 0, right: 10 })
+          Column() {
+            if (item.name !== '') {
+              Text(item.name)
+                .fontSize(13)
+                .fontWeight(FontWeight.Medium)
+                .fontColor(item.color !== '' ? item.color : $r('sys.color.font_primary'))
+                .maxLines(1)
+                .textOverflow({ overflow: TextOverflow.Ellipsis })
+            }
+            Text(item.timeText)
+              .fontSize(item.name !== '' ? 12 : 15)
+              .fontColor(item.name !== '' ? $r('sys.color.font_secondary') : $r('sys.color.font_primary'))
+          }
+          .alignItems(HorizontalAlign.Start)
+          .layoutWeight(1)
+          Text(item.hoursText)
+            .fontSize(13)
+            .fontColor('#0A59F7')
+        }
+        .width('100%')
+        .padding(10)
+        .borderRadius(8)
+        .backgroundColor($r('sys.color.comp_background_tertiary'))
+        .margin({ top: 8 })
+      }, (item: BorrowedTail) => `${item.timeText}-${item.name}`)
 
       if (this.editing) {
         if (this.showShiftForm) {
