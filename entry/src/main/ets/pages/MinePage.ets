@@ -49,6 +49,7 @@ struct AppearanceSegment {
 export struct MinePage {
   scroller: Scroller = new Scroller();
   @State appearanceMode: number = 0; // 0 跟随系统 1 浅色 2 深色
+  @StorageProp('isWideLayout') isWideLayout: boolean = false; // 大屏（≥lg 断点）双栏布局
   @State weekStart: number = 0; // 0 周日开始 1 周一开始
   @State alarm: AlarmSettings = new AlarmSettings();
   @State bundleName: string = '';
@@ -228,26 +229,23 @@ export struct MinePage {
     .padding({ left: 12, right: 12, top: 4, bottom: 12 })
   }
 
-  build() {
-    Scroll(this.scroller) {
-      Column() {
-        Row() {
-          Blank()
-          AddCardButton()
-        }
-        .width('100%')
-        .margin({ bottom: 4 })
+  // 代理提醒区（大屏双栏时放左侧，竖屏在页面顶部）
+  @Builder
+  alarmSection() {
+    this.sectionTitle($r('app.string.section_alarm'))
+    Column() {
+      this.alarmCard()
+    }
+    .width('100%')
+    .borderRadius(12)
+    .backgroundColor($r('sys.color.background_primary'))
+    .border({ width: 0.5, color: $r('sys.color.comp_divider') })
+  }
 
-        this.sectionTitle($r('app.string.section_alarm'))
-        Column() {
-          this.alarmCard()
-        }
-        .width('100%')
-        .borderRadius(12)
-        .backgroundColor($r('sys.color.background_primary'))
-        .border({ width: 0.5, color: $r('sys.color.comp_divider') })
-
-        this.sectionTitle($r('app.string.section_data'))
+  // 数据/外观/关于区（大屏双栏时放右侧）
+  @Builder
+  otherSections() {
+    this.sectionTitle($r('app.string.section_data'))
         Column() {
           Row({ space: 8 }) {
             Button($r('app.string.export_data'))
@@ -426,6 +424,38 @@ export struct MinePage {
         .border({ width: 0.5, color: $r('sys.color.comp_divider') })
         .margin({ top: 12 })
         .onClick(() => this.openPrivacy())
+  }
+
+  build() {
+    Scroll(this.scroller) {
+      Column() {
+        Row() {
+          Blank()
+          AddCardButton()
+        }
+        .width('100%')
+        .margin({ bottom: 4 })
+        if (this.isWideLayout) {
+          // 大屏双栏：代理提醒在左，数据/外观/关于/隐私在右
+          Row({ space: 8 }) {
+            Column() {
+              this.alarmSection()
+            }
+            .layoutWeight(1)
+            .alignItems(HorizontalAlign.Start)
+
+            Column() {
+              this.otherSections()
+            }
+            .layoutWeight(1)
+            .alignItems(HorizontalAlign.Start)
+          }
+          .width('100%')
+          .alignItems(VerticalAlign.Top)
+        } else {
+          this.alarmSection()
+          this.otherSections()
+        }
 
         Text('')
           .height(100)
