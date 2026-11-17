@@ -364,12 +364,16 @@ export struct SettingsPage {
         .constraintSize({ maxWidth: '70%' })
       if (this.expandedGroup === group) {
         SymbolGlyph($r('sys.symbol.chevron_down'))
-          .fontSize(14)
+          .fontSize(16)
+          .width(16)
+          .height(16)
           .fontColor([$r('sys.color.font_tertiary')])
           .margin({ left: 8 })
       } else {
         SymbolGlyph($r('sys.symbol.chevron_right'))
-          .fontSize(14)
+          .fontSize(16)
+          .width(16)
+          .height(16)
           .fontColor([$r('sys.color.font_tertiary')])
           .margin({ left: 8 })
       }
