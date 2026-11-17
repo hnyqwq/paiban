@@ -156,21 +156,26 @@ export class ScheduleService {
     list.push(preset);
   }
 
-  // 内置预设的本地化名称（按当前语言返回，未内置返回空串）
-  private defaultNameById(id: string): string {
+  // 内置预设的全部默认名称（含各语言）：用户未改名时才跟随系统语言，改过名则保留用户名称
+  private isDefaultName(id: string, name: string): boolean {
+    const names = this.defaultNamesById(id);
+    return names.indexOf(name) >= 0;
+  }
+
+  private defaultNamesById(id: string): string[] {
     if (id === 'default_early') {
-      return this.str($r('app.string.preset_default_early'));
+      return ['早班', 'Early'];
     }
     if (id === 'default_day') {
-      return this.str($r('app.string.preset_default_day'));
+      return ['白班', 'Day'];
     }
     if (id === 'default_evening') {
-      return this.str($r('app.string.preset_default_evening'));
+      return ['晚班', 'Evening'];
     }
     if (id === 'default_night') {
-      return this.str($r('app.string.preset_default_night'));
+      return ['夜班', 'Night'];
     }
-    return '';
+    return [];
   }
 
   getPresets(): PresetShift[] {
@@ -186,11 +191,18 @@ export class ScheduleService {
     if (list.length === 0 && json.trim() !== '[]') {
       return this.defaultPresets();
     }
-    // 内置预设（早/白/晚/夜班）名称跟随系统语言，用户自定义的预设不受影响
+    // 内置预设（早/白/晚/夜班）未改名时名称跟随系统语言，用户自定义名称不受影响
     for (const p of list) {
-      const localized = this.defaultNameById(p.id);
-      if (localized !== '') {
-        p.name = localized;
+      if (this.isDefaultName(p.id, p.name)) {
+        if (p.id === 'default_early') {
+          p.name = this.str($r('app.string.preset_default_early'));
+        } else if (p.id === 'default_day') {
+          p.name = this.str($r('app.string.preset_default_day'));
+        } else if (p.id === 'default_evening') {
+          p.name = this.str($r('app.string.preset_default_evening'));
+        } else if (p.id === 'default_night') {
+          p.name = this.str($r('app.string.preset_default_night'));
+        }
       }
     }
     return list;
