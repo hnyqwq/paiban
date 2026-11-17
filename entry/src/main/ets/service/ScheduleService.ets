@@ -881,7 +881,7 @@ export class ScheduleService {
         days.push(created);
         return created;
       })();
-      this.fillShiftsForDay(ne, perDay, rules, presetId);
+      this.fillShiftsForDay(ne, perDay, rules, presetIds);
       worked += perDay;
       filled++;
     }
@@ -1078,7 +1078,7 @@ export class ScheduleService {
         days.push(created);
         return created;
       })();
-      this.fillShiftsForDay(ne, perDay, rules, presetId);
+      this.fillShiftsForDay(ne, perDay, rules, presetIds);
       worked += perDay;
       filled++;
     }
