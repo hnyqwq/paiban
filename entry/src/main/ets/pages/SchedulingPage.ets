@@ -41,7 +41,7 @@ export struct SchedulingPage {
   // 新增班次表单与编辑态
   @State showShiftForm: boolean = false;
   @State newSegs: SegStartEnd[] = []; // 表单里逐段编辑的班次
-  @State autoFillPresetId: string = ''; // 自动排班选中的模板预设，空 = 全部勾选预设
+  @State autoFillPresetIds: string[] = []; // 自动排班选中的模板预设，空 = 全部勾选预设
   @State editShiftIndex: number = -1; // >=0 表示正在编辑该下标的班次
   // 代理提醒权限审核期间暂时屏蔽加闹钟入口；通过后改回 true 即可恢复全部闹钟 UI
   private readonly showAlarmFeature: boolean = true; // 代理提醒权限已通过
@@ -64,6 +64,18 @@ export struct SchedulingPage {
 
   onPresetsChanged(): void {
     this.presets = this.service.getPresets();
+  }
+
+  // 多选切换自动排班预设；全部取消后回到「全部」
+  toggleAutoFillPreset(id: string): void {
+    const next = this.autoFillPresetIds.slice();
+    const i = next.indexOf(id);
+    if (i >= 0) {
+      next.splice(i, 1);
+    } else {
+      next.push(id);
+    }
+    this.autoFillPresetIds = next;
   }
 
   onSelectedDateChange(): void {
@@ -614,7 +626,7 @@ export struct SchedulingPage {
           action: () => {
             const now = new Date();
             const days = this.service.getDays();
-            const n = this.service.autoFillMonth(days, now.getFullYear(), now.getMonth() + 1, this.rules, this.autoFillPresetId);
+            const n = this.service.autoFillMonth(days, now.getFullYear(), now.getMonth() + 1, this.rules, this.autoFillPresetIds);
             this.saveDays(days);
             promptAction.showToast({ message: $r('app.string.auto_filled', n) });
           }
@@ -627,7 +639,7 @@ export struct SchedulingPage {
     this.showIntro($r('app.string.range_auto'), $r('app.string.range_auto_desc'), () => {
       this.pickRange((start: string, end: string) => {
         const days = this.service.getDays();
-        const n = this.service.autoFillRange(days, start, end, this.rules, this.autoFillPresetId);
+        const n = this.service.autoFillRange(days, start, end, this.rules, this.autoFillPresetIds);
         this.saveDays(days);
         promptAction.showToast({ message: $r('app.string.range_filled', n) });
       });
@@ -1169,24 +1181,24 @@ export struct SchedulingPage {
           .fontSize(12)
           .padding({ left: 10, right: 10, top: 5, bottom: 5 })
           .borderRadius(8)
-          .backgroundColor(this.autoFillPresetId === '' ? $r('sys.color.brand') : $r('sys.color.comp_background_tertiary'))
-          .fontColor(this.autoFillPresetId === '' ? '#FFFFFF' : $r('sys.color.font_primary'))
+          .backgroundColor(this.autoFillPresetIds.length === 0 ? $r('sys.color.brand') : $r('sys.color.comp_background_tertiary'))
+          .fontColor(this.autoFillPresetIds.length === 0 ? '#FFFFFF' : $r('sys.color.font_primary'))
           .margin({ right: 6, bottom: 6 })
           .onClick(() => {
-            this.autoFillPresetId = '';
+            this.autoFillPresetIds = [];
           })
-        ForEach(this.presets.filter((p: PresetShift) => p.autoFill), (preset: PresetShift) => {
+        ForEach(this.presets, (preset: PresetShift) => {
           Text(preset.name)
             .fontSize(12)
             .padding({ left: 10, right: 10, top: 5, bottom: 5 })
             .borderRadius(8)
-            .backgroundColor(this.autoFillPresetId === preset.id ? $r('sys.color.brand') : $r('sys.color.comp_background_tertiary'))
-            .fontColor(this.autoFillPresetId === preset.id ? '#FFFFFF' : $r('sys.color.font_primary'))
+            .backgroundColor(this.autoFillPresetIds.indexOf(preset.id) >= 0 ? $r('sys.color.brand') : $r('sys.color.comp_background_tertiary'))
+            .fontColor(this.autoFillPresetIds.indexOf(preset.id) >= 0 ? '#FFFFFF' : $r('sys.color.font_primary'))
             .margin({ right: 6, bottom: 6 })
             .onClick(() => {
-              this.autoFillPresetId = preset.id;
+              this.toggleAutoFillPreset(preset.id);
             })
-        }, (preset: PresetShift) => `${preset.id}-${this.autoFillPresetId}`)
+        }, (preset: PresetShift) => `${preset.id}-${this.autoFillPresetIds.indexOf(preset.id) >= 0}`)
       }
       .width('100%')
       .padding({ left: 12, right: 12, top: 6, bottom: 6 })
