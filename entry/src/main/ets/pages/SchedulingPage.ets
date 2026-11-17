@@ -815,55 +815,52 @@ export struct SchedulingPage {
         .margin({ top: 6 })
       }
 
-      // 逐段编辑班次：行尾确定/取消，时间框缩窄
+      // 逐段编辑班次：时间框与按钮同排自适应宽度
       ForEach(this.newSegs, (seg: SegStartEnd, i: number) => {
         Row() {
-          Column() {
-            TextInput({ text: seg.start, placeholder: '08:00' })
-              .type(InputType.Normal)
-              .width('100%')
-              .onChange((v: string) => {
-                seg.start = v;
-              })
-              .onBlur(() => {
-                // 仅更新数据，不触发列表重建（避免吞掉点击事件）
-                seg.start = normalizeTime(seg.start);
-              })
-          }
-          .width(88)
-          .alignItems(HorizontalAlign.Start)
+          TextInput({ text: seg.start, placeholder: '08:00' })
+            .type(InputType.Normal)
+            .layoutWeight(1)
+            .minFontSize(10)
+            .onChange((v: string) => {
+              seg.start = v;
+            })
+            .onBlur(() => {
+              // 仅更新数据，不触发列表重建（避免吞掉点击事件）
+              seg.start = normalizeTime(seg.start);
+            })
 
-          Text('→').margin({ left: 4, right: 4 })
+          Text('→')
+            .margin({ left: 4, right: 4 })
+            .flexShrink(0)
 
-          Column() {
-            TextInput({ text: seg.end, placeholder: '12:00' })
-              .type(InputType.Normal)
-              .width('100%')
-              .onChange((v: string) => {
-                seg.end = v;
-              })
-              .onBlur(() => {
-                // 仅更新数据，不触发列表重建（避免吞掉点击事件）
-                seg.end = normalizeTime(seg.end);
-              })
-          }
-          .width(88)
-          .alignItems(HorizontalAlign.Start)
+          TextInput({ text: seg.end, placeholder: '12:00' })
+            .type(InputType.Normal)
+            .layoutWeight(1)
+            .minFontSize(10)
+            .onChange((v: string) => {
+              seg.end = v;
+            })
+            .onBlur(() => {
+              // 仅更新数据，不触发列表重建（避免吞掉点击事件）
+              seg.end = normalizeTime(seg.end);
+            })
 
           // 行尾：确定（保存该段）/ 取消（清空并收起表单）
-          Row({ space: 6 }) {
-            Button($r('app.string.seg_label_confirm'))
-              .buttonStyle(ButtonStyleMode.EMPHASIZED)
-              .fontSize(13)
-              .height(32)
-              .onClick(() => this.addSeg(i))
-            Button($r('app.string.cancel'))
-              .buttonStyle(ButtonStyleMode.NORMAL)
-              .fontSize(13)
-              .height(32)
-              .onClick(() => this.clearSeg())
-          }
-          .margin({ left: 6, right: 12 })
+          Button($r('app.string.seg_label_confirm'))
+            .buttonStyle(ButtonStyleMode.EMPHASIZED)
+            .fontSize(13)
+            .height(32)
+            .flexShrink(0)
+            .margin({ left: 6 })
+            .onClick(() => this.addSeg(i))
+          Button($r('app.string.cancel'))
+            .buttonStyle(ButtonStyleMode.NORMAL)
+            .fontSize(13)
+            .height(32)
+            .flexShrink(0)
+            .margin({ left: 6, right: 4 })
+            .onClick(() => this.clearSeg())
         }
         .width('100%')
         .alignItems(VerticalAlign.Center)
