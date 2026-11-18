@@ -749,7 +749,6 @@ export struct SettingsPage {
       }
       .width('100%')
       .alignItems(VerticalAlign.Center)
-      .margin({ top: 10 })
 
       // 用于自动排班开关：开启后自动填充按此预设排班
       Row() {
