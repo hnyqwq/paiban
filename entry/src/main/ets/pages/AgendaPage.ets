@@ -256,11 +256,13 @@ export struct AgendaPage {
     return dateKey(d.getFullYear(), d.getMonth() + 1, d.getDate());
   }
 
-  // 当日展示的班次条目：本日班次（结束跨天带「次日」）+ 昨日跨天班次的尾巴（计入当日时长）
+  // 当日展示的班次条目：本日班次（结束跨天带「次日」）+ 昨日跨天班次的尾巴（计入当日时长），
+  // 按当日实际开始时间排序——昨日夜班（如 22:00-06:00）的尾巴从 0 点起算，排在最前
   dayShiftItems(): DayShiftItem[] {
     const nextDay = this.service.str($r('app.string.shift_next_day'));
     const prevDay = this.service.str($r('app.string.shift_prev_day'));
     const items: DayShiftItem[] = [];
+    const orderKeys: number[] = [];
     const own = this.service.findEntry(this.days, this.selectedDate);
     if (own !== undefined) {
       for (const s of own.shifts) {
@@ -274,6 +276,7 @@ export struct AgendaPage {
           item.breakText = this.service.str($r('app.string.preset_break_info'), s.breakMinutes);
         }
         items.push(item);
+        orderKeys.push(s.startDayOffset * 1440 + Shift.minutesBetween(s.start));
       }
     }
     const prev = this.service.findEntry(this.days, this.prevDateKey());
@@ -293,9 +296,14 @@ export struct AgendaPage {
         }
         item.borrowed = true;
         items.push(item);
+        // 尾巴在当日的开始时间 = 24h + 班次开始（昨 22:00 → 今日 0 点 = 0 分）
+        orderKeys.push(Shift.minutesBetween(s.start) + s.startDayOffset * 1440 - 1440);
       }
     }
-    return items;
+    // 按当日实际开始时间升序：昨日夜班尾巴（0 点起）排在本日班次之前
+    const idx = items.map((_it: DayShiftItem, i: number) => i);
+    idx.sort((a: number, b: number) => orderKeys[a] - orderKeys[b]);
+    return idx.map((i: number) => items[i]);
   }
 
   @Builder
