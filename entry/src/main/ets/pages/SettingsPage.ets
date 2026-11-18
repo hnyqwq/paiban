@@ -169,16 +169,36 @@ export struct SettingsPage {
   }
 
   savePreset(): void {
-    const name = this.presetName.trim();
-    if (name === '') {
-      promptAction.showToast({ message: $r('app.string.preset_name_required') });
-      return;
-    }
     const start = normalizeTime(this.presetStart.trim());
     const end = normalizeTime(this.presetEnd.trim());
     const timePattern = /^\d{1,2}:\d{2}$/;
     if (!timePattern.test(start) || !timePattern.test(end)) {
       promptAction.showToast({ message: $r('app.string.preset_time_invalid') });
+      return;
+    }
+    // 与排班页一致：结束早于开始视为跨天，弹窗确认
+    if (Shift.minutesBetween(end) < Shift.minutesBetween(start)) {
+      promptAction.showDialog({
+        title: $r('app.string.shift_next_day'),
+        message: $r('app.string.seg_next_day_hint'),
+        buttons: [
+          { text: $r('app.string.cancel'), color: $r('sys.color.font_secondary') },
+          { text: $r('app.string.seg_label_confirm'), color: $r('sys.color.font_primary') }
+        ]
+      }).then((res) => {
+        if (res.index === 1) {
+          this.doSavePreset(start, end);
+        }
+      });
+      return;
+    }
+    this.doSavePreset(start, end);
+  }
+
+  doSavePreset(start: string, end: string): void {
+    const name = this.presetName.trim();
+    if (name === '') {
+      promptAction.showToast({ message: $r('app.string.preset_name_required') });
       return;
     }
     let breakMinutes = Math.floor(this.presetBreak);
