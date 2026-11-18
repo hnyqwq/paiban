@@ -2,7 +2,7 @@
 import { promptAction } from '@kit.ArkUI';
 import { common } from '@kit.AbilityKit';
 import {
-  DayEntry, Shift, ShiftRules, MonthStats, TodoItem, PresetShift,
+  DayEntry, Shift, ShiftRules, MonthStats, TodoItem, PresetShift, PRESET_COLORS,
   dateKey, daysInMonth, minutesToHoursText, normalizeTime, shiftCrossesDay, shiftMinutesOnOffsetDay
 } from '../model/ScheduleTypes';
 import { ScheduleService } from '../service/ScheduleService';
@@ -22,6 +22,7 @@ class SegStartEnd {
   endNext: boolean = false;   // 结束时间属于次日
   breakMinutes: number = 0;   // 休息时长（分钟）
   breakDayOffset: number = 0; // 休息归属日相对开始日：-1 昨日 0 开始日 +1 次日（跨天班次可选）
+  color: string = '';         // 手动选择的颜色；'' = 跟随预设/默认
 }
 
 // 昨日跨天班次落到当日的尾巴（只读展示）
@@ -216,10 +217,19 @@ export struct SchedulingPage {
     this.newSegs = this.newSegs.slice();
   }
 
-  // 把段的休息设置带到班次上（输入非法按 0 处理）
+  // 设置该段颜色并刷新（选中态依赖 ForEach key 重建）
+  private setSegColor(seg: SegStartEnd, color: string): void {
+    seg.color = seg.color === color ? '' : color; // 再点一次取消，回到预设/默认色
+    this.newSegs = this.newSegs.slice();
+  }
+
+  // 把段的休息设置带到班次上（输入非法按 0 处理）；手动选了颜色则覆盖预设/默认色
   private applySegBreak(s: Shift, seg: SegStartEnd): void {
     s.breakMinutes = Math.max(0, seg.breakMinutes);
     s.breakDayOffset = seg.breakDayOffset;
+    if (seg.color !== '') {
+      s.color = seg.color;
+    }
   }
 
   doAddShift(): void {
@@ -323,6 +333,7 @@ export struct SchedulingPage {
     seg.endNext = false;
     seg.breakMinutes = 0;
     seg.breakDayOffset = 0;
+    seg.color = '';
     this.newSegs = this.newSegs.slice();
     // 新增模式：保存后收起表单，让出加闹钟/加日历/完成排班入口
     if (this.editShiftIndex < 0) {
@@ -914,39 +925,63 @@ export struct SchedulingPage {
           .alignItems(VerticalAlign.Center)
           .margin({ top: 6 })
 
-          // 休息时长（分钟）；跨天班次可选计入昨日/开始日/次日
+          // 左半：休息时长（分钟），跨天班次下方可选归属日；右半：颜色横向滚动选择
           Row() {
-            Text($r('app.string.seg_break_hint'))
-              .fontSize(12)
-              .fontColor($r('sys.color.font_tertiary'))
-            TextInput({ text: seg.breakMinutes > 0 ? `${seg.breakMinutes}` : '', placeholder: '0' })
-              .type(InputType.Number)
-              .layoutWeight(1)
-              .height(32)
-              .margin({ left: 6 })
-              .onChange((v: string) => {
-                const n = parseInt(v, 10);
-                seg.breakMinutes = Number.isNaN(n) || n < 0 ? 0 : n;
-              })
-            if (this.segCrossesDay(seg)) {
-              // 只给跨天区间的两天可选：昨日→今日 选 昨日/今日；今日→次日 选 今日/次日
-              Text(seg.startPrev ? $r('app.string.shift_prev_day') : $r('app.string.today_label'))
-                .fontSize(11)
-                .fontColor(seg.breakDayOffset === 0 ? '#FFFFFF' : $r('sys.color.font_secondary'))
-                .padding({ left: 8, right: 8, top: 4, bottom: 4 })
-                .borderRadius(6)
-                .backgroundColor(seg.breakDayOffset === 0 ? $r('sys.color.brand') : $r('sys.color.comp_background_tertiary'))
-                .margin({ left: 6 })
-                .onClick(() => this.setSegBreakDay(seg, 0))
-              Text(seg.startPrev ? $r('app.string.today_label') : $r('app.string.shift_next_day'))
-                .fontSize(11)
-                .fontColor(seg.breakDayOffset === 1 ? '#FFFFFF' : $r('sys.color.font_secondary'))
-                .padding({ left: 8, right: 8, top: 4, bottom: 4 })
-                .borderRadius(6)
-                .backgroundColor(seg.breakDayOffset === 1 ? $r('sys.color.brand') : $r('sys.color.comp_background_tertiary'))
-                .margin({ left: 4 })
-                .onClick(() => this.setSegBreakDay(seg, 1))
+            Column() {
+              TextInput({ text: seg.breakMinutes > 0 ? `${seg.breakMinutes}` : '', placeholder: $r('app.string.seg_break_hint') })
+                .type(InputType.Number)
+                .width('100%')
+                .height(32)
+                .onChange((v: string) => {
+                  const n = parseInt(v, 10);
+                  seg.breakMinutes = Number.isNaN(n) || n < 0 ? 0 : n;
+                })
+              if (this.segCrossesDay(seg)) {
+                // 只给跨天区间的两天可选：昨日→今日 选 昨日/今日；今日→次日 选 今日/次日
+                Row() {
+                  Text(seg.startPrev ? $r('app.string.shift_prev_day') : $r('app.string.today_label'))
+                    .fontSize(11)
+                    .fontColor(seg.breakDayOffset === 0 ? '#FFFFFF' : $r('sys.color.font_secondary'))
+                    .padding({ left: 6, right: 6, top: 3, bottom: 3 })
+                    .borderRadius(6)
+                    .backgroundColor(seg.breakDayOffset === 0 ? $r('sys.color.brand') : $r('sys.color.comp_background_tertiary'))
+                    .onClick(() => this.setSegBreakDay(seg, 0))
+                  Text(seg.startPrev ? $r('app.string.today_label') : $r('app.string.shift_next_day'))
+                    .fontSize(11)
+                    .fontColor(seg.breakDayOffset === 1 ? '#FFFFFF' : $r('sys.color.font_secondary'))
+                    .padding({ left: 6, right: 6, top: 3, bottom: 3 })
+                    .borderRadius(6)
+                    .backgroundColor(seg.breakDayOffset === 1 ? $r('sys.color.brand') : $r('sys.color.comp_background_tertiary'))
+                    .margin({ left: 4 })
+                    .onClick(() => this.setSegBreakDay(seg, 1))
+                }
+                .margin({ top: 4 })
+              }
             }
+            .width('50%')
+            .alignItems(HorizontalAlign.Start)
+
+            Scroll() {
+              Row({ space: 6 }) {
+                ForEach(PRESET_COLORS, (c: string) => {
+                  Text('')
+                    .width(22)
+                    .height(22)
+                    .borderRadius(11)
+                    .backgroundColor(c)
+                    .border({
+                      width: seg.color === c ? 2 : 0.5,
+                      color: seg.color === c ? $r('sys.color.font_primary') : $r('sys.color.comp_divider')
+                    })
+                    .onClick(() => this.setSegColor(seg, c))
+                }, (c: string) => c)
+              }
+              .padding({ left: 2, right: 2 })
+            }
+            .scrollable(ScrollDirection.Horizontal)
+            .scrollBar(BarState.Off)
+            .layoutWeight(1)
+            .margin({ left: 10 })
           }
           .width('100%')
           .alignItems(VerticalAlign.Center)
@@ -954,7 +989,7 @@ export struct SchedulingPage {
         }
         .width('100%')
       }, (seg: SegStartEnd, i: number) =>
-        `${i}-${seg.start}-${seg.end}-${seg.startPrev}-${seg.endNext}-${seg.breakMinutes}-${seg.breakDayOffset}`)
+        `${i}-${seg.start}-${seg.end}-${seg.startPrev}-${seg.endNext}-${seg.breakMinutes}-${seg.breakDayOffset}-${seg.color}`)
 
       // 底部按钮仅编辑模式显示：新增模式每段单独走「添加」流程
       Row() {
@@ -1107,6 +1142,7 @@ export struct SchedulingPage {
                     seg.endNext = shiftCrossesDay(s);
                     seg.breakMinutes = Math.max(0, s.breakMinutes);
                     seg.breakDayOffset = s.breakDayOffset;
+                    seg.color = s.color ?? '';
                     this.newSegs = [seg];
                     this.showShiftForm = true;
                   })
