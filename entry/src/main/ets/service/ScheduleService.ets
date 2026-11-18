@@ -498,6 +498,28 @@ export class ScheduleService {
     this.notifyCards();
   }
 
+  // 清空指定日期区间（含端点）内的班次与休息标记；备忘与待办保留
+  clearRange(startKey: string, endKey: string): void {
+    let changed = false;
+    const result: DayEntry[] = [];
+    for (const entry of this.getDays()) {
+      if (entry.date >= startKey && entry.date <= endKey && entry.shifts.length > 0) {
+        // 保留备忘与待办，只清掉班次
+        const ne = new DayEntry();
+        ne.date = entry.date;
+        ne.memo = entry.memo;
+        ne.todos = entry.todos;
+        result.push(ne);
+        changed = true;
+        continue;
+      }
+      result.push(entry);
+    }
+    if (changed) {
+      this.saveDays(result);
+    }
+  }
+
   private parseRules(json: string): ShiftRules {
     const rules = new ShiftRules();
     try {

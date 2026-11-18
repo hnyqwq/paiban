@@ -171,6 +171,43 @@ export struct MinePage {
     });
   }
 
+  // 清空本周/本月/本年的班次：先确认，再按区间清（备忘与待办保留）
+  clearRangeData(rangeType: number): void {
+    const now = new Date();
+    const pad = (n: number): string => n < 10 ? `0${n}` : `${n}`;
+    const key = (d: Date): string => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    let start: Date;
+    let end: Date;
+    if (rangeType === 0) {
+      // 本周：按设置的周起始日推算
+      const weekStart = this.service.getWeekStart();
+      const offset = (now.getDay() - weekStart + 7) % 7;
+      start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - offset);
+      end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6);
+    } else if (rangeType === 1) {
+      start = new Date(now.getFullYear(), now.getMonth(), 1);
+      end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    } else {
+      start = new Date(now.getFullYear(), 0, 1);
+      end = new Date(now.getFullYear(), 11, 31);
+    }
+    const startKey = key(start);
+    const endKey = key(end);
+    promptAction.showDialog({
+      title: $r('app.string.clear_confirm_title'),
+      message: this.service.str($r('app.string.range_clear_confirm_msg'), startKey, endKey),
+      buttons: [
+        { text: $r('app.string.cancel'), color: $r('sys.color.font_secondary') },
+        { text: $r('app.string.btn_clear'), color: $r('sys.color.warning') }
+      ]
+    }).then((res) => {
+      if (res.index === 1) {
+        this.service.clearRange(startKey, endKey);
+        promptAction.showToast({ message: $r('app.string.cleared') });
+      }
+    });
+  }
+
   @Builder
   sectionTitle(title: Resource | string) {
     Text(title)
@@ -355,6 +392,29 @@ export struct MinePage {
             .width('calc(100% - 24vp)')
             .margin({ left: 12, right: 12, top: 8 })
           }
+          // 区间清空：本周/本月/本年横排
+          Row({ space: 8 }) {
+            Button($r('app.string.clear_week'))
+              .layoutWeight(1)
+              .buttonStyle(ButtonStyleMode.NORMAL)
+              .fontColor($r('sys.color.warning'))
+              .margin({ left: 12 })
+              .onClick(() => this.clearRangeData(0))
+            Button($r('app.string.clear_month'))
+              .layoutWeight(1)
+              .buttonStyle(ButtonStyleMode.NORMAL)
+              .fontColor($r('sys.color.warning'))
+              .onClick(() => this.clearRangeData(1))
+            Button($r('app.string.clear_year'))
+              .layoutWeight(1)
+              .buttonStyle(ButtonStyleMode.NORMAL)
+              .fontColor($r('sys.color.warning'))
+              .margin({ right: 12 })
+              .onClick(() => this.clearRangeData(2))
+          }
+          .width('100%')
+          .margin({ top: 8 })
+
           Button($r('app.string.clear_data'))
             .width('calc(100% - 24vp)')
             .buttonStyle(ButtonStyleMode.NORMAL)
