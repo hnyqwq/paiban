@@ -95,12 +95,17 @@ export function shiftCrossesDay(s: Shift): boolean {
 }
 
 // 班次落在某天的时长（分钟）：dayOffset 0 = 班次所属日，-1 = 昨日
+// 休息时长计入班次起始日（与统计口径 durationMinutes 一致），跨天尾部不重复扣除
 export function shiftMinutesOnOffsetDay(s: Shift, dayOffset: number): number {
   const range = shiftAbsRange(s);
   const dayStart = dayOffset * 1440;
   const from = Math.max(range[0], dayStart);
   const to = Math.min(range[1], dayStart + 1440);
-  return Math.max(0, to - from);
+  let minutes = Math.max(0, to - from);
+  if (dayOffset === s.startDayOffset) {
+    minutes = Math.max(0, minutes - Math.max(0, s.breakMinutes));
+  }
+  return minutes;
 }
 
 // 一天班次的净工时（分钟）：取班次落在该天的工时段（跨度扣除休息，休息按班次末尾计），

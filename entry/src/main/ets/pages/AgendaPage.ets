@@ -99,19 +99,30 @@ export struct AgendaPage {
     const doLoad = (): void => {
       // 以登记表为数据源渲染（时间 = 班次开始 - 提前量）
       const items: ReminderItem[] = [];
+      const firedIds: number[] = []; // 触发时间已过的提醒：不再展示并自动清除
       for (const spec of this.service.getAlarmRegistry()) {
-        const item = new ReminderItem();
-        item.title = spec.name !== '' ? spec.name : this.service.str($r('app.string.alarm_title'));
-        item.content = `${spec.start} - ${spec.end}`;
         // 触发时间 = 班次开始时间 - 提前量（提前量可能把触发推到前一天）
         const fireAbs = Shift.minutesBetween(spec.start) - spec.leadMinutes;
         const parts = spec.date.split('-');
         const dt = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), 0, fireAbs);
+        if (dt.getTime() <= Date.now()) {
+          firedIds.push(spec.reminderId);
+          continue;
+        }
+        const item = new ReminderItem();
+        item.title = spec.name !== '' ? spec.name : this.service.str($r('app.string.alarm_title'));
+        item.content = `${spec.start} - ${spec.end}`;
         item.timeText = `${dt.getFullYear()}-${pad2(dt.getMonth() + 1)}-${pad2(dt.getDate())} ${pad2(dt.getHours())}:${pad2(dt.getMinutes())}`;
         item.reminderId = spec.reminderId;
         items.push(item);
       }
       this.reminderItems = items;
+      const rmCtx = AppStorage.get<common.UIAbilityContext>('context');
+      if (rmCtx !== undefined) {
+        for (const id of firedIds) {
+          removeReminderById(rmCtx, id); // 取消系统提醒并从登记表移除
+        }
+      }
     };
     if (ctx === undefined) {
       doLoad();
