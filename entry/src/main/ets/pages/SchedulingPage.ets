@@ -22,7 +22,7 @@ class SegStartEnd {
   endNext: boolean = false;   // 结束时间属于次日
   breakMinutes: number = 0;   // 休息时长（分钟）
   breakDayOffset: number = 0; // 休息归属日相对开始日：-1 昨日 0 开始日 +1 次日（跨天班次可选）
-  color: string = '';         // 手动选择的颜色；'' = 跟随预设/默认
+  color: string = PRESET_COLORS[0]; // 默认选中第一个预设色
 }
 
 // 昨日跨天班次落到当日的尾巴（只读展示）
@@ -217,19 +217,17 @@ export struct SchedulingPage {
     this.newSegs = this.newSegs.slice();
   }
 
-  // 设置该段颜色并刷新（选中态依赖 ForEach key 重建）
+  // 设置该段颜色并刷新（选中态依赖 ForEach key 重建）；默认选中第一色，始终生效
   private setSegColor(seg: SegStartEnd, color: string): void {
-    seg.color = seg.color === color ? '' : color; // 再点一次取消，回到预设/默认色
+    seg.color = color;
     this.newSegs = this.newSegs.slice();
   }
 
-  // 把段的休息设置带到班次上（输入非法按 0 处理）；手动选了颜色则覆盖预设/默认色
+  // 把段的休息设置带到班次上（输入非法按 0 处理）；颜色随表单选择（默认第一色）
   private applySegBreak(s: Shift, seg: SegStartEnd): void {
     s.breakMinutes = Math.max(0, seg.breakMinutes);
     s.breakDayOffset = seg.breakDayOffset;
-    if (seg.color !== '') {
-      s.color = seg.color;
-    }
+    s.color = seg.color;
   }
 
   doAddShift(): void {
@@ -964,16 +962,24 @@ export struct SchedulingPage {
             Scroll() {
               Row({ space: 6 }) {
                 ForEach(PRESET_COLORS, (c: string) => {
-                  Text('')
-                    .width(22)
-                    .height(22)
-                    .borderRadius(11)
-                    .backgroundColor(c)
-                    .border({
-                      width: seg.color === c ? 2 : 0.5,
-                      color: seg.color === c ? $r('sys.color.font_primary') : $r('sys.color.comp_divider')
-                    })
-                    .onClick(() => this.setSegColor(seg, c))
+                  Stack() {
+                    Text('')
+                      .width(26)
+                      .height(26)
+                      .borderRadius(13)
+                      .backgroundColor(c)
+                    if (seg.color === c) {
+                      SymbolGlyph($r('sys.symbol.checkmark'))
+                        .fontSize(13)
+                        .fontWeight(FontWeight.Bold)
+                        .fontColor([Color.White])
+                    }
+                  }
+                  .width(34)
+                  .height(34)
+                  .borderRadius(17)
+                  .border({ width: seg.color === c ? 2 : 0, color: $r('sys.color.font_primary') })
+                  .onClick(() => this.setSegColor(seg, c))
                 }, (c: string) => c)
               }
               .padding({ left: 2, right: 2 })
