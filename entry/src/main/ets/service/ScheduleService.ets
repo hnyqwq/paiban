@@ -925,10 +925,8 @@ export class ScheduleService {
   // 名称/颜色/休息时长随预设带到班次上）；presetIds 非空时只用选中的预设（可多选）；
   // 无可用预设时按时长填充，总时长超过单段上限时自动拆成多段，段间留强制休息间隔
   private fillShiftsForDay(ne: DayEntry, duration: number, rules: ShiftRules, presetIds: string[] = []): void {
-    // 显式勾选的预设直接生效（不要求勾「用于自动排班」）；
-    // 未勾选（全部）时才只取标记了「用于自动排班」的预设
-    const presets = this.getPresets().filter((p: PresetShift) =>
-      presetIds.length === 0 ? p.autoFill : presetIds.indexOf(p.id) >= 0);
+    // 只用用户显式勾选的预设；一个都没勾时按时长智能均摊
+    const presets = this.getPresets().filter((p: PresetShift) => presetIds.indexOf(p.id) >= 0);
     if (presets.length > 0) {
       presets.sort((a: PresetShift, b: PresetShift) =>
         Shift.minutesBetween(a.start) - Shift.minutesBetween(b.start));

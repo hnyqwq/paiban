@@ -137,7 +137,7 @@
     { "name": "section_rules", "value": "Schedule rules" },
     { "name": "section_autofill", "value": "Auto-fill" },
     { "name": "autofill_all", "value": "All presets" },
-    { "name": "autofill_desc", "value": "Pick a preset marked \"Use for auto-fill\" as the template; \"All presets\" fills them all in turn, without presets hours are spread smartly. Mark rest days manually first." },
+    { "name": "autofill_desc", "value": "Multi-select presets marked \"Use for auto-fill\" as templates; with none selected hours are spread smartly. Mark rest days manually first." },
     { "name": "rule_group_target", "value": "Target" },
     { "name": "rule_group_work", "value": "Work limits" },
     { "name": "rule_group_rest", "value": "Rest" },

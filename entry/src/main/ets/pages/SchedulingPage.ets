@@ -1299,17 +1299,8 @@ export struct SchedulingPage {
         .width('100%')
         .padding({ left: 12, right: 12, top: 10 })
       Flex({ wrap: FlexWrap.Wrap }) {
-        Text($r('app.string.autofill_all'))
-          .fontSize(12)
-          .padding({ left: 10, right: 10, top: 5, bottom: 5 })
-          .borderRadius(8)
-          .backgroundColor(this.autoFillPresetIds.length === 0 ? $r('sys.color.brand') : $r('sys.color.comp_background_tertiary'))
-          .fontColor(this.autoFillPresetIds.length === 0 ? '#FFFFFF' : $r('sys.color.font_primary'))
-          .margin({ right: 6, bottom: 6 })
-          .onClick(() => {
-            this.autoFillPresetIds = [];
-          })
-        ForEach(this.presets, (preset: PresetShift) => {
+        // 仅显示勾了「用于自动排班」的预设，用户手动多选
+        ForEach(this.presets.filter((p: PresetShift) => p.autoFill), (preset: PresetShift) => {
           Text(preset.name)
             .fontSize(12)
             .padding({ left: 10, right: 10, top: 5, bottom: 5 })
