@@ -237,6 +237,8 @@ export class ScheduleService {
         preset.end = typeof r.end === 'string' && r.end !== '' ? r.end : '17:00';
         preset.breakMinutes = typeof r.breakMinutes === 'number' && r.breakMinutes > 0
           ? Math.floor(r.breakMinutes) : 0;
+        preset.breakDayOffset = typeof r.breakDayOffset === 'number'
+          ? Math.sign(r.breakDayOffset) : 0;
         preset.autoFill = r.autoFill === true;
         result.push(preset);
       }
@@ -909,6 +911,7 @@ export class ScheduleService {
         s.name = p.name;
         s.color = p.color;
         s.breakMinutes = p.breakMinutes;
+        s.breakDayOffset = p.breakDayOffset;
         ne.shifts.push(s);
       }
       return;

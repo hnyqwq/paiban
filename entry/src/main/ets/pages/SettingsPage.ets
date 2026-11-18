@@ -33,6 +33,7 @@ export struct SettingsPage {
   @State presetStart: string = '09:00';
   @State presetEnd: string = '17:00';
   @State presetBreak: number = 0;
+  @State presetBreakDay: number = 0; // 休息归属日相对开始日：-1 昨日 0 开始日 +1 次日
   @State presetAutoFill: boolean = false; // 用于自动排班
   private presetColors: string[] = PRESET_COLORS;
   private service: ScheduleService = ScheduleService.getInstance();
@@ -130,6 +131,13 @@ export struct SettingsPage {
     return Math.max(0, Shift.spanMinutes(this.presetStart, this.presetEnd) - Math.max(0, this.presetBreak));
   }
 
+  // 预设是否跨天（结束早于开始），用于显示休息归属日选择
+  presetCrossesDay(): boolean {
+    const sMin = Shift.minutesBetween(this.presetStart.trim());
+    const eMin = Shift.minutesBetween(this.presetEnd.trim());
+    return sMin !== eMin && eMin < sMin;
+  }
+
   // index < 0 表示新增，否则编辑对应预设
   openPresetEditor(index: number): void {
     if (index >= 0 && index < this.presets.length) {
@@ -140,6 +148,7 @@ export struct SettingsPage {
       this.presetStart = preset.start;
       this.presetEnd = preset.end;
       this.presetBreak = preset.breakMinutes;
+      this.presetBreakDay = preset.breakDayOffset;
       this.presetAutoFill = preset.autoFill;
     } else {
       this.editingPresetIndex = -1;
@@ -148,6 +157,7 @@ export struct SettingsPage {
       this.presetStart = '09:00';
       this.presetEnd = '17:00';
       this.presetBreak = 0;
+      this.presetBreakDay = 0;
       this.presetAutoFill = false;
     }
     this.showPresetEditor = true;
@@ -190,6 +200,7 @@ export struct SettingsPage {
     preset.start = start;
     preset.end = end;
     preset.breakMinutes = breakMinutes;
+    preset.breakDayOffset = this.presetBreakDay;
     preset.autoFill = this.presetAutoFill;
     if (this.editingPresetIndex >= 0 && this.editingPresetIndex < next.length) {
       next[this.editingPresetIndex] = preset;
@@ -708,6 +719,49 @@ export struct SettingsPage {
           const n = Number(v);
           this.presetBreak = Number.isNaN(n) || n < 0 ? 0 : n;
         })
+
+      // 跨天预设：休息时长可选归属日（昨日/开始日/次日）
+      if (this.presetCrossesDay()) {
+        Row() {
+          Text($r('app.string.break_day_attribution'))
+            .fontSize(12)
+            .fontColor($r('sys.color.font_tertiary'))
+            .layoutWeight(1)
+          Text($r('app.string.shift_prev_day'))
+            .fontSize(11)
+            .fontColor(this.presetBreakDay === -1 ? '#FFFFFF' : $r('sys.color.font_secondary'))
+            .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+            .borderRadius(6)
+            .backgroundColor(this.presetBreakDay === -1 ? $r('sys.color.brand') : $r('sys.color.comp_background_tertiary'))
+            .margin({ left: 6 })
+            .onClick(() => {
+              this.presetBreakDay = -1;
+            })
+          Text($r('app.string.break_day_start'))
+            .fontSize(11)
+            .fontColor(this.presetBreakDay === 0 ? '#FFFFFF' : $r('sys.color.font_secondary'))
+            .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+            .borderRadius(6)
+            .backgroundColor(this.presetBreakDay === 0 ? $r('sys.color.brand') : $r('sys.color.comp_background_tertiary'))
+            .margin({ left: 4 })
+            .onClick(() => {
+              this.presetBreakDay = 0;
+            })
+          Text($r('app.string.shift_next_day'))
+            .fontSize(11)
+            .fontColor(this.presetBreakDay === 1 ? '#FFFFFF' : $r('sys.color.font_secondary'))
+            .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+            .borderRadius(6)
+            .backgroundColor(this.presetBreakDay === 1 ? $r('sys.color.brand') : $r('sys.color.comp_background_tertiary'))
+            .margin({ left: 4 })
+            .onClick(() => {
+              this.presetBreakDay = 1;
+            })
+        }
+        .width('100%')
+        .alignItems(VerticalAlign.Center)
+        .margin({ top: 6 })
+      }
 
       // 用于自动排班开关：开启后自动填充按此预设排班
       Row() {

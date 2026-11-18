@@ -44,6 +44,7 @@
     { "name": "preset_autofill", "value": "Use for auto-fill" },
     { "name": "seg_break_hint", "value": "Break (min)" },
     { "name": "break_day_start", "value": "Start day" },
+    { "name": "break_day_attribution", "value": "Break counts on" },
     { "name": "card_add_done", "value": "Added to home screen" },
     { "name": "card_add_failed", "value": "Failed to add" },
     { "name": "preset_migrated", "value": "My template" },

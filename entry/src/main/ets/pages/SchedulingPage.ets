@@ -341,6 +341,8 @@ export struct SchedulingPage {
     const seg = new SegStartEnd();
     seg.start = preset.start;
     seg.end = preset.end;
+    seg.breakMinutes = preset.breakMinutes;
+    seg.breakDayOffset = preset.breakDayOffset;
     this.newSegs = [seg];
     this.appliedPresetId = preset.id;
   }

@@ -45,6 +45,7 @@ export class PresetShift {
   start: string = '09:00';
   end: string = '17:00';
   breakMinutes: number = 0; // 休息时长（分钟）
+  breakDayOffset: number = 0; // 休息归属日相对开始日：-1 昨日 0 开始日 +1 次日（跨天班次可选）
   autoFill: boolean = false; // 用于自动排班：自动填充时按此预设排班
 
   // 计入工时的分钟数 = 起止跨度 - 休息时长
