@@ -928,8 +928,7 @@ export struct SchedulingPage {
             Column() {
               TextInput({ text: seg.breakMinutes > 0 ? `${seg.breakMinutes}` : '', placeholder: $r('app.string.seg_break_hint') })
                 .type(InputType.Number)
-                .width('100%')
-                .height(32)
+                .width('70%')
                 .onChange((v: string) => {
                   const n = parseInt(v, 10);
                   seg.breakMinutes = Number.isNaN(n) || n < 0 ? 0 : n;
