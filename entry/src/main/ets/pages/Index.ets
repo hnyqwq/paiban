@@ -35,6 +35,9 @@ struct Index {
   private scrollerMine: Scroller = new Scroller();
 
   private getCurScroll(): Scroller {
+    if (this.currentTab === 0) {
+      return this.scrollerHome;
+    }
     if (this.currentTab === 1) {
       return this.scrollerTools;
     }
