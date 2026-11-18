@@ -931,6 +931,42 @@ export struct SchedulingPage {
           })
       }
 
+      // 昨日跨天班次落到今天的尾巴（只读，时长计入当日）；
+      // 尾巴总是从当日 0 点开始，按实际开始时间排在最前（与首页日程排序一致）
+      ForEach(this.borrowedTails(), (item: BorrowedTail) => {
+        Row() {
+          Text('')
+            .width(4)
+            .height(34)
+            .borderRadius(2)
+            .backgroundColor(item.color !== '' ? item.color : '#0A59F7')
+            .margin({ left: this.editing ? 10 : 0, right: 10 })
+          Column() {
+            if (item.name !== '') {
+              Text(item.name)
+                .fontSize(13)
+                .fontWeight(FontWeight.Medium)
+                .fontColor(item.color !== '' ? item.color : $r('sys.color.font_primary'))
+                .maxLines(1)
+                .textOverflow({ overflow: TextOverflow.Ellipsis })
+            }
+            Text(item.timeText)
+              .fontSize(item.name !== '' ? 12 : 15)
+              .fontColor(item.name !== '' ? $r('sys.color.font_secondary') : $r('sys.color.font_primary'))
+          }
+          .alignItems(HorizontalAlign.Start)
+          .layoutWeight(1)
+          Text(item.hoursText)
+            .fontSize(13)
+            .fontColor('#0A59F7')
+        }
+        .width('100%')
+        .padding(10)
+        .borderRadius(8)
+        .backgroundColor($r('sys.color.comp_background_tertiary'))
+        .margin({ top: 8 })
+      }, (item: BorrowedTail) => `${item.timeText}-${item.name}`)
+
       // 已排班次（编辑模式下勾选后可批量加闹钟/日历）
       List() {
         ForEach(this.service.findEntry(this.days, this.selectedDate)?.shifts ?? [], (s: Shift, i: number) => {
@@ -1011,41 +1047,6 @@ export struct SchedulingPage {
           `${i}-${s.start}-${s.end}-${s.name}-${s.color}-${s.breakMinutes}`)
       }
       .width('100%')
-
-      // 昨日跨天班次落到今天的尾巴（只读，时长计入当日）
-      ForEach(this.borrowedTails(), (item: BorrowedTail) => {
-        Row() {
-          Text('')
-            .width(4)
-            .height(34)
-            .borderRadius(2)
-            .backgroundColor(item.color !== '' ? item.color : '#0A59F7')
-            .margin({ left: this.editing ? 10 : 0, right: 10 })
-          Column() {
-            if (item.name !== '') {
-              Text(item.name)
-                .fontSize(13)
-                .fontWeight(FontWeight.Medium)
-                .fontColor(item.color !== '' ? item.color : $r('sys.color.font_primary'))
-                .maxLines(1)
-                .textOverflow({ overflow: TextOverflow.Ellipsis })
-            }
-            Text(item.timeText)
-              .fontSize(item.name !== '' ? 12 : 15)
-              .fontColor(item.name !== '' ? $r('sys.color.font_secondary') : $r('sys.color.font_primary'))
-          }
-          .alignItems(HorizontalAlign.Start)
-          .layoutWeight(1)
-          Text(item.hoursText)
-            .fontSize(13)
-            .fontColor('#0A59F7')
-        }
-        .width('100%')
-        .padding(10)
-        .borderRadius(8)
-        .backgroundColor($r('sys.color.comp_background_tertiary'))
-        .margin({ top: 8 })
-      }, (item: BorrowedTail) => `${item.timeText}-${item.name}`)
 
       if (this.editing) {
         if (this.showShiftForm) {
