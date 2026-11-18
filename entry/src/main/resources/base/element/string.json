@@ -53,6 +53,7 @@
     { "name": "privacy_policy", "value": "隐私协议" },
     { "name": "join_test", "value": "加入邀请测试" },
     { "name": "edit", "value": "编辑" },
+    { "name": "alarm_ring_value", "value": "响铃 %1$d 秒" },
     { "name": "delete", "value": "删除" },
     { "name": "mark_rest", "value": "标记休息" },
     { "name": "mark_rest_confirm_msg", "value": "当天已有 %1$d 个班次，标记休息将删除这些班次。确定标记为休息？" },

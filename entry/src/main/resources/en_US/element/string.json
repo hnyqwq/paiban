@@ -53,6 +53,7 @@
     { "name": "privacy_policy", "value": "Privacy Policy" },
     { "name": "join_test", "value": "Join beta test" },
     { "name": "edit", "value": "Edit" },
+    { "name": "alarm_ring_value", "value": "Ring %1$d s" },
     { "name": "delete", "value": "Delete" },
     { "name": "mark_rest", "value": "Mark rest" },
     { "name": "mark_rest_confirm_msg", "value": "This day already has %1$d shift(s). Marking it as rest will delete them. Continue?" },

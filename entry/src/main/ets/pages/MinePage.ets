@@ -45,6 +45,30 @@ struct AppearanceSegment {
   }
 }
 
+// 日历显示顺序：胶囊型分段按钮（@ComponentV2，与外观选择同款）
+@ComponentV2
+struct WeekStartSegment {
+  @Param selected: number = 0;
+  @Event onSelect: (index: number) => void = (_index: number) => {};
+  private items: SegmentButtonV2Items = new SegmentButtonV2Items([
+    { text: segString($r('app.string.week_start_sun')) },
+    { text: segString($r('app.string.week_start_mon')) },
+  ]);
+
+  build() {
+    Row() {
+      CapsuleSegmentButtonV2({
+        items: this.items,
+        selectedIndex: this.selected,
+        onItemClicked: (index: number) => {
+          this.onSelect(index);
+        }
+      })
+    }
+    .width('100%')
+  }
+}
+
 @Component
 export struct MinePage {
   scroller: Scroller = new Scroller();
@@ -57,6 +81,8 @@ export struct MinePage {
   private service: ScheduleService = ScheduleService.getInstance();
   @State showImportEditor: boolean = false;
   @State importText: string = '';
+  @State alarmEditing: boolean = false; // 代理提醒设置编辑态：false 只读展示
+  @State alarmDraft: AlarmSettings = new AlarmSettings();
 
   // 确认导入：解析并写入，成功后广播刷新
   confirmImport(): void {
@@ -109,6 +135,29 @@ export struct MinePage {
     resyncAlarms(ctx).then(() => {
       promptAction.showToast({ message: $r('app.string.alarm_saved') });
     });
+  }
+
+  // 进入编辑态：草稿复制当前设置，取消即丢弃
+  startAlarmEdit(): void {
+    const d = new AlarmSettings();
+    d.ringDuration = this.alarm.ringDuration;
+    d.snoozeEnabled = this.alarm.snoozeEnabled;
+    d.snoozeTimes = this.alarm.snoozeTimes;
+    d.timeInterval = this.alarm.timeInterval;
+    d.wantAgentEnabled = this.alarm.wantAgentEnabled;
+    this.alarmDraft = d;
+    this.alarmEditing = true;
+  }
+
+  cancelAlarmEdit(): void {
+    this.alarmEditing = false;
+  }
+
+  // 保存编辑：草稿生效并同步提醒
+  saveAlarmEdit(): void {
+    this.alarm = this.alarmDraft;
+    this.alarmEditing = false;
+    this.saveAlarmSettings();
   }
 
   // 打开隐私协议（系统浏览器）
@@ -221,85 +270,171 @@ export struct MinePage {
   @Builder
   alarmCard() {
     Column() {
-      Row() {
-        Text($r('app.string.alarm_ring_duration'))
-          .fontSize(15)
-          .fontWeight(FontWeight.Medium)
-          .layoutWeight(1)
-        TextInput({ text: `${this.alarm.ringDuration}` })
-          .type(InputType.Number)
-          .width(120)
-          .onChange((v: string) => {
-            const n = Number(v);
-            this.alarm.ringDuration = Number.isNaN(n) || n <= 0 ? 5 : Math.floor(n);
-          })
-      }
-      .width('100%')
-      .margin({ top: 4 })
-
-      Row() {
-        Text($r('app.string.alarm_snooze'))
-          .fontSize(15)
-          .fontWeight(FontWeight.Medium)
-          .layoutWeight(1)
-        Toggle({ type: ToggleType.Switch, isOn: this.alarm.snoozeEnabled })
-          .onChange((isOn: boolean) => {
-            this.alarm.snoozeEnabled = isOn;
-          })
-      }
-      .width('100%')
-      .margin({ top: 12 })
-
-      if (this.alarm.snoozeEnabled) {
-        Text($r('app.string.alarm_snooze_times'))
-          .fontSize(13)
-          .fontColor($r('sys.color.font_tertiary'))
-          .width('100%')
-          .margin({ top: 10 })
-        TextInput({ text: `${this.alarm.snoozeTimes}` })
-          .type(InputType.Number)
-          .width('100%')
-          .onChange((v: string) => {
-            const n = Number(v);
-            this.alarm.snoozeTimes = Number.isNaN(n) || n <= 0 ? 2 : Math.floor(n);
-          })
-
-        Text($r('app.string.alarm_snooze_interval'))
-          .fontSize(13)
-          .fontColor($r('sys.color.font_tertiary'))
-          .width('100%')
-          .margin({ top: 10 })
-        TextInput({ text: `${this.alarm.timeInterval}` })
-          .type(InputType.Number)
-          .width('100%')
-          .onChange((v: string) => {
-            const n = Number(v);
-            this.alarm.timeInterval = Number.isNaN(n) || n <= 0 ? 5 : Math.floor(n);
-          })
-      }
-
-      Row() {
-        Text($r('app.string.alarm_want_agent'))
-          .fontSize(15)
-          .fontWeight(FontWeight.Medium)
-          .layoutWeight(1)
-        Text(this.alarm.wantAgentEnabled ? $r('app.string.rule_enabled') : $r('app.string.rule_disabled'))
-          .fontSize(12)
-          .fontColor($r('sys.color.font_tertiary'))
-          .margin({ right: 8 })
-        Toggle({ type: ToggleType.Switch, isOn: this.alarm.wantAgentEnabled })
-          .onChange((isOn: boolean) => {
-            this.alarm.wantAgentEnabled = isOn;
-          })
-      }
-      .width('100%')
-      .margin({ top: 12 })
-
-      Button($r('app.string.save_rules'))
+      if (!this.alarmEditing) {
+        // 只读展示：只显示当前值，不显示输入框
+        Row() {
+          Text($r('app.string.alarm_ring_duration'))
+            .fontSize(15)
+            .fontWeight(FontWeight.Medium)
+            .layoutWeight(1)
+          Text(this.service.str($r('app.string.alarm_ring_value'), this.alarm.ringDuration))
+            .fontSize(14)
+            .fontColor($r('sys.color.font_secondary'))
+        }
         .width('100%')
-        .buttonStyle(ButtonStyleMode.NORMAL)
-        .margin({ top: 14 })
-        .onClick(() => this.saveAlarmSettings())
+        .margin({ top: 4 })
+
+        Row() {
+          Text($r('app.string.alarm_snooze'))
+            .fontSize(15)
+            .fontWeight(FontWeight.Medium)
+            .layoutWeight(1)
+          Text(this.alarm.snoozeEnabled ? $r('app.string.rule_enabled') : $r('app.string.rule_disabled'))
+            .fontSize(14)
+            .fontColor($r('sys.color.font_secondary'))
+        }
+        .width('100%')
+        .margin({ top: 12 })
+
+        if (this.alarm.snoozeEnabled) {
+          Row() {
+            Text($r('app.string.alarm_snooze_times'))
+              .fontSize(15)
+              .layoutWeight(1)
+            Text(`${this.alarm.snoozeTimes}`)
+              .fontSize(14)
+              .fontColor($r('sys.color.font_secondary'))
+          }
+          .width('100%')
+          .margin({ top: 12 })
+
+          Row() {
+            Text($r('app.string.alarm_snooze_interval'))
+              .fontSize(15)
+              .layoutWeight(1)
+            Text(`${this.alarm.timeInterval}`)
+              .fontSize(14)
+              .fontColor($r('sys.color.font_secondary'))
+          }
+          .width('100%')
+          .margin({ top: 12 })
+        }
+
+        Row() {
+          Text($r('app.string.alarm_want_agent'))
+            .fontSize(15)
+            .fontWeight(FontWeight.Medium)
+            .layoutWeight(1)
+          Text(this.alarm.wantAgentEnabled ? $r('app.string.rule_enabled') : $r('app.string.rule_disabled'))
+            .fontSize(14)
+            .fontColor($r('sys.color.font_secondary'))
+        }
+        .width('100%')
+        .margin({ top: 12 })
+
+        Button($r('app.string.edit'))
+          .width('100%')
+          .buttonStyle(ButtonStyleMode.EMPHASIZED)
+          .margin({ top: 14 })
+          .onClick(() => this.startAlarmEdit())
+      } else {
+        // 编辑态：输入框修改，贪睡次数与间隔同排
+        Row() {
+          Text($r('app.string.alarm_ring_duration'))
+            .fontSize(15)
+            .fontWeight(FontWeight.Medium)
+            .layoutWeight(1)
+          TextInput({ text: `${this.alarmDraft.ringDuration}` })
+            .type(InputType.Number)
+            .width(120)
+            .onChange((v: string) => {
+              const n = Number(v);
+              this.alarmDraft.ringDuration = Number.isNaN(n) || n <= 0 ? 5 : Math.floor(n);
+            })
+        }
+        .width('100%')
+        .margin({ top: 4 })
+
+        Row() {
+          Text($r('app.string.alarm_snooze'))
+            .fontSize(15)
+            .fontWeight(FontWeight.Medium)
+            .layoutWeight(1)
+          Toggle({ type: ToggleType.Switch, isOn: this.alarmDraft.snoozeEnabled })
+            .onChange((isOn: boolean) => {
+              this.alarmDraft.snoozeEnabled = isOn;
+            })
+        }
+        .width('100%')
+        .margin({ top: 12 })
+
+        if (this.alarmDraft.snoozeEnabled) {
+          Row({ space: 8 }) {
+            Column() {
+              Text($r('app.string.alarm_snooze_times'))
+                .fontSize(13)
+                .fontColor($r('sys.color.font_tertiary'))
+                .width('100%')
+                .margin({ top: 10 })
+              TextInput({ text: `${this.alarmDraft.snoozeTimes}` })
+                .type(InputType.Number)
+                .width('100%')
+                .onChange((v: string) => {
+                  const n = Number(v);
+                  this.alarmDraft.snoozeTimes = Number.isNaN(n) || n <= 0 ? 2 : Math.floor(n);
+                })
+            }
+            .layoutWeight(1)
+            .alignItems(HorizontalAlign.Start)
+
+            Column() {
+              Text($r('app.string.alarm_snooze_interval'))
+                .fontSize(13)
+                .fontColor($r('sys.color.font_tertiary'))
+                .width('100%')
+                .margin({ top: 10 })
+              TextInput({ text: `${this.alarmDraft.timeInterval}` })
+                .type(InputType.Number)
+                .width('100%')
+                .onChange((v: string) => {
+                  const n = Number(v);
+                  this.alarmDraft.timeInterval = Number.isNaN(n) || n <= 0 ? 5 : Math.floor(n);
+                })
+            }
+            .layoutWeight(1)
+            .alignItems(HorizontalAlign.Start)
+          }
+          .width('100%')
+        }
+
+        Row() {
+          Text($r('app.string.alarm_want_agent'))
+            .fontSize(15)
+            .fontWeight(FontWeight.Medium)
+            .layoutWeight(1)
+          Toggle({ type: ToggleType.Switch, isOn: this.alarmDraft.wantAgentEnabled })
+            .onChange((isOn: boolean) => {
+              this.alarmDraft.wantAgentEnabled = isOn;
+            })
+        }
+        .width('100%')
+        .margin({ top: 12 })
+
+        // 编辑完成：取消 / 保存
+        Row({ space: 8 }) {
+          Button($r('app.string.cancel'))
+            .layoutWeight(1)
+            .buttonStyle(ButtonStyleMode.NORMAL)
+            .margin({ top: 14 })
+            .onClick(() => this.cancelAlarmEdit())
+          Button($r('app.string.save_rules'))
+            .layoutWeight(1)
+            .buttonStyle(ButtonStyleMode.EMPHASIZED)
+            .margin({ top: 14 })
+            .onClick(() => this.saveAlarmEdit())
+        }
+        .width('100%')
+      }
     }
     .width('100%')
     .padding({ left: 12, right: 12, top: 4, bottom: 12 })
@@ -443,24 +578,19 @@ export struct MinePage {
             Text($r('app.string.week_start_title'))
               .fontSize(14)
               .layoutWeight(1)
-            Button($r('app.string.week_start_sun'))
-              .buttonStyle(this.weekStart === 0 ? ButtonStyleMode.EMPHASIZED : ButtonStyleMode.NORMAL)
-              .fontSize(12)
-              .onClick(() => {
-                this.weekStart = 0;
-                this.service.setWeekStart(0);
-              })
-            Button($r('app.string.week_start_mon'))
-              .buttonStyle(this.weekStart === 1 ? ButtonStyleMode.EMPHASIZED : ButtonStyleMode.NORMAL)
-              .fontSize(12)
-              .margin({ left: 8 })
-              .onClick(() => {
-                this.weekStart = 1;
-                this.service.setWeekStart(1);
-              })
           }
           .width('calc(100% - 24vp)')
-          .margin({ left: 12, right: 12, bottom: 12 })
+          .margin({ left: 12, right: 12, top: 4 })
+
+          WeekStartSegment({
+            selected: this.weekStart,
+            onSelect: (index: number) => {
+              this.weekStart = index;
+              this.service.setWeekStart(index);
+            }
+          })
+            .width('calc(100% - 24vp)')
+            .margin({ left: 12, right: 12, top: 6, bottom: 12 })
         }
         .width('100%')
         .borderRadius(12)
