@@ -42,6 +42,8 @@
     { "name": "start_schedule", "value": "开始排班" },
     { "name": "done_schedule", "value": "完成排班" },
     { "name": "preset_autofill", "value": "用于自动排班" },
+    { "name": "seg_break_hint", "value": "休息(分钟)" },
+    { "name": "break_day_start", "value": "开始日" },
     { "name": "card_add_done", "value": "已添加到桌面" },
     { "name": "card_add_failed", "value": "添加失败" },
     { "name": "preset_migrated", "value": "我的模板" },

@@ -20,6 +20,8 @@ class SegStartEnd {
   end: string = '';
   startPrev: boolean = false; // 开始时间属于昨日
   endNext: boolean = false;   // 结束时间属于次日
+  breakMinutes: number = 0;   // 休息时长（分钟）
+  breakDayOffset: number = 0; // 休息归属日相对开始日：-1 昨日 0 开始日 +1 次日（跨天班次可选）
 }
 
 // 昨日跨天班次落到当日的尾巴（只读展示）
@@ -198,9 +200,32 @@ export struct SchedulingPage {
     return true;
   }
 
+  // 该段是否跨天（用于显示休息归属日选择）
+  private segCrossesDay(seg: SegStartEnd): boolean {
+    if (seg.start.trim() === '' || seg.end.trim() === '') {
+      return seg.startPrev || seg.endNext;
+    }
+    const sMin = Shift.minutesBetween(seg.start.trim());
+    const eMin = Shift.minutesBetween(seg.end.trim());
+    return seg.startPrev || seg.endNext || (sMin !== eMin && eMin < sMin);
+  }
+
+  // 设置该段休息归属日并刷新（chips 选中态依赖 ForEach key 重建）
+  private setSegBreakDay(seg: SegStartEnd, dayOffset: number): void {
+    seg.breakDayOffset = dayOffset;
+    this.newSegs = this.newSegs.slice();
+  }
+
+  // 把段的休息设置带到班次上（输入非法按 0 处理）
+  private applySegBreak(s: Shift, seg: SegStartEnd): void {
+    s.breakMinutes = Math.max(0, seg.breakMinutes);
+    s.breakDayOffset = seg.breakDayOffset;
+  }
+
   doAddShift(): void {
     // 收集表单里完整的段，一次加齐
     const shifts: Shift[] = [];
+    const segs: SegStartEnd[] = [];
     for (const seg of this.newSegs) {
       if (seg.start.trim() === '' || seg.end.trim() === '') {
         continue;
@@ -214,19 +239,20 @@ export struct SchedulingPage {
       s.startDayOffset = seg.startPrev ? -1 : 0;
       // 显式标注次日，或结束早于开始的跨天兜底
       s.endDayOffset = seg.endNext || Shift.minutesBetween(s.end) <= Shift.minutesBetween(s.start) ? 1 : 0;
+      this.applySegBreak(s, seg);
       shifts.push(s);
+      segs.push(seg);
     }
     if (shifts.length === 0) {
       return;
     }
     if (this.editShiftIndex >= 0) {
-      // 编辑模式：替换该班次的时间，保留原名称/颜色/休息
+      // 编辑模式：替换该班次的时间与休息设置，保留原名称/颜色
       const entry = this.service.findEntry(this.days, this.selectedDate);
       if (entry !== undefined && this.editShiftIndex < entry.shifts.length) {
         const old = entry.shifts[this.editShiftIndex];
         shifts[0].name = old.name;
         shifts[0].color = old.color;
-        shifts[0].breakMinutes = old.breakMinutes;
         entry.shifts[this.editShiftIndex] = shifts[0];
         this.upsertEntry(entry);
       }
@@ -241,13 +267,15 @@ export struct SchedulingPage {
       ne.date = this.selectedDate;
       return ne;
     })();
-    // 应用了预设且只有一段时，把预设的名称/颜色/休息带到班次上
+    // 应用了预设且只有一段时，把预设的名称/颜色/休息带到班次上（表单已填休息则不覆盖）
     const preset = shifts.length === 1 ? this.findAppliedPreset() : undefined;
     for (const s of shifts) {
       if (preset !== undefined) {
         s.name = preset.name;
         s.color = preset.color;
-        s.breakMinutes = preset.breakMinutes;
+        if (s.breakMinutes <= 0) {
+          s.breakMinutes = preset.breakMinutes;
+        }
       }
       e.shifts.push(s);
     }
@@ -271,6 +299,7 @@ export struct SchedulingPage {
     if (Shift.minutesBetween(s.start) === Shift.minutesBetween(s.end)) {
       return; // 起止相同视为无效
     }
+    this.applySegBreak(s, seg);
     const entry = this.service.findEntry(this.days, this.selectedDate);
     const e = entry !== undefined ? entry : (() => {
       const ne = new DayEntry();
@@ -281,7 +310,9 @@ export struct SchedulingPage {
     if (preset !== undefined) {
       s.name = preset.name;
       s.color = preset.color;
-      s.breakMinutes = preset.breakMinutes;
+      if (seg.breakMinutes <= 0) {
+        s.breakMinutes = preset.breakMinutes;
+      }
     }
     e.shifts.push(s);
     this.upsertEntry(e);
@@ -290,6 +321,8 @@ export struct SchedulingPage {
     seg.end = '';
     seg.startPrev = false;
     seg.endNext = false;
+    seg.breakMinutes = 0;
+    seg.breakDayOffset = 0;
     this.newSegs = this.newSegs.slice();
     // 新增模式：保存后收起表单，让出加闹钟/加日历/完成排班入口
     if (this.editShiftIndex < 0) {
@@ -827,57 +860,106 @@ export struct SchedulingPage {
         .margin({ top: 6 })
       }
 
-      // 逐段编辑班次：时间框与按钮同排自适应宽度
+      // 逐段编辑班次：时间框与按钮同排自适应宽度；下方可选休息时长（跨天班次可选归属日）
       ForEach(this.newSegs, (seg: SegStartEnd, i: number) => {
-        Row() {
-          TextInput({ text: seg.start, placeholder: '08:00' })
-            .type(InputType.Normal)
-            .layoutWeight(1)
-            .minFontSize(10)
-            .onChange((v: string) => {
-              seg.start = v;
-            })
-            .onBlur(() => {
-              // 仅更新数据，不触发列表重建（避免吞掉点击事件）
-              seg.start = normalizeTime(seg.start);
-            })
+        Column() {
+          Row() {
+            TextInput({ text: seg.start, placeholder: '08:00' })
+              .type(InputType.Normal)
+              .layoutWeight(1)
+              .minFontSize(10)
+              .onChange((v: string) => {
+                seg.start = v;
+              })
+              .onBlur(() => {
+                // 仅更新数据，不触发列表重建（避免吞掉点击事件）
+                seg.start = normalizeTime(seg.start);
+              })
 
-          Text('→')
-            .margin({ left: 4, right: 4 })
-            .flexShrink(0)
+            Text('→')
+              .margin({ left: 4, right: 4 })
+              .flexShrink(0)
 
-          TextInput({ text: seg.end, placeholder: '12:00' })
-            .type(InputType.Normal)
-            .layoutWeight(1)
-            .minFontSize(10)
-            .onChange((v: string) => {
-              seg.end = v;
-            })
-            .onBlur(() => {
-              // 仅更新数据，不触发列表重建（避免吞掉点击事件）
-              seg.end = normalizeTime(seg.end);
-            })
+            TextInput({ text: seg.end, placeholder: '12:00' })
+              .type(InputType.Normal)
+              .layoutWeight(1)
+              .minFontSize(10)
+              .onChange((v: string) => {
+                seg.end = v;
+              })
+              .onBlur(() => {
+                // 仅更新数据，不触发列表重建（避免吞掉点击事件）
+                seg.end = normalizeTime(seg.end);
+              })
 
-          // 行尾：确定（保存该段）/ 取消（清空并收起表单）
-          Button($r('app.string.seg_label_confirm'))
-            .buttonStyle(ButtonStyleMode.EMPHASIZED)
-            .fontSize(13)
-            .height(32)
-            .flexShrink(0)
-            .margin({ left: 6 })
-            .onClick(() => this.addSeg(i))
-          Button($r('app.string.cancel'))
-            .buttonStyle(ButtonStyleMode.NORMAL)
-            .fontSize(13)
-            .height(32)
-            .flexShrink(0)
-            .margin({ left: 6, right: 4 })
-            .onClick(() => this.clearSeg())
+            // 行尾：确定（保存该段）/ 取消（清空并收起表单）
+            Button($r('app.string.seg_label_confirm'))
+              .buttonStyle(ButtonStyleMode.EMPHASIZED)
+              .fontSize(13)
+              .height(32)
+              .flexShrink(0)
+              .margin({ left: 6 })
+              .onClick(() => this.addSeg(i))
+            Button($r('app.string.cancel'))
+              .buttonStyle(ButtonStyleMode.NORMAL)
+              .fontSize(13)
+              .height(32)
+              .flexShrink(0)
+              .margin({ left: 6, right: 4 })
+              .onClick(() => this.clearSeg())
+          }
+          .width('100%')
+          .alignItems(VerticalAlign.Center)
+          .margin({ top: 6 })
+
+          // 休息时长（分钟）；跨天班次可选计入昨日/开始日/次日
+          Row() {
+            Text($r('app.string.seg_break_hint'))
+              .fontSize(12)
+              .fontColor($r('sys.color.font_tertiary'))
+            TextInput({ text: seg.breakMinutes > 0 ? `${seg.breakMinutes}` : '', placeholder: '0' })
+              .type(InputType.Number)
+              .layoutWeight(1)
+              .height(32)
+              .margin({ left: 6 })
+              .onChange((v: string) => {
+                const n = parseInt(v, 10);
+                seg.breakMinutes = Number.isNaN(n) || n < 0 ? 0 : n;
+              })
+            if (this.segCrossesDay(seg)) {
+              Text($r('app.string.break_day_start'))
+                .fontSize(11)
+                .fontColor(seg.breakDayOffset === 0 ? '#FFFFFF' : $r('sys.color.font_secondary'))
+                .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+                .borderRadius(6)
+                .backgroundColor(seg.breakDayOffset === 0 ? $r('sys.color.brand') : $r('sys.color.comp_background_tertiary'))
+                .margin({ left: 6 })
+                .onClick(() => this.setSegBreakDay(seg, 0))
+              Text($r('app.string.shift_next_day'))
+                .fontSize(11)
+                .fontColor(seg.breakDayOffset === 1 ? '#FFFFFF' : $r('sys.color.font_secondary'))
+                .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+                .borderRadius(6)
+                .backgroundColor(seg.breakDayOffset === 1 ? $r('sys.color.brand') : $r('sys.color.comp_background_tertiary'))
+                .margin({ left: 4 })
+                .onClick(() => this.setSegBreakDay(seg, 1))
+              Text($r('app.string.shift_prev_day'))
+                .fontSize(11)
+                .fontColor(seg.breakDayOffset === -1 ? '#FFFFFF' : $r('sys.color.font_secondary'))
+                .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+                .borderRadius(6)
+                .backgroundColor(seg.breakDayOffset === -1 ? $r('sys.color.brand') : $r('sys.color.comp_background_tertiary'))
+                .margin({ left: 4 })
+                .onClick(() => this.setSegBreakDay(seg, -1))
+            }
+          }
+          .width('100%')
+          .alignItems(VerticalAlign.Center)
+          .margin({ top: 4 })
         }
         .width('100%')
-        .alignItems(VerticalAlign.Center)
-        .margin({ top: 6 })
-      }, (seg: SegStartEnd, i: number) => `${i}-${seg.start}-${seg.end}-${seg.startPrev}-${seg.endNext}`)
+      }, (seg: SegStartEnd, i: number) =>
+        `${i}-${seg.start}-${seg.end}-${seg.startPrev}-${seg.endNext}-${seg.breakMinutes}-${seg.breakDayOffset}`)
 
       // 底部按钮仅编辑模式显示：新增模式每段单独走「添加」流程
       Row() {
@@ -1028,6 +1110,8 @@ export struct SchedulingPage {
                     seg.end = s.end;
                     seg.startPrev = s.startDayOffset < 0;
                     seg.endNext = shiftCrossesDay(s);
+                    seg.breakMinutes = Math.max(0, s.breakMinutes);
+                    seg.breakDayOffset = s.breakDayOffset;
                     this.newSegs = [seg];
                     this.showShiftForm = true;
                   })

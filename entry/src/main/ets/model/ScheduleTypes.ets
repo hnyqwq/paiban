@@ -6,6 +6,7 @@ export class Shift {
   name: string = '';        // 班次名称（来自预设排班，空 = 未命名）
   color: string = '';       // 班次颜色（来自预设排班，空 = 主题蓝）
   breakMinutes: number = 0; // 休息时长（分钟），计算工时时扣除
+  breakDayOffset: number = 0; // 休息归属日相对开始日的偏移：-1 前一日，0 开始日，+1 次日（跨天班次可选）
   startDayOffset: number = 0; // 开始日偏移：-1 昨日，0 当日
   endDayOffset: number = 0;   // 结束日偏移：0 当日，1 次日
 
@@ -95,14 +96,14 @@ export function shiftCrossesDay(s: Shift): boolean {
 }
 
 // 班次落在某天的时长（分钟）：dayOffset 0 = 班次所属日，-1 = 昨日
-// 休息时长计入班次起始日（与统计口径 durationMinutes 一致），跨天尾部不重复扣除
+// 休息时长按 breakDayOffset 指定的日子扣除（0 = 开始日，-1 = 前一日，+1 = 次日），跨天尾部不重复扣除
 export function shiftMinutesOnOffsetDay(s: Shift, dayOffset: number): number {
   const range = shiftAbsRange(s);
   const dayStart = dayOffset * 1440;
   const from = Math.max(range[0], dayStart);
   const to = Math.min(range[1], dayStart + 1440);
   let minutes = Math.max(0, to - from);
-  if (dayOffset === s.startDayOffset) {
+  if (dayOffset === s.startDayOffset + s.breakDayOffset) {
     minutes = Math.max(0, minutes - Math.max(0, s.breakMinutes));
   }
   return minutes;
