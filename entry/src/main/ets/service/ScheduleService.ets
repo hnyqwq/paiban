@@ -667,7 +667,7 @@ export class ScheduleService {
         if (dur > rules.maxContinuousWorkMinutes) {
           const exceed = dur - rules.maxContinuousWorkMinutes;
           result.push(this.str($r('app.string.warn_continuous'), day,
-            minutesToHoursText(dur), rules.maxContinuousWorkMinutes, exceed, rules.mandatoryRestMinutes));
+            minutesToHoursText(dur), exceed, rules.mandatoryRestMinutes));
         }
       }
     }
