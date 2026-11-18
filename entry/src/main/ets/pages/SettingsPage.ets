@@ -712,38 +712,25 @@ export struct SettingsPage {
         .fontColor($r('sys.color.font_tertiary'))
         .width('100%')
         .margin({ top: 10 })
-      TextInput({ text: `${this.presetBreak}`, placeholder: $r('app.string.preset_break_hint') })
-        .type(InputType.Number)
-        .width('100%')
-        .onChange((v: string) => {
-          const n = Number(v);
-          this.presetBreak = Number.isNaN(n) || n < 0 ? 0 : n;
-        })
+      // 休息时长输入 + 跨天时的归属日选择（同一行：输入占一半，选择放右边）
+      Row() {
+        TextInput({ text: `${this.presetBreak}`, placeholder: $r('app.string.preset_break_hint') })
+          .type(InputType.Number)
+          .layoutWeight(1)
+          .onChange((v: string) => {
+            const n = Number(v);
+            this.presetBreak = Number.isNaN(n) || n < 0 ? 0 : n;
+          })
 
-      // 跨天预设：休息时长可选归属日（昨日/开始日/次日）
-      if (this.presetCrossesDay()) {
-        Row() {
-          Text($r('app.string.break_day_attribution'))
-            .fontSize(12)
-            .fontColor($r('sys.color.font_tertiary'))
-            .layoutWeight(1)
-          Text($r('app.string.shift_prev_day'))
-            .fontSize(11)
-            .fontColor(this.presetBreakDay === -1 ? '#FFFFFF' : $r('sys.color.font_secondary'))
-            .padding({ left: 8, right: 8, top: 4, bottom: 4 })
-            .borderRadius(6)
-            .backgroundColor(this.presetBreakDay === -1 ? $r('sys.color.brand') : $r('sys.color.comp_background_tertiary'))
-            .margin({ left: 6 })
-            .onClick(() => {
-              this.presetBreakDay = -1;
-            })
-          Text($r('app.string.break_day_start'))
+        // 跨天预设：休息可选计入今日或次日（只给跨天区间的两天）
+        if (this.presetCrossesDay()) {
+          Text($r('app.string.today_label'))
             .fontSize(11)
             .fontColor(this.presetBreakDay === 0 ? '#FFFFFF' : $r('sys.color.font_secondary'))
             .padding({ left: 8, right: 8, top: 4, bottom: 4 })
             .borderRadius(6)
             .backgroundColor(this.presetBreakDay === 0 ? $r('sys.color.brand') : $r('sys.color.comp_background_tertiary'))
-            .margin({ left: 4 })
+            .margin({ left: 6 })
             .onClick(() => {
               this.presetBreakDay = 0;
             })
@@ -758,10 +745,10 @@ export struct SettingsPage {
               this.presetBreakDay = 1;
             })
         }
-        .width('100%')
-        .alignItems(VerticalAlign.Center)
-        .margin({ top: 6 })
       }
+      .width('100%')
+      .alignItems(VerticalAlign.Center)
+      .margin({ top: 10 })
 
       // 用于自动排班开关：开启后自动填充按此预设排班
       Row() {

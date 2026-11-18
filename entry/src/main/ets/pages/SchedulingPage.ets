@@ -929,7 +929,8 @@ export struct SchedulingPage {
                 seg.breakMinutes = Number.isNaN(n) || n < 0 ? 0 : n;
               })
             if (this.segCrossesDay(seg)) {
-              Text($r('app.string.break_day_start'))
+              // 只给跨天区间的两天可选：昨日→今日 选 昨日/今日；今日→次日 选 今日/次日
+              Text(seg.startPrev ? $r('app.string.shift_prev_day') : $r('app.string.today_label'))
                 .fontSize(11)
                 .fontColor(seg.breakDayOffset === 0 ? '#FFFFFF' : $r('sys.color.font_secondary'))
                 .padding({ left: 8, right: 8, top: 4, bottom: 4 })
@@ -937,7 +938,7 @@ export struct SchedulingPage {
                 .backgroundColor(seg.breakDayOffset === 0 ? $r('sys.color.brand') : $r('sys.color.comp_background_tertiary'))
                 .margin({ left: 6 })
                 .onClick(() => this.setSegBreakDay(seg, 0))
-              Text($r('app.string.shift_next_day'))
+              Text(seg.startPrev ? $r('app.string.today_label') : $r('app.string.shift_next_day'))
                 .fontSize(11)
                 .fontColor(seg.breakDayOffset === 1 ? '#FFFFFF' : $r('sys.color.font_secondary'))
                 .padding({ left: 8, right: 8, top: 4, bottom: 4 })
@@ -945,14 +946,6 @@ export struct SchedulingPage {
                 .backgroundColor(seg.breakDayOffset === 1 ? $r('sys.color.brand') : $r('sys.color.comp_background_tertiary'))
                 .margin({ left: 4 })
                 .onClick(() => this.setSegBreakDay(seg, 1))
-              Text($r('app.string.shift_prev_day'))
-                .fontSize(11)
-                .fontColor(seg.breakDayOffset === -1 ? '#FFFFFF' : $r('sys.color.font_secondary'))
-                .padding({ left: 8, right: 8, top: 4, bottom: 4 })
-                .borderRadius(6)
-                .backgroundColor(seg.breakDayOffset === -1 ? $r('sys.color.brand') : $r('sys.color.comp_background_tertiary'))
-                .margin({ left: 4 })
-                .onClick(() => this.setSegBreakDay(seg, -1))
             }
           }
           .width('100%')
