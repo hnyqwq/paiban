@@ -711,7 +711,8 @@ export struct SettingsPage {
         .fontSize(12)
         .fontColor($r('sys.color.font_tertiary'))
         .width('100%')
-        .margin({ top: 10 })
+        .textAlign(TextAlign.Center)
+        .margin({ top: 4 })
       // 休息时长输入 + 跨天时的归属日选择（同一行：输入占一半，选择放右边）
       Row() {
         TextInput({ text: `${this.presetBreak}`, placeholder: $r('app.string.preset_break_hint') })
