@@ -290,6 +290,8 @@ export struct SecondPage {  scroller: Scroller = new Scroller();
     .height('100%')
     .scrollBar(BarState.Off)
     .align(Alignment.Top)
+    .clip(false)
+    .edgeEffect(EdgeEffect.Spring, { alwaysEnabled: true })
     .backgroundColor($r('sys.color.background_secondary'))
   }
 }

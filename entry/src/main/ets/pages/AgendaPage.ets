@@ -528,6 +528,8 @@ export struct AgendaPage {
     .height('100%')
     .scrollBar(BarState.Off)
     .align(Alignment.Top)
+    .clip(false)
+    .edgeEffect(EdgeEffect.Spring, { alwaysEnabled: true })
     .backgroundColor($r('sys.color.background_secondary'))
   }
 }

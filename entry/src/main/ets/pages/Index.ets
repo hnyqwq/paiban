@@ -156,11 +156,19 @@ struct Index {
         originalStyle: {
           backgroundStyle: {
             backgroundColor: '#00ffffff'
+          },
+          contentStyle: {
+            titleStyle: { mainTitleColor: $r('sys.color.font_primary') },
+            menuStyle: { backgroundColor: $r('sys.color.comp_background_tertiary'), iconColor: $r('sys.color.icon_primary') }
           }
         },
         scrollEffectStyle: {
           backgroundStyle: {
             backgroundColor: '#00ffffff'
+          },
+          contentStyle: {
+            titleStyle: { mainTitleColor: $r('sys.color.font_primary') },
+            menuStyle: { backgroundColor: $r('sys.color.comp_background_tertiary'), iconColor: $r('sys.color.icon_primary') }
           }
         }
       }
