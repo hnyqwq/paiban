@@ -929,7 +929,7 @@ export struct SchedulingPage {
             Column() {
               TextInput({ text: seg.breakMinutes > 0 ? `${seg.breakMinutes}` : '', placeholder: $r('app.string.seg_break_hint') })
                 .type(InputType.Number)
-                .width('70%')
+                .width('100%')
                 .onChange((v: string) => {
                   const n = parseInt(v, 10);
                   seg.breakMinutes = Number.isNaN(n) || n < 0 ? 0 : n;
@@ -956,7 +956,7 @@ export struct SchedulingPage {
                 .margin({ top: 4 })
               }
             }
-            .width('40%')
+            .width('50%')
             .alignItems(HorizontalAlign.Start)
 
             Scroll() {
@@ -987,7 +987,7 @@ export struct SchedulingPage {
             .scrollable(ScrollDirection.Horizontal)
             .scrollBar(BarState.Off)
             .layoutWeight(1)
-            .margin({ left: 10 })
+            .margin({ left: 6 })
           }
           .width('100%')
           .alignItems(VerticalAlign.Center)
