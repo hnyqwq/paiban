@@ -352,6 +352,7 @@ export struct SchedulingPage {
     seg.end = preset.end;
     seg.breakMinutes = preset.breakMinutes;
     seg.breakDayOffset = preset.breakDayOffset;
+    seg.color = preset.color; // 色板同步选中预设颜色
     this.newSegs = [seg];
     this.appliedPresetId = preset.id;
   }
@@ -955,7 +956,7 @@ export struct SchedulingPage {
                 .margin({ top: 4 })
               }
             }
-            .width('50%')
+            .width('40%')
             .alignItems(HorizontalAlign.Start)
 
             Scroll() {
