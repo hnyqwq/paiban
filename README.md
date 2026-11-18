@@ -2,6 +2,11 @@
 
 一款纯本地的鸿蒙（HarmonyOS）排班应用：用月历排班、按自定义规则校验、自动统计工时与休息，支持桌面卡片与班次响铃提醒。**不申请网络权限，所有数据仅保存在本机。**
 
+## 下载
+
+- **正式版**：[AppGallery 应用详情页](https://appgallery.huawei.com/app/detail?id=yylx.hnyqwq.paiban)
+- **邀请测试**：[AppGallery 测试页](https://appgallery.huawei.com/apptest/7hD22mHWhmq)
+
 ## 功能
 
 底栏五个页面：**日程 / 排班 / 统计 / 排班设置 / 我的**。
@@ -86,11 +91,6 @@
 - **系统日历**：仅在用户主动点「加日历」时写入班次事件；写入前查询目标时间段内已有事件用于去重，不读取、修改、删除日历中的其他内容
 - **代理提醒**：为班次添加响铃提醒；删除日程或叉叉删除提醒后自动同步取消；权限 `PUBLISH_AGENT_REMINDER` 安装即授予，另需系统通知开关
 - 隐私协议见「我的」页底部链接
-
-## 下载
-
-- **正式版**：[AppGallery 应用详情页](https://appgallery.huawei.com/app/detail?id=yylx.hnyqwq.paiban)
-- **邀请测试**：[AppGallery 测试页](https://appgallery.huawei.com/apptest/7hD22mHWhmq)
 
 ## 构建
 
