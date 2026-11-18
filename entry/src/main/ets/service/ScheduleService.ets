@@ -458,13 +458,18 @@ export class ScheduleService {
     if (days === null) {
       return false;
     }
-    this.cacheDays = days;
-    this.prefs.putSync(KEY_DAYS, JSON.stringify(days));
-    this.prefs.flush();
-    // 通知各页面重载数据
-    AppStorage.setOrCreate('scheduleDataVersion', Date.now());
-    this.notifyCards();
-    return true;
+    try {
+      this.cacheDays = days;
+      this.prefs.putSync(KEY_DAYS, JSON.stringify(days));
+      this.prefs.flush();
+      // 通知各页面重载数据
+      AppStorage.setOrCreate('scheduleDataVersion', Date.now());
+      this.notifyCards();
+      return true;
+    } catch (e) {
+      // 存储层异常（磁盘满等）不向外抛，避免页面侧 JsCrash
+      return false;
+    }
   }
 
   saveDays(days: DayEntry[]): void {

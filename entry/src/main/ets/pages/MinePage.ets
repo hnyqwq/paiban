@@ -65,12 +65,18 @@ export struct MinePage {
       promptAction.showToast({ message: $r('app.string.import_empty') });
       return;
     }
-    if (this.service.importDays(trimmed)) {
-      promptAction.showToast({ message: $r('app.string.import_success') });
-      this.showImportEditor = false;
-      this.importText = '';
-    } else {
-      promptAction.showToast({ message: $r('app.string.import_failed_len', trimmed.length) });
+    try {
+      if (this.service.importDays(trimmed)) {
+        promptAction.showToast({ message: $r('app.string.import_success') });
+        this.showImportEditor = false;
+        this.importText = '';
+      } else {
+        promptAction.showToast({ message: $r('app.string.import_failed_len', trimmed.length) });
+      }
+    } catch (e) {
+      // 兜底：存储/解析异常不允许抛成 JsCrash
+      hilog.error(0x0000, 'testTag', 'confirmImport failed. Cause: %{public}s', JSON.stringify(e));
+      promptAction.showToast({ message: $r('app.string.import_failed') });
     }
   }
 
