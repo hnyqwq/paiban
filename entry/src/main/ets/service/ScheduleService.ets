@@ -47,7 +47,8 @@ export class ScheduleService {
   }
 
   // 按系统语言取参数化文案：必须按 id+参数格式化，$r 携带的参数在 getStringSync(Resource) 下不会替换
-  str(res: Resource, a?: number | string, b?: number | string, c?: number | string, d?: number | string): string {
+  str(res: Resource, a?: number | string, b?: number | string, c?: number | string, d?: number | string,
+    e?: number | string): string {
     if (this.uiCtx === null) {
       return '';
     }
@@ -64,8 +65,11 @@ export class ScheduleService {
       if (d === undefined) {
         return this.uiCtx.resourceManager.getStringSync(res.id, a, b, c);
       }
-      return this.uiCtx.resourceManager.getStringSync(res.id, a, b, c, d);
-    } catch (e) {
+      if (e === undefined) {
+        return this.uiCtx.resourceManager.getStringSync(res.id, a, b, c, d);
+      }
+      return this.uiCtx.resourceManager.getStringSync(res.id, a, b, c, d, e);
+    } catch (err) {
       return '';
     }
   }
@@ -661,8 +665,9 @@ export class ScheduleService {
       for (const s of entry.shifts) {
         const dur = s.durationMinutes();
         if (dur > rules.maxContinuousWorkMinutes) {
+          const exceed = dur - rules.maxContinuousWorkMinutes;
           result.push(this.str($r('app.string.warn_continuous'), day,
-            minutesToHoursText(dur), rules.maxContinuousWorkMinutes, rules.mandatoryRestMinutes));
+            minutesToHoursText(dur), rules.maxContinuousWorkMinutes, exceed, rules.mandatoryRestMinutes));
         }
       }
     }
