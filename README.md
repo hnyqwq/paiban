@@ -87,6 +87,11 @@
 - **代理提醒**：为班次添加响铃提醒；删除日程或叉叉删除提醒后自动同步取消；权限 `PUBLISH_AGENT_REMINDER` 安装即授予，另需系统通知开关
 - 隐私协议见「我的」页底部链接
 
+## 下载
+
+- **正式版**：[AppGallery 应用详情页](https://appgallery.huawei.com/app/detail?id=yylx.hnyqwq.paiban)
+- **邀请测试**：[AppGallery 测试页](https://appgallery.huawei.com/apptest/7hD22mHWhmq)
+
 ## 构建
 
 使用 DevEco Studio（API 12+，targetSdk 26）打开项目根目录，直接运行 `entry` 模块即可。
