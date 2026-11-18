@@ -578,19 +578,18 @@ export struct MinePage {
             Text($r('app.string.week_start_title'))
               .fontSize(14)
               .layoutWeight(1)
+            WeekStartSegment({
+              selected: this.weekStart,
+              onSelect: (index: number) => {
+                this.weekStart = index;
+                this.service.setWeekStart(index);
+              }
+            })
+              .layoutWeight(1)
           }
           .width('calc(100% - 24vp)')
-          .margin({ left: 12, right: 12, top: 4 })
-
-          WeekStartSegment({
-            selected: this.weekStart,
-            onSelect: (index: number) => {
-              this.weekStart = index;
-              this.service.setWeekStart(index);
-            }
-          })
-            .width('calc(100% - 24vp)')
-            .margin({ left: 12, right: 12, top: 6, bottom: 12 })
+          .alignItems(VerticalAlign.Center)
+          .margin({ left: 12, right: 12, top: 4, bottom: 12 })
         }
         .width('100%')
         .borderRadius(12)
