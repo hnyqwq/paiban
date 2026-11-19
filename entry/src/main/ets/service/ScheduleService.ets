@@ -564,12 +564,26 @@ export class ScheduleService {
     if (entry === undefined) {
       return 0;
     }
-    // 重叠班次按并集计，避免重复计时
-    return unionWorkedMinutes(entry.shifts, 0);
+    // 重叠班次按并集计，避免重复计时；休息时长按归属日扣除
+    const intervals: number[][] = [];
+    for (const s of entry.shifts) {
+      const range = shiftAbsRange(s);
+      const from = Math.max(range[0], 0);
+      const to = Math.min(range[1], 1440);
+      if (to <= from) {
+        continue;
+      }
+      const breakOnDay = s.startDayOffset + s.breakDayOffset === 0 ? Math.max(0, s.breakMinutes) : 0;
+      const workTo = to - breakOnDay;
+      if (workTo > from) {
+        intervals.push([from, workTo]);
+      }
+    }
+    return unionMinutes(intervals);
   }
 
   // 某一天的实际在岗时长（分钟）：当日班次落在该日的部分 + 昨日跨天班次的次日尾巴，
-  // 合并去重后求和
+  // 合并去重后求和；休息时长按归属日扣除
   dayMinutesOnDate(days: DayEntry[], date: string): number {
     const intervals: number[][] = [];
     const own = this.findEntry(days, date);
@@ -578,8 +592,13 @@ export class ScheduleService {
         const range = shiftAbsRange(s);
         const from = Math.max(range[0], 0);
         const to = Math.min(range[1], 1440);
-        if (to > from) {
-          intervals.push([from, to]);
+        if (to <= from) {
+          continue;
+        }
+        const breakOnDay = s.startDayOffset + s.breakDayOffset === 0 ? Math.max(0, s.breakMinutes) : 0;
+        const workTo = to - breakOnDay;
+        if (workTo > from) {
+          intervals.push([from, workTo]);
         }
       }
     }
@@ -589,8 +608,14 @@ export class ScheduleService {
         const range = shiftAbsRange(s);
         const from = Math.max(range[0] - 1440, 0);
         const to = Math.min(range[1] - 1440, 1440);
-        if (to > from) {
-          intervals.push([from, to]);
+        if (to <= from) {
+          continue;
+        }
+        // 昨日班次的休息归属在今日（startDayOffset+breakDayOffset === 1）时扣除
+        const breakOnDay = s.startDayOffset + s.breakDayOffset === 1 ? Math.max(0, s.breakMinutes) : 0;
+        const workTo = to - breakOnDay;
+        if (workTo > from) {
+          intervals.push([from, workTo]);
         }
       }
     }

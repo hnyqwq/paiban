@@ -84,10 +84,21 @@ export async function addShiftToCalendar(context: common.UIAbilityContext, date:
         // 取不到文案就用原样
       }
     }
+    // 设置了休息时长则在描述里注明（与页面展示口径一致）
+    let breakSuffix = '';
+    if (shift.breakMinutes > 0) {
+      try {
+        const breakText = context.resourceManager.getStringByNameSync('preset_break_info',
+          Math.max(0, shift.breakMinutes));
+        breakSuffix = ` ${breakText}`;
+      } catch (e) {
+        // 取不到文案就不追加
+      }
+    }
     const event: calendarManager.Event = {
       type: calendarManager.EventType.NORMAL,
       title: eventTitle,
-      description: `${namePrefix}${shift.start} - ${endText}`,
+      description: `${namePrefix}${shift.start} - ${endText}${breakSuffix}`,
       startTime: range.startMs,
       endTime: range.endMs
     };
